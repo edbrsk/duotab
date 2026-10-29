@@ -103,3 +103,12 @@ test('taps land on the drawn string on every line of music', async () => {
     }
   }
 });
+
+// On the page alphaTab wraps its renderer (ScoreRendererWrapper): bounds are
+// forwarded, the layout is only on `instance`.
+test('taps and the cursor work through the renderer wrapper the page uses', () => {
+  const wrapper = { boundsLookup: renderer.boundsLookup, instance: renderer };
+  const tab = staffLines('TabBarRenderer');
+  expect(hitTest(wrapper, 0, 0, beatX(1), tab.y(0))?.string).toBe(6);
+  expect(cursorRect(wrapper, song, { track: 0, bar: 0, voice: 0, beat: 1, string: 6 })).not.toBeNull();
+});

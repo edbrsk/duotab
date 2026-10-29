@@ -11,6 +11,15 @@ type StaffSystem = { y: number; topPadding: number; staves: { staves: RenderStaf
 
 type Renderer = { boundsLookup: alphaTab.rendering.BoundsLookup | null };
 
+/**
+ * The layout of a ScoreRenderer, or of the one inside the ScoreRendererWrapper
+ * that `api.renderer` is on the page (alphaTab 1.6.1 internals).
+ */
+export function layoutOf(renderer: unknown): unknown {
+  const r = renderer as { layout?: unknown; instance?: { layout?: unknown } };
+  return r.layout ?? r.instance?.layout;
+}
+
 /** The beat of `voice` and the tab string under a tap, in layout coordinates. */
 export function hitTest(renderer: Renderer, track: number, voice: number, x: number, y: number): Hit | null {
   const lookup = renderer.boundsLookup;
@@ -31,8 +40,7 @@ export function hitTest(renderer: Renderer, track: number, voice: number, x: num
       beat = candidate.index;
     }
   }
-  const layout = (renderer as { layout?: unknown }).layout;
-  return { track, bar: bar.index, voice, beat, string: stringAt(layout, bar, y) };
+  return { track, bar: bar.index, voice, beat, string: stringAt(layoutOf(renderer), bar, y) };
 }
 
 /** The tab staff drawing `bar`, with its line positions in layout coordinates. */

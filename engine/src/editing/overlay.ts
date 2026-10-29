@@ -2,7 +2,7 @@ import type * as alphaTab from '@coderline/alphatab';
 
 import type { BarIssue, EditPosition } from '../protocol';
 import { describeOff } from './bar_check';
-import { tabLineY } from './hit_test';
+import { layoutOf, tabLineY } from './hit_test';
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Renderer = { boundsLookup: alphaTab.rendering.BoundsLookup | null };
@@ -15,7 +15,7 @@ export function cursorRect(renderer: Renderer, score: alphaTab.model.Score, at: 
   const beat = bar?.voices[at.voice]?.beats[at.beat];
   const lookup = renderer.boundsLookup;
   if (!bar || !beat || !lookup) return null;
-  const line = tabLineY((renderer as { layout?: unknown }).layout, bar, at.string);
+  const line = tabLineY(layoutOf(renderer), bar, at.string);
   if (!line) return null;
   // An empty beat is not drawn; the cursor then sits at the start of its bar.
   const x = lookup.findBeat(beat)?.onNotesX ?? (lookup.findMasterBarByIndex(at.bar)?.realBounds.x ?? 0) + CURSOR_WIDTH;
