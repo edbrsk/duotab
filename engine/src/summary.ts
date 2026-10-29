@@ -1,6 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import type { SongSummary } from './protocol';
+import { barsWithNotes, barTimeline } from './timeline';
 import { classifyTrack } from './track_kind';
 
 export function summarizeScore(score: alphaTab.model.Score, fileName: string): SongSummary {
@@ -21,8 +22,19 @@ export function summarizeScore(score: alphaTab.model.Score, fileName: string): S
         stringCount: strings.length > 0 ? strings.length : null,
         tuning: strings.length > 0 ? [...strings] : null,
         midiProgram: track.playbackInfo.program,
+        barsWithNotes: [],
       };
     }),
+    bars: [],
+  };
+}
+
+export function describeOpened(score: alphaTab.model.Score, fileName: string): SongSummary {
+  const summary = summarizeScore(score, fileName);
+  return {
+    ...summary,
+    tracks: summary.tracks.map((t) => ({ ...t, barsWithNotes: barsWithNotes(score.tracks[t.index]) })),
+    bars: barTimeline(score),
   };
 }
 

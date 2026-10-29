@@ -1,7 +1,8 @@
 import * as alphaTab from '@coderline/alphatab';
 
-import type { EngineEvent, PathPayload, RenderTrackPayload, Reply, Request } from './protocol';
-import { summarize, summarizeScore } from './summary';
+import type { EngineEvent, PathPayload, RenderTrackPayload, Reply, Request, SeekBarPayload } from './protocol';
+import { describeOpened, summarize } from './summary';
+import { barAtTick } from './timeline';
 
 declare global {
   interface Window {
@@ -35,6 +36,18 @@ let pendingOpen: { resolve: (score: alphaTab.model.Score) => void; reject: (e: u
 api.playerStateChanged.on((e) =>
   post({ event: 'playerState', payload: { playing: e.state === alphaTab.synth.PlayerState.Playing } }),
 );
+
+let postedBar = -1;
+const postBar = (bar: number) => {
+  postedBar = bar;
+  post({ event: 'position', payload: { bar } });
+};
+api.playerPositionChanged.on((e) => {
+  const lookups = api.tickCache?.masterBars;
+  if (!lookups) return;
+  const bar = barAtTick(lookups, e.currentTick);
+  if (bar !== postedBar) postBar(bar);
+});
 
 function whenPlayerReady(): Promise<void> {
   if (api.isReadyForPlayback) return Promise.resolve();
@@ -78,8 +91,9 @@ async function run(request: Request): Promise<unknown> {
         pendingOpen = { resolve, reject };
       });
       // An empty track list keeps alphaTab from drawing before a track is chosen.
+      postedBar = -1;
       api.load(bytes, []);
-      return summarizeScore(await loaded, fileName(path));
+      return describeOpened(await loaded, fileName(path));
     }
     case 'renderTrack': {
       const { index } = request.payload as RenderTrackPayload;
@@ -98,6 +112,16 @@ async function run(request: Request): Promise<unknown> {
     case 'stop':
       api.stop();
       return {};
+    case 'seekBar': {
+      const { bar } = request.payload as SeekBarPayload;
+      await whenPlayerReady();
+      const masterBar = api.score?.masterBars[bar];
+      if (!masterBar || !api.tickCache) throw new Error(`no bar ${bar}`);
+      api.tickPosition = api.tickCache.getMasterBarStart(masterBar);
+      api.scrollToCursor();
+      postBar(bar);
+      return {};
+    }
   }
 }
 

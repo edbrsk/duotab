@@ -74,6 +74,8 @@ class EngineBridge {
 
   Future<void> stop() => _request('stop', const {});
 
+  Future<void> seekBar(int bar) => _request('seekBar', {'bar': bar});
+
   /// Waits for the engine page to load, so the timeout also covers an engine
   /// that never starts.
   Future<Object?> _request(String type, Map<String, Object?> payload) async {

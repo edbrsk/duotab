@@ -42,7 +42,7 @@ Future<void> setupDependencies() async {
   final navigation = NavigationCubit();
   final score = ScoreCubit(engine: engine);
   final hinge = HingeStatusProvider();
-  final playback = PlaybackCubit(engine: engine, hinge: hinge);
+  final playback = PlaybackCubit(engine: engine, hinge: hinge, score: score);
 
   getIt
     ..registerSingleton<AppDirectories>(AppDirectories(documents: documents))

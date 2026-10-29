@@ -4,8 +4,11 @@ import 'package:duotab/core/duo/hinge_status_provider.dart';
 import 'package:duotab/engine/engine_bridge.dart';
 import 'package:duotab/engine/protocol.dart';
 import 'package:duotab/features/playback/playback_cubit.dart';
+import 'package:duotab/features/score/score_cubit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+
+import '../score/score_test_data.dart';
 
 class _Engine extends Mock implements EngineBridge {}
 
@@ -14,6 +17,7 @@ void main() {
   late StreamController<EngineEvent> events;
   late StreamController<dynamic> hingeEvents;
   late HingeStatusProvider hinge;
+  late ScoreCubit score;
   late PlaybackCubit cubit;
 
   setUp(() {
@@ -25,11 +29,16 @@ void main() {
     when(() => engine.play()).thenAnswer((_) async {});
     when(() => engine.pause()).thenAnswer((_) async {});
     when(() => engine.stop()).thenAnswer((_) async {});
-    cubit = PlaybackCubit(engine: engine, hinge: hinge);
+    when(() => engine.seekBar(any())).thenAnswer((_) async {});
+    when(() => engine.renderTrack(any())).thenAnswer((_) async {});
+    when(() => engine.open(any())).thenAnswer((_) async => drumsAndTwoGuitars);
+    score = ScoreCubit(engine: engine);
+    cubit = PlaybackCubit(engine: engine, hinge: hinge, score: score);
   });
 
   tearDown(() async {
     await cubit.close();
+    await score.close();
     hinge.dispose();
     await hingeEvents.close();
     await events.close();
@@ -69,6 +78,26 @@ void main() {
     await playing(on: true);
     events.add(const EngineEvent('ready', {}));
     await pumpEventQueue();
+    expect(cubit.state.playing, isFalse);
+  });
+
+  test('follows the current bar', () async {
+    events.add(const EngineEvent('position', {'bar': 7}));
+    await pumpEventQueue();
+    expect(cubit.state.bar, 7);
+  });
+
+  test('seekBar asks the engine to seek', () async {
+    await cubit.seekBar(3);
+    verify(() => engine.seekBar(3)).called(1);
+  });
+
+  test('opening another song goes back to bar 0 and paused', () async {
+    events.add(const EngineEvent('position', {'bar': 7}));
+    await playing(on: true);
+    await score.open('fixture.gp');
+    await pumpEventQueue();
+    expect(cubit.state.bar, 0);
     expect(cubit.state.playing, isFalse);
   });
 }

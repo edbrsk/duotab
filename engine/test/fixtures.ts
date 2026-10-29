@@ -10,9 +10,24 @@ export const twoGuitarsAndDrums = String.raw`\title "Fixture"
 \articulation defaults
 42.4 | 36.1`;
 
-export function gpBytes(alphaTex: string): Uint8Array {
-  const settings = new alphaTab.Settings();
+export const tempoAndSections = String.raw`\title "Timeline"
+\tempo 120
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+\section "A" "Intro" 0.6.4*4 | \tempo 60 0.6.4*4 | \section "B" "Verse" r.1 | 3.5.1`;
+
+export const repeated = String.raw`\title "Repeat"
+\tempo 120
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+\ro 0.6.4*4 | \rc 2 2.6.4*4 | 3.5.1`;
+
+export function score(alphaTex: string): alphaTab.model.Score {
   const importer = new alphaTab.importer.AlphaTexImporter();
-  importer.initFromString(alphaTex, settings);
-  return new alphaTab.exporter.Gp7Exporter().export(importer.readScore(), settings);
+  importer.initFromString(alphaTex, new alphaTab.Settings());
+  return importer.readScore();
+}
+
+export function gpBytes(alphaTex: string): Uint8Array {
+  return new alphaTab.exporter.Gp7Exporter().export(score(alphaTex), new alphaTab.Settings());
 }

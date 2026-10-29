@@ -14,6 +14,9 @@ class TrackSummary {
   /// 0-based General MIDI program, as alphaTab stores it.
   final int midiProgram;
 
+  /// Per bar; filled when the song is opened, empty in library summaries.
+  final List<bool> barsWithNotes;
+
   const TrackSummary({
     required this.index,
     required this.name,
@@ -21,6 +24,7 @@ class TrackSummary {
     required this.stringCount,
     required this.tuning,
     required this.midiProgram,
+    this.barsWithNotes = const [],
   });
 
   factory TrackSummary.fromJson(Map<String, dynamic> json) => TrackSummary(
@@ -30,6 +34,46 @@ class TrackSummary {
     stringCount: json['stringCount'] as int?,
     tuning: (json['tuning'] as List<dynamic>?)?.cast<int>(),
     midiProgram: json['midiProgram'] as int,
+    barsWithNotes:
+        (json['barsWithNotes'] as List<dynamic>?)?.cast<bool>() ?? const [],
+  );
+}
+
+class Section {
+  final String marker;
+  final String text;
+
+  const Section({required this.marker, required this.text});
+
+  factory Section.fromJson(Map<String, dynamic> json) =>
+      Section(marker: json['marker'] as String, text: json['text'] as String);
+}
+
+/// Where the bar first plays, counting repeats.
+class BarInfo {
+  final int index;
+  final int startTick;
+  final int startMs;
+  final double tempo;
+  final Section? section;
+
+  const BarInfo({
+    required this.index,
+    required this.startTick,
+    required this.startMs,
+    required this.tempo,
+    this.section,
+  });
+
+  factory BarInfo.fromJson(Map<String, dynamic> json) => BarInfo(
+    index: json['index'] as int,
+    startTick: json['startTick'] as int,
+    startMs: json['startMs'] as int,
+    tempo: (json['tempo'] as num).toDouble(),
+    section: switch (json['section']) {
+      final Map<String, dynamic> section => Section.fromJson(section),
+      _ => null,
+    },
   );
 }
 
@@ -37,13 +81,24 @@ class SongSummary {
   final String title;
   final List<TrackSummary> tracks;
 
-  const SongSummary({required this.title, required this.tracks});
+  /// Filled when the song is opened, empty in library summaries.
+  final List<BarInfo> bars;
+
+  const SongSummary({
+    required this.title,
+    required this.tracks,
+    this.bars = const [],
+  });
 
   factory SongSummary.fromJson(Map<String, dynamic> json) => SongSummary(
     title: json['title'] as String,
     tracks: [
       for (final t in json['tracks'] as List<dynamic>)
         TrackSummary.fromJson(t as Map<String, dynamic>),
+    ],
+    bars: [
+      for (final b in (json['bars'] as List<dynamic>?) ?? const [])
+        BarInfo.fromJson(b as Map<String, dynamic>),
     ],
   );
 
@@ -52,7 +107,7 @@ class SongSummary {
 }
 
 class EngineEvent {
-  /// `ready`, `rendered`, `error` or `playerState`.
+  /// `ready`, `rendered`, `error`, `playerState` or `position`.
   final String type;
   final Map<String, dynamic> payload;
 
