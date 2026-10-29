@@ -10,9 +10,11 @@ Inputs: the private sample (`07 Collateral Damage.xml`, MusicXML 2.0 from Guitar
 |---|---|---|
 | 1 | Real files render as notation over tab with techniques | **Partial** |
 | 2 | Code-built 7- and 8-string song, mixed meters, tempo change, four voices renders | **Pass** (widget test) |
-| 3 | Code-built song saved as `.gp` survives | **Partial**; owner check in Guitar Pro 8 pending |
+| 3 | Code-built song saved as `.gp` survives | **Fail**: Guitar Pro 8 cannot open the file (owner check) |
 | 4 | MIDI from `playbackTimeline` plays in time through `AVAudioSequencer` | **Not run** |
 | 5 | Calls for track name, tuning, string count, program, percussion, string pins | **Gaps** |
+
+The owner's own songs (`/Users/eordonez/Desktop/2. Guitar Pro Files/`, 21 Guitar Pro 8 files, licensed, never committed) were added after the first pass. The MusicXML export of Collateral Damage is no longer on the Desktop; its `.gp` original is in that folder.
 
 ### 1. Parsing and layout
 
@@ -20,7 +22,7 @@ Inputs: the private sample (`07 Collateral Damage.xml`, MusicXML 2.0 from Guitar
 - **Speed**: the private sample (1.9 MB, 7 parts, 153 bars) parses in 58 ms on the Mac. Its parts lay out in 2–59 ms each.
 - **Layout without a screen** (`layoutNotationTab` over every part of every parsed file): 551 of 552 parts lay out. The one failure is `buzzroll.xml` (`strokes must be 1..5: 0`).
 - **Widget rendering** (`NotationTabView` in `flutter test`): all 7 parts of the private sample, `bends-advanced.gp`, `effects.gp`, and the 7- and 8-string songs render without exceptions.
-- **On the iPhone Duo simulator**: one `NotationTabView` throws `ArgumentError: annotation/chord symbol references an unknown element id: e92` from `layout_annotations.dart:536`. It does not reproduce in `flutter test`, which suggests it depends on real font metrics. Simulator screenshots came back black on every display tried, so which sample throws, and what the rest look like on the device, is still unconfirmed.
+- **On the iPhone Duo simulator** (owner's screenshot): the private sample's first guitar part throws `ArgumentError: annotation/chord symbol references an unknown element id: e92` from `layout_annotations.dart:536`, and the whole view becomes an error box. The other four samples render. It does not reproduce in `flutter test`, which suggests it depends on real font metrics.
 - **No line wrapping**: `NotationTabView` draws the whole part as one horizontal system (`layout.width × staffSpace`). Nothing in either package wraps notation-over-tab into lines. Wrapping has to be built by cutting the `Score` into per-line `Score`s. That cut has to drop every id-referencing list entry (annotations, slurs, bends, voicings, and so on) whose ids fall outside the line: cutting `measures` alone throws the error above.
 
 **Guitar Pro import keeps techniques.** Counts read back from the technique test files:
@@ -37,6 +39,14 @@ Inputs: the private sample (`07 Collateral Damage.xml`, MusicXML 2.0 from Guitar
 
 Voice 2 is read; no Guitar Pro file produced voice 3 or 4.
 
+**The owner's 21 Guitar Pro 8 files** all parse (3–156 ms each), with bends, slides, hammer-ons and string pins. **Palm mute, vibrato and let ring are dropped from every one.** Collateral Damage `.gp`, all 7 tracks:
+
+| | crisp reads | in the file's GPIF |
+|---|---|---|
+| vibratos | 0 | 242 mentions |
+| palm mutes | 0 | 62 mentions |
+| let rings | 0 | 46 mentions |
+
 **MusicXML import drops guitar tab data.** For the private sample, `multiPartScoreFromMusicXml` returns 7 parts, 153 bars, 7 time signatures and 109 slurs, with the MIDI program on each part. It returns **0** string pins, **0** bends, **0** vibratos, **0** palm mutes and **0** slides, against the file's 4,030 frets, 321 bends, 266 vibratos, 699 palm mutes and 84 slides. The reader handles `<technical>` only for up-bow, down-bow and fingering, and never reads `<staff-details>`/`<staff-tuning>`.
 
 ### 3. Saving `.gp` (`multiPartToGpif` + `writeGpFromGpif`)
@@ -52,7 +62,7 @@ Written to `test_assets_private/spike/roundtrip.gp` and read back with crisp:
 
 A note no string can reach is written as a **rest** (B1 on a 6-string standard tuning came back as a whole rest).
 
-**Owner check pending**: open `roundtrip.gp` in Guitar Pro 8 and report what you see.
+**Guitar Pro 8 fails to open `roundtrip.gp`** (owner check), so crisp's `.gp` writer does not produce files Guitar Pro accepts, at least for this song.
 
 ### 4. Playback
 
@@ -77,8 +87,9 @@ Not run in this spike. The spike's time went on the gaps above, and the decision
 
 Work DuoTab would add to a fork, or around it:
 
-1. **MusicXML guitar import**: tunings from `<staff-tuning>`, string pins from `<string>`/`<fret>`, and bends, hammer-ons/pull-offs, slides, vibrato, palm mute, let ring, harmonics and dead notes. Without this, your sample shows no techniques and wrong fingering.
-2. **Guitar Pro track headers**: expose tuning, name, MIDI program and percussion from the GP3–GP5 and GPIF readers.
+1. **MusicXML guitar import**: tunings from `<staff-tuning>`, string pins from `<string>`/`<fret>`, and bends, hammer-ons/pull-offs, slides, vibrato, palm mute, let ring, harmonics and dead notes. Without this, a MusicXML file shows no techniques and wrong fingering.
+2. **Guitar Pro track headers and techniques**: expose tuning, name, MIDI program and percussion from the GP3–GP5 and GPIF readers, and read palm mute, vibrato and let ring from Guitar Pro 8 files.
+2a. **A `.gp` writer Guitar Pro 8 accepts.**
 3. **Voices 3–4 and tempo changes** in Guitar Pro read and write.
 4. **Line wrapping** for notation over tab, with the id filtering described above.
 5. **The device-only annotation layout error.**
@@ -89,8 +100,16 @@ All of these sit inside one pure-Dart codebase with tests and fuzzing. Items 1, 
 
 ## The alternative: alphaTab in a web view
 
-The spec's last-resort fallback. alphaTab reads GP3–GP8 and MusicXML (guitar techniques included), wraps lines, follows playback with a cursor, and plays through its built-in SoundFont synth with mute/solo, speed and loops. It also writes `.gp`. The cost is architectural: the score and its model live in JavaScript inside a `WKWebView`, so the editor's commands run in JavaScript behind a bridge, and DuoTab becomes a Dart + TypeScript codebase. Native playback through `AVAudioSequencer` would no longer be needed.
+The spec's last-resort fallback, measured with `@coderline/alphatab` 1.6.1 in Node (import and `.gp` export only; rendering and playback not tried). Scripts: `spike/alphatab_probe/` on the spike branch.
+
+- **Reading**: 266 of 268 files, all 21 of the owner's included, in 3–156 ms. It reports track names, MIDI programs, tunings (7-string tracks found, 10 percussion tracks flagged), voices 2–3, tempo automations and time-signature changes. The two failures are `chord-name-overflow.gp5` (out of memory) and `orphan-tempo-automation.gp` (a `TypeError`, possibly in the probe's own counting).
+- **Collateral Damage `.gp`**, all 7 tracks: 4,030 notes, 290 bends, 266 vibratos, 697 palm mutes, 399 let rings, 81 slides, 213 hammer-ons/pull-offs, 14 dead notes, 17 harmonics. The tuning (E♭ standard) and the instrument (program 29, 0-based = Overdriven Guitar) come back on every track.
+- **Saving `.gp`** (`Gp7Exporter`): exporting that song and reading it back gives identical counts. Whether Guitar Pro 8 opens the exported file is pending (`test_assets_private/spike/alphatab-07 Collateral Damage.gp`).
+
+On top of that, alphaTab wraps lines, follows playback with a cursor, and plays through its built-in SoundFont synth with mute/solo, speed and loops. The cost is architectural: the score and its model live in JavaScript inside a `WKWebView`, so the editor's commands run in JavaScript behind a bridge, and DuoTab becomes a Dart + TypeScript codebase. Native playback through `AVAudioSequencer` would no longer be needed.
 
 ## Decision
 
-**Not taken here: it goes to the owner.** Both paths are viable. The choice decides the language of the editor and the size of Plans 2–4, so Tasks 8 and 11 wait for it.
+**Not taken here: it goes to the owner.** The choice decides the language of the editor and the size of Plans 2–4, so Tasks 8 and 11 wait for it.
+
+Recommendation: **alphaTab**. On the owner's own songs it reads everything crisp drops, and its `.gp` export survives a round trip; crisp's `.gp` files do not open in Guitar Pro 8. Keeping crisp means rebuilding import, export and line wrapping before any app feature works.
