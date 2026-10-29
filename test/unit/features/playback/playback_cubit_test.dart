@@ -6,6 +6,7 @@ import 'package:duotab/core/storage/json_file.dart';
 import 'package:duotab/engine/engine_bridge.dart';
 import 'package:duotab/engine/protocol.dart';
 import 'package:duotab/features/playback/playback_cubit.dart';
+import 'package:duotab/features/playback/practice_settings.dart';
 import 'package:duotab/features/playback/practice_store.dart';
 import 'package:duotab/features/playback/tone.dart';
 import 'package:duotab/features/score/score_cubit.dart';
@@ -33,7 +34,10 @@ void main() {
   late SettingsCubit settings;
   late PlaybackCubit cubit;
 
-  setUpAll(() => registerFallbackValue(<TrackMix>[]));
+  setUpAll(() {
+    registerFallbackValue(<TrackMix>[]);
+    registerFallbackValue(const PlaybackRange(startTick: 0, endTick: 0));
+  });
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('playback_cubit_test');
@@ -49,6 +53,10 @@ void main() {
     when(() => engine.stop()).thenAnswer((_) async {});
     when(() => engine.seekBar(any())).thenAnswer((_) async {});
     when(() => engine.setTracks(any())).thenAnswer((_) async {});
+    when(() => engine.setSpeed(any())).thenAnswer((_) async {});
+    when(() => engine.setLooping(looping: any(named: 'looping')))
+        .thenAnswer((_) async {});
+    when(() => engine.setRange(any())).thenAnswer((_) async {});
     when(() => engine.renderTrack(any())).thenAnswer((_) async {});
     // A new object per open, as the bridge parses a fresh summary each time.
     when(() => engine.open(any())).thenAnswer(
@@ -173,5 +181,47 @@ void main() {
     final mixes = _sentMixes(engine);
     expect(mixes, hasLength(3));
     expect(mixes[1].mute, isTrue);
+  });
+
+  test('setSpeed clamps, persists and sends', () async {
+    await openFixture();
+    await cubit.setSpeed(2);
+    expect(cubit.state.practice.speed, 1.5);
+    verify(() => engine.setSpeed(1.5)).called(1);
+    expect((await practice.load('fixture.gp'))!.speed, 1.5);
+  });
+
+  test('a range from the engine is kept and saved', () async {
+    await openFixture();
+    events.add(
+      const EngineEvent('rangeChanged', {
+        'range': {'startTick': 960, 'endTick': 3840},
+      }),
+    );
+    await pumpEventQueue();
+    expect(cubit.state.practice.range!.endTick, 3840);
+    expect((await practice.load('fixture.gp'))!.range!.startTick, 960);
+
+    events.add(const EngineEvent('rangeChanged', {'range': null}));
+    await pumpEventQueue();
+    expect(cubit.state.practice.range, isNull);
+  });
+
+  test('opening a song sends speed, looping and range', () async {
+    await practice.save(
+      'fixture.gp',
+      const PracticeSettings(
+        speed: 0.5,
+        looping: true,
+        range: PlaybackRange(startTick: 0, endTick: 1920),
+      ),
+    );
+    await openFixture();
+    verify(() => engine.setSpeed(0.5)).called(1);
+    verify(() => engine.setLooping(looping: true)).called(1);
+    final range =
+        verify(() => engine.setRange(captureAny())).captured.last
+            as PlaybackRange;
+    expect(range.endTick, 1920);
   });
 }

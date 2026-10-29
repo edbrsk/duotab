@@ -7,11 +7,15 @@ import type {
   RenderTrackPayload,
   Reply,
   Request,
+  RangePayload,
   SeekBarPayload,
+  SetLoopingPayload,
+  SetSpeedPayload,
   SetTracksPayload,
 } from './protocol';
 import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
+import { LongPressSelection } from './touch_selection';
 
 declare global {
   interface Window {
@@ -47,6 +51,33 @@ api.playerStateChanged.on((e) =>
 );
 
 const mixer = new Mixer(api);
+
+api.playbackRangeChanged.on((e) => {
+  const range = e.playbackRange ? { startTick: e.playbackRange.startTick, endTick: e.playbackRange.endTick } : null;
+  post({ event: 'rangeChanged', payload: { range } satisfies RangePayload });
+});
+
+const scoreElement = document.getElementById('score')!;
+const touchSelection = new LongPressSelection<alphaTab.model.Beat>({
+  beatAt(x, y) {
+    const rect = scoreElement.getBoundingClientRect();
+    return api.renderer.boundsLookup?.getBeatAtPos(x - rect.left, y - rect.top) ?? null;
+  },
+  // The same ticks alphaTab's own mouse selection uses.
+  select(start, end) {
+    const cache = api.tickCache;
+    if (!cache) return;
+    const range = new alphaTab.synth.PlaybackRange();
+    range.startTick = cache.getMasterBarStart(start.voice.bar.masterBar) + start.playbackStart;
+    range.endTick = cache.getMasterBarStart(end.voice.bar.masterBar) + end.playbackStart + end.playbackDuration - 50;
+    api.playbackRange = range;
+    api.tickPosition = range.startTick;
+  },
+});
+scoreElement.addEventListener('touchstart', (e) => touchSelection.touchStart(e), { passive: true });
+scoreElement.addEventListener('touchmove', (e) => touchSelection.touchMove(e), { passive: false });
+scoreElement.addEventListener('touchend', (e) => touchSelection.touchEnd(e), { passive: false });
+scoreElement.addEventListener('touchcancel', (e) => touchSelection.touchEnd(e), { passive: false });
 
 let postedBar = -1;
 const postBar = (bar: number) => {
@@ -104,6 +135,9 @@ async function run(request: Request): Promise<unknown> {
       // An empty track list keeps alphaTab from drawing before a track is chosen.
       postedBar = -1;
       mixer.reset();
+      api.playbackSpeed = 1;
+      api.isLooping = false;
+      api.playbackRange = null;
       api.load(bytes, []);
       return describeOpened(await loaded, fileName(path));
     }
@@ -138,6 +172,24 @@ async function run(request: Request): Promise<unknown> {
       const { tracks } = request.payload as SetTracksPayload;
       await whenPlayerReady();
       await mixer.apply(tracks);
+      return {};
+    }
+    case 'setSpeed':
+      api.playbackSpeed = (request.payload as SetSpeedPayload).speed;
+      return {};
+    case 'setLooping':
+      api.isLooping = (request.payload as SetLoopingPayload).looping;
+      return {};
+    case 'setRange': {
+      const { range } = request.payload as RangePayload;
+      if (range) {
+        const playbackRange = new alphaTab.synth.PlaybackRange();
+        playbackRange.startTick = range.startTick;
+        playbackRange.endTick = range.endTick;
+        api.playbackRange = playbackRange;
+      } else {
+        api.playbackRange = null;
+      }
       return {};
     }
   }

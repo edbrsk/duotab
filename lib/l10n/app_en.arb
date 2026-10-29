@@ -31,5 +31,14 @@
   },
   "play": "Play",
   "pause": "Pause",
-  "stop": "Stop"
+  "stop": "Stop",
+  "loop": "Loop",
+  "tempoMarking": "♩ = {bpm}",
+  "@tempoMarking": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  }
 }

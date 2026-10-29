@@ -8,7 +8,8 @@
 </script>
 <style>
   html, body { margin: 0; background: #FBFBF8; }
-  #score { position: relative; }
+  /* A long press selects notes; it must not open the iOS text callout. */
+  #score { position: relative; -webkit-user-select: none; -webkit-touch-callout: none; }
   /* alphaTab draws its playback cursor only when these are styled. */
   .at-cursor-bar { background: rgba(255, 242, 0, 0.25); }
   .at-selection div { background: rgba(61, 124, 255, 0.1); }

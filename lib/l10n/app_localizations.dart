@@ -201,6 +201,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop'**
   String get stop;
+
+  /// No description provided for @loop.
+  ///
+  /// In en, this message translates to:
+  /// **'Loop'**
+  String get loop;
+
+  /// No description provided for @tempoMarking.
+  ///
+  /// In en, this message translates to:
+  /// **'♩ = {bpm}'**
+  String tempoMarking(int bpm);
 }
 
 class _AppLocalizationsDelegate

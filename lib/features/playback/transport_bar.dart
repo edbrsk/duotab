@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/design/design_tokens.dart';
 import '../../l10n/app_localizations.dart';
+import '../score/score_cubit.dart';
 import 'playback_cubit.dart';
+import 'speed_control.dart';
 
 class TransportBar extends StatelessWidget {
   const TransportBar({super.key});
@@ -12,7 +14,12 @@ class TransportBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final playback = context.read<PlaybackCubit>();
-    final playing = context.select<PlaybackCubit, bool>((c) => c.state.playing);
+    final state = context.watch<PlaybackCubit>().state;
+    final bars = context.watch<ScoreCubit>().state.song?.bars ?? const [];
+    final tempo = state.bar < bars.length
+        ? bars[state.bar].tempo * state.practice.speed
+        : null;
+    final looping = state.practice.looping;
     return ColoredBox(
       color: AppColors.panel,
       child: Padding(
@@ -25,9 +32,20 @@ class TransportBar extends StatelessWidget {
               onPressed: playback.stop,
             ),
             IconButton(
-              tooltip: playing ? l10n.pause : l10n.play,
-              icon: Icon(playing ? Icons.pause : Icons.play_arrow),
+              tooltip: state.playing ? l10n.pause : l10n.play,
+              icon: Icon(state.playing ? Icons.pause : Icons.play_arrow),
               onPressed: playback.playPause,
+            ),
+            const SizedBox(width: Spacing.sm),
+            if (tempo != null) Text(l10n.tempoMarking(tempo.round())),
+            const Spacer(),
+            const SpeedControl(),
+            IconButton(
+              tooltip: l10n.loop,
+              isSelected: looping,
+              icon: const Icon(Icons.repeat),
+              color: looping ? AppColors.accent : null,
+              onPressed: () => playback.setLooping(on: !looping),
             ),
           ],
         ),

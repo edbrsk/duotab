@@ -79,6 +79,30 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     if (!identical(song, _song)) return;
     emit(state.copyWith(practice: resolved));
     await _send(() => engine.setTracks([for (final t in song.tracks) _mix(t)]));
+    await _send(() => engine.setSpeed(resolved.speed));
+    await _send(() => engine.setLooping(looping: resolved.looping));
+    await _send(() => engine.setRange(resolved.range));
+  }
+
+  Future<void> setSpeed(double speed) async {
+    // 5% steps; dividing a whole number of steps gives the exact literal.
+    final value = (speed.clamp(0.25, 1.5) * 20).round() / 20;
+    await Future.wait([
+      _updatePractice(state.practice.copyWith(speed: value)),
+      _send(() => engine.setSpeed(value)),
+    ]);
+  }
+
+  Future<void> setLooping({required bool on}) => Future.wait([
+    _updatePractice(state.practice.copyWith(looping: on)),
+    _send(() => engine.setLooping(looping: on)),
+  ]);
+
+  Future<void> _updatePractice(PracticeSettings settings) async {
+    final path = score.state.path;
+    if (_song == null || path == null) return;
+    emit(state.copyWith(practice: settings));
+    await practice.save(path, settings);
   }
 
   TrackMix _mix(TrackSummary track) {
@@ -109,9 +133,8 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     if (song == null || path == null || index >= song.tracks.length) return;
     final tracks = {...state.practice.tracks};
     tracks[index] = change(tracks[index] ?? const TrackPractice());
-    emit(state.copyWith(practice: state.practice.copyWith(tracks: tracks)));
     await Future.wait([
-      practice.save(path, state.practice),
+      _updatePractice(state.practice.copyWith(tracks: tracks)),
       _send(() => engine.setTracks([_mix(song.tracks[index])])),
     ]);
   }
@@ -122,6 +145,12 @@ class PlaybackCubit extends Cubit<PlaybackState> {
         emit(state.copyWith(playing: event.payload['playing'] == true));
       case 'position':
         emit(state.copyWith(bar: event.payload['bar'] as int));
+      case 'rangeChanged':
+        final range = switch (event.payload['range']) {
+          final Map<String, dynamic> json => PlaybackRange.fromJson(json),
+          _ => null,
+        };
+        unawaited(_updatePractice(state.practice.copyWith(range: () => range)));
       // A ready after start-up means the page reloaded, and its player with it.
       case 'ready':
         emit(state.copyWith(playing: false));

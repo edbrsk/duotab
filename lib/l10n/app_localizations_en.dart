@@ -67,4 +67,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stop => 'Stop';
+
+  @override
+  String get loop => 'Loop';
+
+  @override
+  String tempoMarking(int bpm) {
+    return '♩ = $bpm';
+  }
 }

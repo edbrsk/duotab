@@ -76,6 +76,14 @@ class EngineBridge {
 
   Future<void> seekBar(int bar) => _request('seekBar', {'bar': bar});
 
+  Future<void> setSpeed(double speed) => _request('setSpeed', {'speed': speed});
+
+  Future<void> setLooping({required bool looping}) =>
+      _request('setLooping', {'looping': looping});
+
+  Future<void> setRange(PlaybackRange? range) =>
+      _request('setRange', {'range': range?.toJson()});
+
   Future<void> setTracks(List<TrackMix> tracks) => _request('setTracks', {
     'tracks': [for (final t in tracks) t.toJson()],
   });

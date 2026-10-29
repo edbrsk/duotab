@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -8,7 +8,7 @@ export type Reply =
   | { id: number; ok: true; payload: unknown }
   | { id: number; ok: false; error: string };
 
-export type EventType = 'ready' | 'rendered' | 'error' | 'playerState' | 'position';
+export type EventType = 'ready' | 'rendered' | 'error' | 'playerState' | 'position' | 'rangeChanged';
 
 export type EngineEvent = { event: EventType; payload: unknown };
 
@@ -24,6 +24,16 @@ export type SeekBarPayload = { bar: number };
 export type TrackMix = { index: number; mute: boolean; solo: boolean; program: number };
 
 export type SetTracksPayload = { tracks: TrackMix[] };
+
+/** 0.25–1.5 of the written tempo. */
+export type SetSpeedPayload = { speed: number };
+
+export type SetLoopingPayload = { looping: boolean };
+
+export type Range = { startTick: number; endTick: number };
+
+/** Also the payload of `rangeChanged`. */
+export type RangePayload = { range: Range | null };
 
 /** Posted when the bar under the playback position changes, and after every seek. */
 export type PositionPayload = { bar: number };
