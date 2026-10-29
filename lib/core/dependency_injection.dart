@@ -8,7 +8,9 @@ import '../engine/asset_server.dart';
 import '../engine/engine_assets.dart';
 import '../engine/engine_bridge.dart';
 import '../engine/engine_host.dart';
+import '../features/import/incoming_files_provider.dart';
 import '../features/library/library_cubit.dart';
+import '../presentation/shell/app_destinations.dart';
 import '../presentation/shell/navigation_cubit.dart';
 import 'duo/hinge_status_provider.dart';
 import 'duo/vertical_bar_edge_provider.dart';
@@ -33,16 +35,25 @@ Future<void> setupDependencies() async {
   final host = EngineHost(server.engineUri);
 
   final engine = EngineBridge(host.transport);
+  final library = LibraryCubit(documents: documents, engine: engine);
+  final navigation = NavigationCubit();
 
   getIt
     ..registerSingleton<AppDirectories>(AppDirectories(documents: documents))
     ..registerSingleton<AssetServer>(server)
     ..registerSingleton<EngineHost>(host)
     ..registerSingleton<EngineBridge>(engine)
-    ..registerSingleton<LibraryCubit>(
-      LibraryCubit(documents: documents, engine: engine),
+    ..registerSingleton<LibraryCubit>(library)
+    ..registerSingleton<IncomingFilesProvider>(
+      IncomingFilesProvider(
+        documents: documents,
+        onImported: (path) async {
+          await library.refresh();
+          navigation.select(AppTab.editor);
+        },
+      ),
     )
     ..registerSingleton<VerticalBarEdgeProvider>(VerticalBarEdgeProvider())
     ..registerSingleton<HingeStatusProvider>(HingeStatusProvider())
-    ..registerSingleton<NavigationCubit>(NavigationCubit());
+    ..registerSingleton<NavigationCubit>(navigation);
 }

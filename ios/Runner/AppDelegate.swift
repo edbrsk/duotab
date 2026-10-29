@@ -18,6 +18,9 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "HingeStatus") {
       HingeStatusStreamHandler.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "IncomingFiles") {
+      IncomingFilesStreamHandler.shared.register(with: registrar)
+    }
   }
 }
 
@@ -122,6 +125,77 @@ final class HingeStatusStreamHandler: NSObject, @preconcurrency FlutterStreamHan
     case .partiallyOpen: eventSink?("partiallyOpen")
     case .fullyOpen: eventSink?("fullyOpen")
     default: eventSink?("unknown")
+    }
+  }
+}
+
+/// Copies files opened in DuoTab from other apps into a staging folder and
+/// streams their paths to Dart, which moves them into Documents. Files that
+/// arrive before Dart listens (a cold launch from Files) wait in `pending`.
+@MainActor
+final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamHandler {
+  static let shared = IncomingFilesStreamHandler()
+
+  private var eventSink: FlutterEventSink?
+  private var pending: [String] = []
+
+  func register(with registrar: FlutterPluginRegistrar) {
+    FlutterEventChannel(
+      name: "me.withedgar.duotab/incoming_files",
+      binaryMessenger: registrar.messenger()
+    ).setStreamHandler(self)
+  }
+
+  func receive(_ urls: [URL]) {
+    for url in urls {
+      guard let staged = stage(url) else { continue }
+      if let eventSink {
+        eventSink(staged)
+      } else {
+        pending.append(staged)
+      }
+    }
+  }
+
+  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
+    -> FlutterError?
+  {
+    eventSink = events
+    pending.forEach { events($0) }
+    pending.removeAll()
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    eventSink = nil
+    return nil
+  }
+
+  private func stage(_ url: URL) -> String? {
+    // Files opened in place from the Files app are security-scoped.
+    let scoped = url.startAccessingSecurityScopedResource()
+    defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+    let fileManager = FileManager.default
+    guard let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else {
+      return nil
+    }
+    let folder = caches.appendingPathComponent("incoming").appendingPathComponent(UUID().uuidString)
+    let destination = folder.appendingPathComponent(url.lastPathComponent)
+    do {
+      try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
+      try fileManager.copyItem(at: url, to: destination)
+      // Copies iOS hands over through Documents/Inbox would otherwise linger in the Files app.
+      let inbox = url.deletingLastPathComponent()
+      if inbox.lastPathComponent == "Inbox" {
+        try? fileManager.removeItem(at: url)
+        if (try? fileManager.contentsOfDirectory(atPath: inbox.path))?.isEmpty == true {
+          try? fileManager.removeItem(at: inbox)
+        }
+      }
+      return destination.path
+    } catch {
+      NSLog("DuoTab: could not stage \(url.lastPathComponent): \(error)")
+      return nil
     }
   }
 }
