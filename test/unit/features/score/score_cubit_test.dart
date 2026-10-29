@@ -61,4 +61,36 @@ void main() {
           .having((s) => s.error, 'error', contains('No compatible importer')),
     ],
   );
+
+  test('keeps the opened song when rendering fails', () async {
+    when(() => engine.open('fixture.gp'))
+        .thenAnswer((_) async => drumsAndTwoGuitars);
+    when(() => engine.renderTrack(1))
+        .thenThrow(const EngineTimeout('renderTrack'));
+    final cubit = ScoreCubit(engine: engine);
+    addTearDown(cubit.close);
+
+    await cubit.open('fixture.gp');
+
+    expect(cubit.state.song?.title, 'Fixture');
+    expect(cubit.state.path, 'fixture.gp');
+    expect(cubit.state.selectedTrackIndex, 1);
+    expect(cubit.state.error, isNotNull);
+    expect(cubit.state.loading, isFalse);
+  });
+
+  test('reports a failed track switch instead of throwing', () async {
+    when(() => engine.open('fixture.gp'))
+        .thenAnswer((_) async => drumsAndTwoGuitars);
+    final cubit = ScoreCubit(engine: engine);
+    addTearDown(cubit.close);
+    await cubit.open('fixture.gp');
+    when(() => engine.renderTrack(2))
+        .thenThrow(const EngineException('no track 2'));
+
+    await cubit.selectTrack(2);
+
+    expect(cubit.state.error, contains('no track 2'));
+    expect(cubit.state.selectedTrackIndex, 1);
+  });
 }

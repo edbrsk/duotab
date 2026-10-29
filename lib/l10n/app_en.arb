@@ -20,5 +20,13 @@
   },
   "noGuitarTrack": "This song has no guitar track",
   "noSongOpen": "Open a song from the library",
-  "tracksHeading": "Tracks"
+  "tracksHeading": "Tracks",
+  "scoreError": "Couldn't show this song: {message}",
+  "@scoreError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  }
 }

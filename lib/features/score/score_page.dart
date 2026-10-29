@@ -19,6 +19,7 @@ class ScorePage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final state = context.watch<ScoreCubit>().state;
     final message = switch (state) {
+      ScoreState(:final error?) => l10n.scoreError(error),
       ScoreState(song: null, loading: false) => l10n.noSongOpen,
       ScoreState(:final song?) when song.guitarTracks.isEmpty =>
         l10n.noGuitarTrack,

@@ -35,31 +35,56 @@ class ScoreCubit extends Cubit<ScoreState> {
         loading: true,
       ),
     );
+    final SongSummary song;
     try {
-      final song = await engine.open(path);
-      final first = song.guitarTracks.firstOrNull?.index;
-      if (first != null) await engine.renderTrack(first);
-      emit(ScoreState(song: song, path: path, selectedTrackIndex: first));
-    } on Exception catch (e) {
+      song = await engine.open(path);
+    } on Object catch (e) {
       emit(
         ScoreState(
           song: state.song,
           path: state.path,
           selectedTrackIndex: state.selectedTrackIndex,
-          error: e is EngineException ? e.message : '$e',
+          error: _describe(e),
+        ),
+      );
+      return;
+    }
+    // The engine now holds this song, so the state must too, even if the
+    // render below fails; track indexes refer to it.
+    final first = song.guitarTracks.firstOrNull?.index;
+    emit(ScoreState(song: song, path: path, selectedTrackIndex: first));
+    if (first != null) await _render(first);
+  }
+
+  Future<void> selectTrack(int trackIndex) async {
+    if (await _render(trackIndex)) {
+      emit(
+        ScoreState(
+          song: state.song,
+          path: state.path,
+          selectedTrackIndex: trackIndex,
         ),
       );
     }
   }
 
-  Future<void> selectTrack(int trackIndex) async {
-    await engine.renderTrack(trackIndex);
-    emit(
-      ScoreState(
-        song: state.song,
-        path: state.path,
-        selectedTrackIndex: trackIndex,
-      ),
-    );
+  Future<bool> _render(int trackIndex) async {
+    try {
+      await engine.renderTrack(trackIndex);
+      return true;
+    } on Object catch (e) {
+      emit(
+        ScoreState(
+          song: state.song,
+          path: state.path,
+          selectedTrackIndex: state.selectedTrackIndex,
+          error: _describe(e),
+        ),
+      );
+      return false;
+    }
   }
+
+  static String _describe(Object error) =>
+      error is EngineException ? error.message : '$error';
 }

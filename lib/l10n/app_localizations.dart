@@ -177,6 +177,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tracks'**
   String get tracksHeading;
+
+  /// No description provided for @scoreError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t show this song: {message}'**
+  String scoreError(String message);
 }
 
 class _AppLocalizationsDelegate

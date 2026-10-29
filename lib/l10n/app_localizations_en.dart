@@ -53,4 +53,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tracksHeading => 'Tracks';
+
+  @override
+  String scoreError(String message) {
+    return 'Couldn\'t show this song: $message';
+  }
 }

@@ -72,4 +72,20 @@ void main() {
     // The engine stays mounted even with nothing to show.
     expect(find.text('engine view', skipOffstage: false), findsOneWidget);
   });
+
+  testWidgets('shows an error from the engine', (tester) async {
+    when(
+      () => engine.open('broken.gp5'),
+    ).thenThrow(const EngineException('No compatible importer found for file'));
+    await cubit.open('broken.gp5');
+    await pumpPage(tester);
+
+    expect(
+      find.text(
+        "Couldn't show this song: No compatible importer found for file",
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Open a song from the library'), findsNothing);
+  });
 }
