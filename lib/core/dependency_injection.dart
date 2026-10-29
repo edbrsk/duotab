@@ -36,6 +36,7 @@ Future<void> setupDependencies() async {
   final host = EngineHost(server.engineUri);
 
   final engine = EngineBridge(host.transport);
+  host.onRestart = engine.restart;
   final library = LibraryCubit(documents: documents, engine: engine);
   final navigation = NavigationCubit();
   final score = ScoreCubit(engine: engine);

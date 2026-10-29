@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../engine/engine_bridge.dart';
@@ -24,7 +26,28 @@ class ScoreState {
 class ScoreCubit extends Cubit<ScoreState> {
   final EngineBridge engine;
 
-  ScoreCubit({required this.engine}) : super(const ScoreState());
+  late final StreamSubscription<EngineEvent> _events;
+
+  ScoreCubit({required this.engine}) : super(const ScoreState()) {
+    _events = engine.events.listen((event) {
+      // A ready with a song open means the engine page was reloaded.
+      if (event.type == 'ready' && state.path != null) unawaited(_reopen());
+    });
+  }
+
+  Future<void> _reopen() async {
+    final track = state.selectedTrackIndex;
+    await open(state.path!);
+    if (track != null && track != state.selectedTrackIndex) {
+      await selectTrack(track);
+    }
+  }
+
+  @override
+  Future<void> close() async {
+    await _events.cancel();
+    return super.close();
+  }
 
   Future<void> open(String path) async {
     emit(

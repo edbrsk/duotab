@@ -112,4 +112,29 @@ void main() {
 
     expect(events, ['rendered', 'error']);
   });
+
+  test(
+    'a restart fails pending requests and waits for the next ready',
+    () async {
+      await engineReady();
+      final pending = bridge.summarize('a.gp');
+      await pumpEventQueue();
+
+      bridge.restart();
+      await expectLater(pending, throwsA(isA<EngineException>()));
+
+      final later = bridge.summarize('b.gp');
+      await pumpEventQueue();
+      expect(transport.sent, hasLength(1));
+
+      await engineReady();
+      expect(transport.lastRequest['payload'], {'path': 'b.gp'});
+      transport.deliver({
+        'id': transport.lastRequest['id'],
+        'ok': true,
+        'payload': {'title': 'B', 'tracks': <Object>[]},
+      });
+      expect((await later).title, 'B');
+    },
+  );
 }

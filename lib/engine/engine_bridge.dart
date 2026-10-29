@@ -29,7 +29,7 @@ class EngineBridge {
   final EngineTransport _transport;
   final Duration timeout;
   final _pending = <int, Completer<Object?>>{};
-  final _ready = Completer<void>();
+  var _ready = Completer<void>();
   final _events = StreamController<EngineEvent>.broadcast();
   late final StreamSubscription<String> _subscription;
   var _nextId = 0;
@@ -39,6 +39,17 @@ class EngineBridge {
   }
 
   Future<void> get ready => _ready.future;
+
+  /// After the web page died and is reloading: fails what was in flight and
+  /// holds new requests until the reloaded page reports ready.
+  void restart() {
+    for (final reply in _pending.values) {
+      if (!reply.isCompleted) {
+        reply.completeError(const EngineException('The engine restarted'));
+      }
+    }
+    if (_ready.isCompleted) _ready = Completer<void>();
+  }
 
   Stream<EngineEvent> get events => _events.stream;
 
@@ -65,7 +76,8 @@ class EngineBridge {
     _pending[id] = reply;
     try {
       return await () async {
-        await ready;
+        // A restart fails the reply, which also ends the wait for ready.
+        await Future.any<Object?>([ready, reply.future]);
         await _transport.send(
           jsonEncode({'id': id, 'type': type, 'payload': payload}),
         );

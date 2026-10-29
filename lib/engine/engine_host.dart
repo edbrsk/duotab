@@ -28,20 +28,38 @@ class EngineHost {
   final WebViewController controller;
   final WebViewTransport transport;
 
+  /// Called after iOS killed the page's process (memory pressure, often in
+  /// the background) and the page started reloading.
+  void Function()? onRestart;
+
   EngineHost._(this.controller, this.transport);
 
   factory EngineHost(Uri engineUri) {
     final transport = WebViewTransport();
-    final controller = WebViewController()
+    final controller = WebViewController();
+    final host = EngineHost._(controller, transport);
+    controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(AppColors.paper)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onWebResourceError: (error) {
+            if (error.errorType ==
+                WebResourceErrorType.webContentProcessTerminated) {
+              // Reset the bridge first, so the reloaded page's ready is not missed.
+              host.onRestart?.call();
+              unawaited(controller.reload());
+            }
+          },
+        ),
+      )
       ..addJavaScriptChannel(
         'DuoTab',
         onMessageReceived: (m) => transport._incoming.add(m.message),
       );
     transport._controller = controller;
     unawaited(controller.loadRequest(engineUri));
-    return EngineHost._(controller, transport);
+    return host;
   }
 }
 

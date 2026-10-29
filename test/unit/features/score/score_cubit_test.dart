@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duotab/engine/engine_bridge.dart';
+import 'package:duotab/engine/protocol.dart';
 import 'package:duotab/features/score/score_cubit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -10,11 +13,16 @@ class _Engine extends Mock implements EngineBridge {}
 
 void main() {
   late _Engine engine;
+  late StreamController<EngineEvent> events;
 
   setUp(() {
     engine = _Engine();
+    events = StreamController<EngineEvent>.broadcast();
+    when(() => engine.events).thenAnswer((_) => events.stream);
     when(() => engine.renderTrack(any())).thenAnswer((_) async {});
   });
+
+  tearDown(() => events.close());
 
   blocTest<ScoreCubit, ScoreState>(
     'opening selects and renders the first guitar track',
@@ -92,5 +100,21 @@ void main() {
 
     expect(cubit.state.error, contains('no track 2'));
     expect(cubit.state.selectedTrackIndex, 1);
+  });
+
+  test('reopens the song and track after the engine restarts', () async {
+    when(() => engine.open('fixture.gp'))
+        .thenAnswer((_) async => drumsAndTwoGuitars);
+    final cubit = ScoreCubit(engine: engine);
+    addTearDown(cubit.close);
+    await cubit.open('fixture.gp');
+    await cubit.selectTrack(2);
+
+    events.add(const EngineEvent('ready', {}));
+    await pumpEventQueue();
+
+    verify(() => engine.open('fixture.gp')).called(2);
+    verify(() => engine.renderTrack(2)).called(2);
+    expect(cubit.state.selectedTrackIndex, 2);
   });
 }

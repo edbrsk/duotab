@@ -1,4 +1,5 @@
 import 'package:duotab/engine/engine_bridge.dart';
+import 'package:duotab/engine/protocol.dart';
 import 'package:duotab/features/score/score_cubit.dart';
 import 'package:duotab/features/score/score_page.dart';
 import 'package:duotab/l10n/app_localizations.dart';
@@ -17,6 +18,8 @@ void main() {
 
   setUp(() {
     engine = _Engine();
+    when(() => engine.events)
+        .thenAnswer((_) => const Stream<EngineEvent>.empty());
     when(() => engine.renderTrack(any())).thenAnswer((_) async {});
     when(() => engine.open('fixture.gp'))
         .thenAnswer((_) async => drumsAndTwoGuitars);
