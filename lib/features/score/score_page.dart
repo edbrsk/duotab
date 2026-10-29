@@ -8,7 +8,7 @@ import '../../presentation/workspace/workspace_layout.dart';
 import '../playback/transport_bar.dart';
 import 'score_cubit.dart';
 import 'track_drawer.dart';
-import 'track_panel.dart';
+import 'track_info_panel.dart';
 
 class ScorePage extends StatelessWidget {
   /// Replaces the engine's web view in tests, where no web view can run.
@@ -31,7 +31,7 @@ class ScorePage extends StatelessWidget {
 
     return WorkspaceLayout(
       palette: const SizedBox.shrink(),
-      trackPanel: const TrackPanel(),
+      trackPanel: const TrackInfoPanel(),
       transport: const TransportBar(),
       drawer: state.song != null ? const TrackDrawer() : null,
       score: Column(

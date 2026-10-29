@@ -65,5 +65,8 @@
     }
   },
   "showTracks": "Show tracks",
-  "hideTracks": "Hide tracks"
+  "hideTracks": "Hide tracks",
+  "trackHeading": "Track",
+  "tuning": "Tuning",
+  "tone": "Tone"
 }

@@ -112,4 +112,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hideTracks => 'Hide tracks';
+
+  @override
+  String get trackHeading => 'Track';
+
+  @override
+  String get tuning => 'Tuning';
+
+  @override
+  String get tone => 'Tone';
 }

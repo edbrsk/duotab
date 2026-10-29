@@ -56,23 +56,17 @@ void main() {
     );
   }
 
-  testWidgets('lists only guitar tracks and switches between them', (
-    tester,
-  ) async {
+  testWidgets('the right panel shows the drawn track', (tester) async {
     await cubit.open('fixture.gp');
     await pumpPage(tester);
 
-    Finder inPanel(String text) => find.descendant(
-      of: find.byKey(const Key('trackPanel')),
-      matching: find.text(text),
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('trackPanel')),
+        matching: find.text('Guitar 1'),
+      ),
+      findsOneWidget,
     );
-    expect(inPanel('Guitar 1'), findsOneWidget);
-    expect(inPanel('Drums'), findsNothing);
-    await tester.tap(inPanel('Guitar 2'));
-    await tester.pump();
-
-    verify(() => engine.renderTrack(2)).called(1);
-    expect(cubit.state.selectedTrackIndex, 2);
   });
 
   testWidgets('says when a song has no guitar track', (tester) async {

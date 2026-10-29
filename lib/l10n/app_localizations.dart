@@ -279,6 +279,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hide tracks'**
   String get hideTracks;
+
+  /// No description provided for @trackHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Track'**
+  String get trackHeading;
+
+  /// No description provided for @tuning.
+  ///
+  /// In en, this message translates to:
+  /// **'Tuning'**
+  String get tuning;
+
+  /// No description provided for @tone.
+  ///
+  /// In en, this message translates to:
+  /// **'Tone'**
+  String get tone;
 }
 
 class _AppLocalizationsDelegate

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../playback/tone.dart';
+import '../playback/tone_label.dart';
 import 'settings_cubit.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -56,9 +57,3 @@ class SettingsPage extends StatelessWidget {
     );
   }
 }
-
-String toneLabel(AppLocalizations l10n, Tone tone) => switch (tone) {
-  Tone.clean => l10n.toneClean,
-  Tone.overdrive => l10n.toneOverdrive,
-  Tone.highGain => l10n.toneHighGain,
-};
