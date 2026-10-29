@@ -6,6 +6,7 @@ import 'app.dart';
 import 'core/dependency_injection.dart';
 import 'core/duo/hinge_status_provider.dart';
 import 'core/duo/vertical_bar_edge_provider.dart';
+import 'engine/engine_host.dart';
 import 'features/settings/settings_page.dart';
 import 'presentation/shell/app_destinations.dart';
 import 'presentation/shell/app_shell.dart';
@@ -27,7 +28,7 @@ Future<void> main() async {
           child: AppShell(
             pageFor: (tab) => switch (tab) {
               AppTab.library => const SizedBox(),
-              AppTab.editor => const SizedBox(),
+              AppTab.editor => const EngineView(),
               AppTab.settings => const SettingsPage(),
             },
           ),
