@@ -67,3 +67,10 @@ app.*.map.json
 # Licensed test files must never be committed (see the design's Test assets section)
 test_assets_private/
 *.local.xml
+
+# Engine build output and dependencies
+assets/engine/
+engine/node_modules/
+
+# Throwaway spike apps (tracked on the spike/engine branch only)
+spike/
