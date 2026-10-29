@@ -77,8 +77,9 @@ void main() {
     await pumpLayout(tester, width: 890, barEdge: 'trailing', right: 46);
 
     final score = tester.getRect(find.byKey(const Key('score')));
-    expect(score.left, 220);
-    expect(score.right, 670);
+    expect(score.left, kSidePanelWidth);
+    expect(score.right, 890 - kSidePanelWidth);
+    expect(kSidePanelWidth, 240);
     expect(score.center.dx, 445);
     final panelContent = tester.getRect(find.byKey(const Key('trackPanel')));
     expect(panelContent.right, lessThanOrEqualTo(890 - 46));

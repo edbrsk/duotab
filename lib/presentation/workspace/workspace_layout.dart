@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/design/design_tokens.dart';
 import '../../l10n/app_localizations.dart';
 
-const kSidePanelWidth = 220.0;
+// Wide enough for three 44 pt fret keys beside the vertical bar.
+const kSidePanelWidth = 240.0;
 const kThreeColumnMinWidth = 720.0;
 
 /// A collapsed panel's strip, not counting the vertical bar under it.

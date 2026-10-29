@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duotab/engine/protocol.dart';
+import 'package:duotab/features/editor/editor_cubit.dart';
 import 'package:duotab/features/playback/playback_cubit.dart';
 import 'package:duotab/features/playback/practice_settings.dart';
 import 'package:duotab/features/playback/tone.dart';
@@ -14,6 +15,8 @@ import 'package:mocktail/mocktail.dart';
 class _Score extends MockCubit<ScoreState> implements ScoreCubit {}
 
 class _Playback extends MockCubit<PlaybackState> implements PlaybackCubit {}
+
+class _Editor extends MockCubit<EditorState> implements EditorCubit {}
 
 const _song = SongSummary(
   title: 'Collateral',
@@ -40,12 +43,15 @@ const _song = SongSummary(
 void main() {
   late _Score score;
   late _Playback playback;
+  late _Editor editor;
 
   setUpAll(() => registerFallbackValue(Tone.clean));
 
   setUp(() {
     score = _Score();
     playback = _Playback();
+    editor = _Editor();
+    when(() => editor.state).thenReturn(const EditorState());
     when(() => playback.setTone(any(), any())).thenAnswer((_) async {});
     when(
       () => playback.setStaffView(
@@ -81,6 +87,7 @@ void main() {
             providers: [
               BlocProvider<ScoreCubit>.value(value: score),
               BlocProvider<PlaybackCubit>.value(value: playback),
+              BlocProvider<EditorCubit>.value(value: editor),
             ],
             child: const TrackInfoPanel(),
           ),

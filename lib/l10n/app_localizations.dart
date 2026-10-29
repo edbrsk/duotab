@@ -327,6 +327,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tab'**
   String get tab;
+
+  /// No description provided for @fret.
+  ///
+  /// In en, this message translates to:
+  /// **'Fret'**
+  String get fret;
+
+  /// No description provided for @deleteNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete note'**
+  String get deleteNote;
+
+  /// No description provided for @previousBeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous beat'**
+  String get previousBeat;
+
+  /// No description provided for @nextBeat.
+  ///
+  /// In en, this message translates to:
+  /// **'Next beat'**
+  String get nextBeat;
+
+  /// No description provided for @stringUp.
+  ///
+  /// In en, this message translates to:
+  /// **'String up'**
+  String get stringUp;
+
+  /// No description provided for @stringDown.
+  ///
+  /// In en, this message translates to:
+  /// **'String down'**
+  String get stringDown;
 }
 
 class _AppLocalizationsDelegate

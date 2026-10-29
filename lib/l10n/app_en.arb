@@ -73,5 +73,11 @@
   "showTrackPanel": "Show track panel",
   "notation": "Notation",
   "standardNotation": "Standard notation",
-  "tab": "Tab"
+  "tab": "Tab",
+  "fret": "Fret",
+  "deleteNote": "Delete note",
+  "previousBeat": "Previous beat",
+  "nextBeat": "Next beat",
+  "stringUp": "String up",
+  "stringDown": "String down"
 }

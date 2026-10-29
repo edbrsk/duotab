@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/design/design_tokens.dart';
 import '../../l10n/app_localizations.dart';
+import '../editor/fret_pad.dart';
 import '../library/song_list_entry.dart';
 import '../playback/playback_cubit.dart';
 import '../playback/practice_settings.dart';
@@ -94,6 +95,8 @@ class TrackInfoPanel extends StatelessWidget {
                 ],
               ),
             ),
+            heading(l10n.fret),
+            const FretPad(),
           ],
         ],
       ),

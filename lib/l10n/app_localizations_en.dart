@@ -136,4 +136,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tab => 'Tab';
+
+  @override
+  String get fret => 'Fret';
+
+  @override
+  String get deleteNote => 'Delete note';
+
+  @override
+  String get previousBeat => 'Previous beat';
+
+  @override
+  String get nextBeat => 'Next beat';
+
+  @override
+  String get stringUp => 'String up';
+
+  @override
+  String get stringDown => 'String down';
 }

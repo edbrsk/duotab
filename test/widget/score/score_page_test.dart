@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duotab/engine/engine_bridge.dart';
 import 'package:duotab/engine/protocol.dart';
+import 'package:duotab/features/editor/editor_cubit.dart';
 import 'package:duotab/features/playback/playback_cubit.dart';
 import 'package:duotab/features/playback/transport_bar.dart';
 import 'package:duotab/features/score/score_cubit.dart';
@@ -18,12 +19,15 @@ class _Engine extends Mock implements EngineBridge {}
 
 class _Playback extends MockCubit<PlaybackState> implements PlaybackCubit {}
 
+class _Editor extends MockCubit<EditorState> implements EditorCubit {}
+
 class _Settings extends MockCubit<AppSettings> implements SettingsCubit {}
 
 void main() {
   late _Engine engine;
   late ScoreCubit cubit;
   late _Playback playback;
+  late _Editor editor;
   late _Settings settings;
 
   setUp(() {
@@ -36,6 +40,8 @@ void main() {
     when(() => engine.open('beat.gp')).thenAnswer((_) async => drumsOnly);
     cubit = ScoreCubit(engine: engine);
     playback = _Playback();
+    editor = _Editor();
+    when(() => editor.state).thenReturn(const EditorState());
     when(() => playback.state).thenReturn(const PlaybackState());
     settings = _Settings();
     when(() => settings.state).thenReturn(const AppSettings());
@@ -59,6 +65,7 @@ void main() {
           providers: [
             BlocProvider.value(value: cubit),
             BlocProvider<PlaybackCubit>.value(value: playback),
+            BlocProvider<EditorCubit>.value(value: editor),
             BlocProvider<SettingsCubit>.value(value: settings),
           ],
           child: const ScorePage(engineView: Text('engine view')),
