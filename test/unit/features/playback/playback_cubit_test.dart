@@ -291,7 +291,10 @@ void main() {
     late Completer<PracticeSettings?> load;
     late PlaybackCubit slow;
 
-    setUp(() {
+    setUp(() async {
+      // Only the slow cubit is under test; the outer one would save to the
+      // temp folder while tearDown deletes it.
+      await cubit.close();
       slowStore = _Store();
       load = Completer<PracticeSettings?>();
       when(() => slowStore.load(any())).thenAnswer((_) => load.future);
