@@ -129,9 +129,9 @@ final class HingeStatusStreamHandler: NSObject, @preconcurrency FlutterStreamHan
   }
 }
 
-/// Copies files opened in DuoTab from other apps into a staging folder and
-/// streams their paths to Dart, which moves them into Documents. Files that
-/// arrive before Dart listens (a cold launch from Files) wait in `pending`.
+/// Streams files opened in DuoTab from other apps to Dart, copying them into
+/// a staging folder first when they live outside Documents. Files that arrive
+/// before Dart listens (a cold launch from Files) wait in `pending`.
 @MainActor
 final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamHandler {
   static let shared = IncomingFilesStreamHandler()
@@ -171,31 +171,39 @@ final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamH
     return nil
   }
 
+  /// A JSON message for Dart: the original path, and a staged copy unless the
+  /// file already lives in Documents (outside Documents/Inbox), in which case
+  /// Dart opens it where it is. Dart decides what, if anything, to delete.
   private func stage(_ url: URL) -> String? {
+    let fileManager = FileManager.default
+    guard
+      let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first,
+      let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first
+    else { return nil }
+    let original = url.standardizedFileURL.resolvingSymlinksInPath()
+    let documentsPath = documents.standardizedFileURL.resolvingSymlinksInPath().path + "/"
+    let inboxPath = documentsPath + "Inbox/"
+    if original.path.hasPrefix(documentsPath) && !original.path.hasPrefix(inboxPath) {
+      return message(original: original.path, staged: nil)
+    }
     // Files opened in place from the Files app are security-scoped.
     let scoped = url.startAccessingSecurityScopedResource()
     defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-    let fileManager = FileManager.default
-    guard let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first else {
-      return nil
-    }
     let folder = caches.appendingPathComponent("incoming").appendingPathComponent(UUID().uuidString)
     let destination = folder.appendingPathComponent(url.lastPathComponent)
     do {
       try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
       try fileManager.copyItem(at: url, to: destination)
-      // Copies iOS hands over through Documents/Inbox would otherwise linger in the Files app.
-      let inbox = url.deletingLastPathComponent()
-      if inbox.lastPathComponent == "Inbox" {
-        try? fileManager.removeItem(at: url)
-        if (try? fileManager.contentsOfDirectory(atPath: inbox.path))?.isEmpty == true {
-          try? fileManager.removeItem(at: inbox)
-        }
-      }
-      return destination.path
+      return message(original: original.path, staged: destination.path)
     } catch {
       NSLog("DuoTab: could not stage \(url.lastPathComponent): \(error)")
       return nil
     }
+  }
+
+  private func message(original: String, staged: String?) -> String? {
+    let payload: [String: Any] = ["original": original, "staged": staged ?? NSNull()]
+    guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
+    return String(data: data, encoding: .utf8)
   }
 }
