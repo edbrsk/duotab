@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Prove the music engine with a spike, then ship an iPhone Duo app that runs only unfolded, lists the songs in its Files folder, accepts files opened from other apps, and shows any guitar track as notation over tab.
+**Goal:** Prove alphaTab inside a web view on iPhone Duo, then ship an app that runs only unfolded, lists the songs in its Files folder, accepts files opened from other apps, and shows any guitar track as notation over tab.
 
-**Architecture:** Flutter app (iOS only) structured like dreambudget: cubits for feature state, `get_it` for wiring, `ChangeNotifier` providers fed by native `EventChannel`s for the vertical-bar edge and the hinge. `crisp_notation_core` is the score model and file codecs, wrapped by DuoTab's own `Song`/`SongTrack` types so the rest of the app never imports codec functions directly; `crisp_notation` draws the score.
+**Architecture:** Flutter app (iOS only) structured like dreambudget: cubits for feature state, `get_it` for wiring, `ChangeNotifier` providers fed by native `EventChannel`s for the vertical-bar edge and the hinge. Songs live in `engine/`, a TypeScript package around alphaTab that runs in one long-lived `WKWebView` and talks to Dart over a JSON message bridge; Dart only sees song summaries.
 
-**Tech Stack:** Flutter 3.47.8, Dart 3, Swift (UIKit, iOS 27.1 SDK), `crisp_notation` / `crisp_notation_core` 0.13.x, `flutter_bloc`, `get_it`, `provider`, `path_provider`, `flutter_localizations` + `intl`, `bloc_test`, `mocktail`.
+**Tech Stack:** Flutter 3.47.8, Dart 3, Swift (UIKit, iOS 27.1 SDK), `webview_flutter`, `flutter_bloc`, `get_it`, `provider`, `path_provider`, `flutter_localizations` + `intl`, `bloc_test`, `mocktail`; TypeScript, `@coderline/alphatab` 1.6.1, esbuild, vitest, Node 26.
 
 **Spec:** `docs/superpowers/specs/2026-10-29-duotab-design.md`
 
@@ -16,10 +16,10 @@ This is the first of four plans; each later one is written after the previous la
 
 | Plan | Delivers |
 |---|---|
-| 1 Foundation (this) | spike, app shell, fold gate, vertical-bar navigation, workspace layout, library, Open In, read-only score viewer |
-| 2 Playback | DuoTab MIDI writer, native `AVAudioSequencer` engine, transport, tones, practice settings store, cursor, A–B loop, count-in, metronome, pause on close |
-| 3 Editor | new song, cursor and fret pad, palette, voices, bar check, bar editing, tempo and time signatures, guitar track management, undo/redo, autosave and the "(DuoTab)" copy |
-| 4 Retune and export | retuning, automatic fingering for parts without string/fret data (Plan 1 shows such parts with `crisp_notation`'s default lowest-fret placement), how unplayable notes are saved, `.gp` / MusicXML / PDF export and share sheet |
+| 1 Foundation (this) | engine spikes, app shell, fold gate, vertical-bar navigation, workspace layout, engine package and bridge, library, Open In, read-only score view |
+| 2 Playback | engine player commands, transport, tones, practice settings store, cursor, A–B loop, count-in, metronome, pause on close |
+| 3 Editor | new song, tap-to-cursor and fret pad, palette, voices, bar check, bar editing, tempo and time signatures, guitar track management, undo/redo, autosave and the "(DuoTab)" copy |
+| 4 Retune and export | retuning, automatic fingering for parts without string/fret data, `.gp` and PDF export, share sheet |
 
 ## Global Constraints
 
@@ -27,98 +27,86 @@ This is the first of four plans; each later one is written after the previous la
 - Flutter package name `duotab`; bundle identifier `me.withedgar.duotab`; every platform channel is named `me.withedgar.duotab/<name>`.
 - `analysis_options.yaml` is copied verbatim from `/Users/eordonez/Code/sideprojects/dreambudget_app/analysis_options.yaml`; `flutter analyze` must report no issues at every commit.
 - No LGPL (or GPL) Dart packages.
+- `@coderline/alphatab` is pinned to exactly `1.6.1` in `engine/package.json` and shipped unmodified.
+- The engine builds with `npm --prefix engine run build` into `assets/engine/`, which is git-ignored; `flutter build` and `flutter run` need it built first. `npm --prefix engine test` runs the engine's tests.
+- Engine message types are declared once in `engine/src/protocol.ts` and mirrored in `lib/engine/protocol.dart`; a change to one changes the other in the same commit.
 - All user-facing strings come from `lib/l10n/app_en.arb`. Exact copy fixed by the spec: `Open your iPhone Duo to continue`, `This song has no guitar track`, `Make DuoTab wider to edit`.
-- `/Users/eordonez/Desktop/07 Collateral Damage.xml` is licensed: never copy it into the repo. Tests reach it only through the environment variable `DUOTAB_PRIVATE_SAMPLE` and skip when it is unset.
+- The owner's songs (`/Users/eordonez/Desktop/2. Guitar Pro Files/`) and the alphaTab test corpus are never copied into the repo. Tests reach the primary song only through the environment variable `DUOTAB_PRIVATE_SAMPLE` (`/Users/eordonez/Desktop/2. Guitar Pro Files/07 Collateral Damage.gp`) and skip when it is unset.
 - Native Swift code lives in `ios/Runner/AppDelegate.swift`, as in dreambudget, so no task edits `project.pbxproj` by hand.
 - Supported song extensions, lowercase: `.gp3`, `.gp4`, `.gp5`, `.gpx`, `.gp`, `.musicxml`, `.xml`, `.mxl`.
 
 ## Review Focus
 
-1. **A malformed or unsupported file in Documents** must show as an unreadable entry in the library; the list still loads and the app does not crash. Test: Task 8 `loader reports FormatException as SongLoadError`, Task 9 `lists a broken file as unreadable`.
-2. **A large real file** (1.9 MB, 7 parts) must not freeze the UI while it parses. Test: Task 8 `parses off the main isolate` and the env-gated `loads the private sample`.
-3. **Closing and reopening the phone** must keep the selected tab and the open song. Test: Task 5 `keeps app state across close and reopen`.
-4. **The vertical bar moving to the other edge** (rotation) must mirror the layout and keep the score centred. Test: Task 7 `mirrors when the bar is on the leading edge`.
-5. **Opening a file whose name already exists in Documents** must keep both, never overwrite. Test: Task 10 `uniqueDestination adds a counter before the extension`.
+1. **A malformed or unsupported file in Documents** must show as an unreadable entry in the library; the list still loads and the app does not crash. Tests: Task 9 `summarize reports a broken file as an error`, Task 11 `lists a broken file as unreadable`.
+2. **The engine never answering** (web view not loaded yet, page crashed, slow file) must fail the request after a timeout, not hang the screen that asked. Test: Task 10 `times out a request the engine never answers`.
+3. **Closing and reopening the phone** must keep the selected tab and the open song. Test: Task 6 `keeps app state across close and reopen`.
+4. **The vertical bar moving to the other edge** (rotation) must mirror the layout and keep the score centred. Test: Task 8 `mirrors when the bar is on the leading edge`.
+5. **Opening a file whose name already exists in Documents** must keep both, never overwrite. Test: Task 12 `uniqueDestination adds a counter before the extension`.
 
 ---
 
-### Task 1: Engine spike
+### Task 1: Engine spike (Step 0a) — done
 
-Throwaway code on branch `spike/engine`, never merged. Only the report lands on `main`.
+Completed: `docs/superpowers/spikes/2026-10-29-engine-spike.md`, commits `06acd90` and `2d42ff9`. alphaTab chosen; the owner confirmed Guitar Pro 8 opens alphaTab's `.gp` export.
+
+---
+
+### Task 2: Web view spike (Step 0b)
+
+Throwaway code on branch `spike/engine`, never merged. Only the report lands on `plan-1-foundation`.
 
 **Files:**
-- Create (branch only): `spike/engine_probe/` (a scratch Flutter app)
-- Create (on `main`): `docs/superpowers/spikes/2026-10-29-engine-spike.md`
+- Create (branch only): `spike/webview_probe/` (a scratch Flutter app with `webview_flutter`, and a static page that loads alphaTab)
+- Modify (on `plan-1-foundation`): `docs/superpowers/spikes/2026-10-29-engine-spike.md` (add a "Step 0b" section)
 
 **Interfaces:**
-- Produces: the report, which later tasks read for the exact `crisp_notation` / `crisp_notation_core` calls and widget parameters. It must answer every question in Step 6.
+- Produces: the report section, answering spec Step 0b checks 1–5. Tasks 9, 10 and 13 read it for: how alphaTab's module, worker, worklet, font and SoundFont are located (settings and URLs that worked); file:// versus the loopback server; load and render time; bridge round-trip time.
 
-- [ ] **Step 1: Create the scratch app**
+- [ ] **Step 1: Build the probe**
 
-```bash
-git switch -c spike/engine
-flutter create --platforms=ios --org me.withedgar --project-name engine_probe spike/engine_probe
-cd spike/engine_probe && flutter pub add crisp_notation crisp_notation_core path_provider
-```
+The scratch app starts a `dart:io` `HttpServer` on `127.0.0.1:0` serving a folder that holds `index.html`, alphaTab's `dist/` (module, worker, worklet, `font/`, `soundfont/`), and the private sample. It loads `http://127.0.0.1:<port>/index.html` in a `WebViewWidget`. The page imports `alphaTab.mjs` as an ES module, creates `new AlphaTabApi(div, settings)` with `display.staveProfile = ScoreTab`, `core.fontDirectory`, `player.playerMode = EnabledSynthesizer`, `player.soundFont` pointing at `sonivox.sf2`, loads the song by URL, renders only track 0, and posts timings and errors through a `JavaScriptChannel` named `DuoTab`. Add a Play button on the page.
 
-Expected: `flutter pub get` resolves `crisp_notation` and `crisp_notation_core` 0.13.x.
+- [ ] **Step 2: Run on the iPhone Duo simulator and check**
 
-- [ ] **Step 2: Gather test files outside the repo**
+Run: `flutter run -d "iPhone Duo"` from `spike/webview_probe`.
+Expected, recorded in the report with screenshots in `test_assets_private/spike/`: notation over tab wrapped into lines (check 1); Play sounds in time with the cursor moving (check 2, owner listens); time from page load to first render (check 4); round-trip time of a `ping` from Dart to the page and back (check 5).
 
-Copy the private sample and any other test files into `/Users/eordonez/Code/sideprojects/duotab/test_assets_private/` (gitignored). Ask the owner to export the private sample from Guitar Pro 8 as `.gp`, and as `.gp5` if Guitar Pro 8 offers it. Download the alphaTab test corpus (`test-data/` in github.com/CoderLine/alphaTab) for GP3, GP4, GP5, GPX and multi-voice files, and record its licence in the report.
+- [ ] **Step 3: Try `file://` (check 3)**
 
-- [ ] **Step 3: Render check (spec Step 0 checks 1 and 2)**
+Load the same page with `loadFile` from the app bundle and record whether the worker, the worklet, the font and the SoundFont load.
+Expected: either it works (the report says the server can serve Documents only) or it fails with the errors recorded (the server stays).
 
-In the scratch app, load each file with the matching reader (`scoreFromMusicXml` / `multiPartScoreFromMusicXml`, `readMusicXmlFromMxl`, `readGpifFromGp` + `multiPartScoreFromGpif`, `readGpifFromGpx`, `gpToMultiPart`). Show each guitar part with `NotationTabView`, and also build a song in code with 7 and 8 strings, mixed time signatures, a tempo change and four voices. Run on the booted iPhone Duo simulator (`flutter run -d "iPhone Duo"`), take screenshots into `test_assets_private/spike/`, and note in the report, per file, what renders wrong or is missing.
-
-- [ ] **Step 4: Round-trip check (spec check 3)**
-
-Write the code-built song with `multiPartToGpif` + `writeGpFromGpif` to `test_assets_private/spike/roundtrip.gp`. The owner opens it in Guitar Pro 8 and reports what survived: voices 3–4, tunings, time signatures, tempo change, techniques. Also record what `scoreToGpif` does with a note no string can reach.
-
-- [ ] **Step 5: Playback check (spec check 4)**
-
-In the scratch app's `AppDelegate.swift`, add a method channel that loads MIDI bytes into `AVAudioSequencer` with an `AVAudioUnitSampler` loaded from a candidate General MIDI SoundFont, and reports `currentPositionInBeats`. Feed it a minimal format-1 file built from `playbackTimeline` of the private sample's first guitar part (program 30). Check that playback stays in time with a highlight driven by polling position at 60 Hz. Record the SoundFont chosen, its size, its licence, and whether it needs cutting down to the guitar, bass and drum programs to keep the app small.
-
-- [ ] **Step 6: Write the report and decide**
-
-The report answers:
-1. Per check (spec Step 0, 1–5): pass, partial (what is missing) or fail.
-2. The exact calls and fields for each imported track's name, tuning, string count, MIDI program, percussion flag, and per-note string pins.
-3. `NotationTabView`'s constructor parameters, how it wraps a long part into systems, and how it is put in a vertical scroll view.
-4. The time to parse the private sample on the simulator.
-5. The decision: keep `crisp_notation` (possibly forked), or the spec's fallback that applies.
-
-If the decision is anything other than "keep", stop after this task and bring the report to the owner. Tasks 8 and 11 depend on it.
-
-- [ ] **Step 7: Commit the report to `main`**
+- [ ] **Step 4: Commit the report section**
 
 ```bash
-git switch main
+git switch plan-1-foundation
 git add docs/superpowers/spikes/2026-10-29-engine-spike.md
-git commit -m "docs: record engine spike results"
+git commit -m "docs: record web view spike results"
 ```
+
+If alphaTab cannot draw or play inside the web view, stop and bring the report to the owner.
 
 ---
 
-### Task 2: App scaffold
+### Task 3: App scaffold
 
 **Files:**
 - Create: Flutter project in the repo root (`pubspec.yaml`, `lib/`, `ios/`, `test/`)
 - Create: `analysis_options.yaml` (copied, see Global Constraints), `l10n.yaml`, `lib/l10n/app_en.arb`
 - Create: `lib/main.dart`, `lib/app.dart`, `lib/core/dependency_injection.dart`
 - Create: `lib/core/design/design_tokens.dart`, `lib/core/design/app_spacing.dart`, `lib/core/design/app_colors.dart`
-- Modify: `ios/Runner.xcodeproj/project.pbxproj` (deployment target only, via `sed`), `ios/Podfile` (`platform :ios, '27.1'`)
+- Modify: `ios/Runner.xcodeproj/project.pbxproj` (deployment target only, via `sed`), `ios/Podfile` (`platform :ios, '27.1'`), `.gitignore` (add `assets/engine/`, `engine/node_modules/`)
 - Test: `test/widget/app_test.dart`
 
 **Interfaces:**
-- Produces: `Future<void> setupDependencies()` in `lib/core/dependency_injection.dart` (later tasks add registrations), `final getIt = GetIt.instance`; `class DuoTabApp extends StatelessWidget` in `lib/app.dart` with `home` supplied by later tasks (`const Placeholder()` for now); tokens `Spacing.{xs=4, sm=8, md=16, lg=24, xl=32}`, `AccessibleSizes.minTouchTarget = 48`, `IconSizes.md = 24`, `AppColors.accent = Color(0xFF3D7CFF)`, `AppColors.panel = Color(0xFF1E2128)`, `AppColors.paper = Color(0xFFFBFBF8)`.
+- Produces: `Future<void> setupDependencies()` in `lib/core/dependency_injection.dart` (later tasks add registrations), `final getIt = GetIt.instance`; `class DuoTabApp extends StatelessWidget` in `lib/app.dart` with a `home` parameter; tokens `Spacing.{xs=4, sm=8, md=16, lg=24, xl=32}`, `AccessibleSizes.minTouchTarget = 48`, `IconSizes.md = 24`, `AppColors.accent = Color(0xFF3D7CFF)`, `AppColors.panel = Color(0xFF1E2128)`, `AppColors.paper = Color(0xFFFBFBF8)`.
 
 - [ ] **Step 1: Generate the project**
 
 ```bash
 flutter create --platforms=ios --org me.withedgar --project-name duotab .
 sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 27.1;/' ios/Runner.xcodeproj/project.pbxproj
-flutter pub add flutter_bloc get_it provider path_provider intl crisp_notation crisp_notation_core
+flutter pub add flutter_bloc get_it provider path_provider path intl webview_flutter
 flutter pub add flutter_localizations --sdk=flutter
 flutter pub add --dev bloc_test mocktail
 ```
@@ -143,7 +131,7 @@ Expected: FAIL (`DuoTabApp` not defined)
 
 - [ ] **Step 4: Implement `DuoTabApp({required Widget home})`, the tokens and `main()`**
 
-`main()` calls `WidgetsFlutterBinding.ensureInitialized()`, `await Bravura.load()`, `await setupDependencies()`, then `runApp`. The theme is dark, with `AppColors.panel` as the surface colour. `app_en.arb` starts with `appTitle: "DuoTab"`.
+`main()` calls `WidgetsFlutterBinding.ensureInitialized()`, `await setupDependencies()`, then `runApp`. The theme is dark, with `AppColors.panel` as the surface colour. `app_en.arb` starts with `appTitle: "DuoTab"`.
 
 - [ ] **Step 5: Verify**
 
@@ -158,7 +146,7 @@ git add -A && git commit -m "feat: scaffold DuoTab Flutter app for iOS 27.1"
 
 ---
 
-### Task 3: Vertical-bar edge bridge
+### Task 4: Vertical-bar edge bridge
 
 A port of dreambudget commit `556e8f9`, with the channel renamed.
 
@@ -197,7 +185,7 @@ git add -A && git commit -m "feat: stream the iPhone Duo vertical bar edge to Fl
 
 ---
 
-### Task 4: Hinge bridge
+### Task 5: Hinge bridge
 
 **Files:**
 - Modify: `ios/Runner/AppDelegate.swift`
@@ -255,7 +243,7 @@ git add -A && git commit -m "feat: stream the iPhone Duo hinge status to Flutter
 
 ---
 
-### Task 5: Fold gate and folded screen
+### Task 6: Fold gate and folded screen
 
 **Files:**
 - Create: `lib/presentation/shell/fold_gate.dart`, `lib/presentation/shell/folded_screen.dart`
@@ -263,7 +251,7 @@ git add -A && git commit -m "feat: stream the iPhone Duo hinge status to Flutter
 - Test: `test/widget/shell/fold_gate_test.dart`
 
 **Interfaces:**
-- Consumes: `HingeStatusProvider` (Task 4).
+- Consumes: `HingeStatusProvider` (Task 5).
 - Produces: `FoldGate({required Widget child})`, `FoldedScreen()` (placeholder logo: a 64×64 rounded square in `AppColors.accent` with the text `DT`, above `foldedMessage`).
 
 - [ ] **Step 1: Write the failing tests**
@@ -292,7 +280,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement `FoldGate`**
 
-`FoldGate` is a `Stack`: the child stays mounted inside `Offstage` plus `TickerMode(enabled: false)` while closed, with `FoldedScreen` on top. That keeps the child's state.
+`FoldGate` is a `Stack`: the child stays mounted inside `Offstage` plus `TickerMode(enabled: false)` while closed, with `FoldedScreen` on top. That keeps the child's state, and it keeps the engine's web view (Task 10) alive.
 
 - [ ] **Step 4: Verify**
 
@@ -307,7 +295,7 @@ git add -A && git commit -m "feat: show a folded screen while iPhone Duo is clos
 
 ---
 
-### Task 6: App shell and navigation
+### Task 7: App shell and navigation
 
 **Files:**
 - Create: `lib/presentation/shell/app_shell.dart`, `lib/presentation/shell/app_destinations.dart`, `lib/presentation/widgets/glass_capsule.dart`, `lib/presentation/widgets/app_navigation_rail.dart`
@@ -317,9 +305,10 @@ git add -A && git commit -m "feat: show a folded screen while iPhone Duo is clos
 - Test: `test/widget/shell/app_shell_test.dart`
 
 **Interfaces:**
-- Consumes: `VerticalBarEdgeProvider` (Task 3).
+- Consumes: `VerticalBarEdgeProvider` (Task 4).
 - Produces: `enum AppTab { library, editor, settings }`; `class NavigationCubit extends Cubit<AppTab>` with `void select(AppTab tab)`; `AppShell({required Widget Function(AppTab) pageFor})`. `GlassCapsule` and `AppNavigationRail` are ported from dreambudget (`withOpacityValue` becomes `withValues(alpha:)`, `AppColors.transferBlue` becomes `AppColors.accent`).
 - The rail is drawn with the bar's width and centred in it, placed on the side `VerticalBarEdge` gives (mapped through text direction, as in `VerticalBarNavigationShell`). With `unspecified`, a bottom `NavigationBar` is shown instead.
+- Pages are kept alive across tab switches (an `IndexedStack`), so the Editor's web view is never torn down.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -331,9 +320,10 @@ testWidgets('puts the tab capsule in a trailing vertical bar', (tester) async {
   expect(find.byType(NavigationBar), findsNothing);
 });
 testWidgets('uses a bottom navigation bar when there is no vertical bar', …);
-testWidgets('switches pages from the capsule', (tester) async {
+testWidgets('switches pages from the capsule and keeps them alive', (tester) async {
   await tester.tap(find.byTooltip('Settings')); await tester.pump();
   expect(find.byType(SettingsPage), findsOneWidget);
+  // a stateful page under Library keeps its counter after switching back
 });
 ```
 
@@ -344,7 +334,7 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement `AppShell`, `NavigationCubit` and the ports**
 
-The page fills the whole screen, so content can run under the bar (Task 7 handles the insets). The rail floats over it, bottom-aligned with `padding.bottom + Spacing.sm`, as in dreambudget.
+The page fills the whole screen, so content can run under the bar (Task 8 handles the insets). The rail floats over it, bottom-aligned with `padding.bottom + Spacing.sm`, as in dreambudget.
 
 - [ ] **Step 4: Verify**
 
@@ -359,7 +349,7 @@ git add -A && git commit -m "feat: add tab navigation in the iPhone Duo vertical
 
 ---
 
-### Task 7: Workspace layout
+### Task 8: Workspace layout
 
 Implements the approved option A v2 mockup (`.superpowers/brainstorm/75036-1793277125/content/editor-layout-v2.html`).
 
@@ -417,96 +407,162 @@ git add -A && git commit -m "feat: three-column workspace centred on the iPhone 
 
 ---
 
-### Task 8: Song model and loader
+### Task 9: Engine package
 
 **Files:**
-- Create: `lib/features/song/song.dart`, `lib/features/song/track_kind.dart`, `lib/features/song/song_loader.dart`
-- Create: `test/fixtures/two_guitars_and_drums.musicxml` (authored for this repo: two 6-string guitar parts with `<staff-details>` tuning and `<technical><string>/<fret>`, a percussion part on MIDI channel 10, 4 bars, 4/4 then 7/8), `test/fixtures/broken.gp5` (20 random bytes)
-- Test: `test/unit/features/song/track_kind_test.dart`, `test/unit/features/song/song_loader_test.dart`
+- Create: `engine/package.json` (scripts `build`, `test`; dependency `@coderline/alphatab` `1.6.1` exact; dev dependencies `typescript`, `esbuild`, `vitest`), `engine/tsconfig.json`, `engine/build.mjs`
+- Create: `engine/src/protocol.ts`, `engine/src/summary.ts`, `engine/src/track_kind.ts`, `engine/src/main.ts`, `engine/index.html`
+- Test: `engine/test/track_kind.test.ts`, `engine/test/summary.test.ts`, `engine/test/fixtures.ts` (alphaTex sources and a helper that turns one into `.gp` bytes with `Gp7Exporter`)
 
 **Interfaces:**
-- Consumes: the spike report's answers 2 and 4 (Task 1).
-- Produces:
-  - `enum TrackKind { guitar, drums, other }` and `TrackKind classifyTrack({required bool hasStrings, required bool isPercussion, int? midiProgram})`: percussion → drums; strings in the file, or a program in 25–32 → guitar; anything else → other.
-  - `class SongTrack { final int index; final String name; final TrackKind kind; final Tuning? tuning; final int? stringCount; final int? midiProgram; final Score score; }`: `tuning` and `stringCount` are null for tracks without strings
-  - `class Song { final String path; final String title; final List<SongTrack> tracks; List<SongTrack> get guitarTracks; }`
-  - `sealed class SongLoadResult`, `SongLoaded(Song song)`, `SongLoadError(String path, String reason)`
-  - `class SongLoader { Future<SongLoadResult> load(String path); }`: picks the reader by extension (the Global Constraints list); parsing runs in `Isolate.run`; any `FormatException`, `ArgumentError` or unknown extension becomes `SongLoadError`. The title comes from the file, falling back to the file name without its extension.
+- Consumes: the Task 2 report for the alphaTab settings and asset URLs that work in the web view.
+- Produces, in `protocol.ts`:
+  - `type Request = { id: number; type: 'ping' | 'summarize' | 'open' | 'renderTrack'; payload: unknown }`, `type Reply = { id: number; ok: true; payload: unknown } | { id: number; ok: false; error: string }`, `type EngineEvent = { event: 'ready' | 'rendered' | 'error'; payload: unknown }`
+  - payloads: `summarize { path: string }` → `SongSummary`; `open { path: string }` → `SongSummary`; `renderTrack { index: number }` → `{}` (then a `rendered` event)
+  - `type TrackKind = 'guitar' | 'drums' | 'other'`; `type TrackSummary = { index: number; name: string; kind: TrackKind; stringCount: number | null; tuning: number[] | null; midiProgram: number }` (tuning = MIDI numbers, top string first; `midiProgram` 0-based as alphaTab stores it); `type SongSummary = { title: string; tracks: TrackSummary[] }`
+- Produces: `classifyTrack(t: { isPercussion: boolean; stringCount: number; midiProgram: number }): TrackKind` (percussion → drums; strings > 0 or a program 24–31 (0-based guitar family) → guitar; else other); `summarize(bytes: Uint8Array, fileName: string): SongSummary` (title falls back to the file name without its extension); `main.ts` installs `window.duotab = { handle(json: string): void }`, answers through `window.webkit.messageHandlers.DuoTab.postMessage` (the channel `webview_flutter` creates), and posts `ready` once alphaTab is set up. `open` loads the song into the single `AlphaTabApi`; `renderTrack` renders only that track with `staveProfile = ScoreTab`.
+- `build.mjs` bundles `src/main.ts` to `../assets/engine/engine.js` with alphaTab left as an external ES module, and copies `index.html` and alphaTab's `dist/` files the Task 2 report names into `../assets/engine/`.
 
-- [ ] **Step 1: Write the failing tests**
-
-```dart
-test('classifies tracks', () {
-  expect(classifyTrack(hasStrings: true, isPercussion: false), TrackKind.guitar);
-  expect(classifyTrack(hasStrings: false, isPercussion: false, midiProgram: 30), TrackKind.guitar);
-  expect(classifyTrack(hasStrings: false, isPercussion: false, midiProgram: 34), TrackKind.other);
-  expect(classifyTrack(hasStrings: true, isPercussion: true), TrackKind.drums);
-});
-
-test('loads the fixture with two guitar tracks and drums', () async {
-  final r = await SongLoader().load('test/fixtures/two_guitars_and_drums.musicxml') as SongLoaded;
-  expect(r.song.tracks.map((t) => t.kind), [TrackKind.guitar, TrackKind.guitar, TrackKind.drums]);
-  expect(r.song.guitarTracks.first.stringCount, 6);
-});
-
-test('loader reports FormatException as SongLoadError', () async {
-  expect(await SongLoader().load('test/fixtures/broken.gp5'), isA<SongLoadError>());
-});
-
-test('parses off the main isolate', () async { /* a loader built with a spy runner records that Isolate.run was used */ });
-
-test('loads the private sample', () async {
-  final path = Platform.environment['DUOTAB_PRIVATE_SAMPLE'];
-  final r = await SongLoader().load(path!) as SongLoaded;
-  expect(r.song.title, 'Collateral Damage');
-  expect(r.song.guitarTracks, hasLength(7));
-  expect(r.song.guitarTracks.first.stringCount, 6);
-}, skip: Platform.environment['DUOTAB_PRIVATE_SAMPLE'] == null);
-```
-
-For the spy, `SongLoader` takes an optional `Future<T> Function<T>(FutureOr<T> Function())` runner that defaults to `Isolate.run`.
-
-- [ ] **Step 2: Run them to see them fail**
-
-Run: `flutter test test/unit/features/song`
-Expected: FAIL
-
-- [ ] **Step 3: Implement `classifyTrack`, the types and `SongLoader`**
-
-- [ ] **Step 4: Verify, including the private sample**
-
-Run: `DUOTAB_PRIVATE_SAMPLE="/Users/eordonez/Desktop/07 Collateral Damage.xml" flutter test test/unit/features/song && flutter analyze`
-Expected: all pass, the private-sample test included.
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 1: Set up the package**
 
 ```bash
-git add -A && git commit -m "feat: load Guitar Pro and MusicXML songs into DuoTab's model"
+mkdir -p engine && cd engine && npm init -y
+npm install --save-exact @coderline/alphatab@1.6.1
+npm install --save-dev typescript esbuild vitest
+```
+
+- [ ] **Step 2: Write the failing tests**
+
+```ts
+test('classifies tracks', () => {
+  expect(classifyTrack({ isPercussion: true, stringCount: 6, midiProgram: 0 })).toBe('drums');
+  expect(classifyTrack({ isPercussion: false, stringCount: 7, midiProgram: 0 })).toBe('guitar');
+  expect(classifyTrack({ isPercussion: false, stringCount: 0, midiProgram: 29 })).toBe('guitar');
+  expect(classifyTrack({ isPercussion: false, stringCount: 0, midiProgram: 33 })).toBe('other');
+});
+
+test('summarizes a generated song with two guitars and drums', () => {
+  // fixtures.ts: alphaTex with a 6-string guitar (program 29), a 7-string guitar, and a percussion track
+  const s = summarize(gpBytes(twoGuitarsAndDrums), 'Fixture.gp');
+  expect(s.tracks.map((t) => t.kind)).toEqual(['guitar', 'guitar', 'drums']);
+  expect(s.tracks[1].stringCount).toBe(7);
+  expect(s.tracks[0].midiProgram).toBe(29);
+});
+
+test('summarize reports a broken file as an error', () => {
+  expect(() => summarize(new Uint8Array(20), 'broken.gp5')).toThrow();
+});
+
+test.skipIf(!process.env.DUOTAB_PRIVATE_SAMPLE)('summarizes the private sample', () => {
+  const s = summarize(new Uint8Array(readFileSync(process.env.DUOTAB_PRIVATE_SAMPLE!)), '07 Collateral Damage.gp');
+  expect(s.tracks).toHaveLength(7);
+  expect(s.tracks.every((t) => t.kind === 'guitar' && t.stringCount === 6)).toBe(true);
+  expect(s.tracks[0].tuning).toEqual([63, 58, 54, 49, 44, 39]);
+});
+```
+
+- [ ] **Step 3: Run them to see them fail**
+
+Run: `npm --prefix engine test`
+Expected: FAIL (modules not found)
+
+- [ ] **Step 4: Implement `protocol.ts`, `track_kind.ts`, `summary.ts`, `main.ts`, `index.html` and `build.mjs`**
+
+- [ ] **Step 5: Verify**
+
+Run: `DUOTAB_PRIVATE_SAMPLE="/Users/eordonez/Desktop/2. Guitar Pro Files/07 Collateral Damage.gp" npm --prefix engine test && npm --prefix engine run build && ls assets/engine`
+Expected: all tests pass, the private-sample one included; `assets/engine/` holds `index.html`, `engine.js` and the copied alphaTab files.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add engine .gitignore && git commit -m "feat: add the alphaTab engine package with song summaries"
 ```
 
 ---
 
-### Task 9: Song library
+### Task 10: Dart engine bridge and host
 
 **Files:**
-- Create: `lib/features/library/song_summary.dart`, `lib/features/library/library_cubit.dart`, `lib/features/library/library_page.dart`
+- Create: `lib/engine/protocol.dart`, `lib/engine/engine_bridge.dart`, `lib/engine/engine_transport.dart`, `lib/engine/asset_server.dart`, `lib/engine/engine_host.dart`
+- Modify: `pubspec.yaml` (`flutter: assets: - assets/engine/`), `lib/core/dependency_injection.dart` (start the server, create `EngineHost` and `EngineBridge`)
+- Test: `test/unit/engine/engine_bridge_test.dart`, `test/unit/engine/protocol_test.dart`, `test/unit/engine/asset_server_test.dart`
+
+**Interfaces:**
+- Consumes: the protocol of Task 9; the Task 2 report (server or `file://`).
+- Produces:
+  - `protocol.dart`: `enum TrackKind { guitar, drums, other }`; `class TrackSummary { final int index; final String name; final TrackKind kind; final int? stringCount; final List<int>? tuning; final int midiProgram; }`; `class SongSummary { final String title; final List<TrackSummary> tracks; List<TrackSummary> get guitarTracks; }`; `fromJson` factories for both.
+  - `abstract interface class EngineTransport { Future<void> send(String json); Stream<String> get incoming; }`
+  - `class EngineBridge` with `EngineBridge(EngineTransport transport, {Duration timeout = const Duration(seconds: 15)})`, `Future<bool> get ready`, `Future<SongSummary> summarize(String documentsRelativePath)`, `Future<SongSummary> open(String documentsRelativePath)`, `Future<void> renderTrack(int index)`, `Stream<EngineEvent> get events`, `void dispose()`. A failed reply throws `EngineException(String message)`; no reply within `timeout` throws `EngineTimeout`.
+  - `class AssetServer` with `static Future<AssetServer> start({required Directory engineAssets, required Directory documents})`, `Uri get engineUri` (`/engine/index.html`), `Uri songUri(String documentsRelativePath)` (`/songs/<path>`), `Future<void> close()`. It binds `127.0.0.1` only, serves `/engine/**` from the unpacked engine assets and `/songs/**` from Documents read-only, and rejects paths that escape either root.
+  - `class EngineHost` owns the single `WebViewController` and a `WebViewTransport implements EngineTransport` (`runJavaScript('window.duotab.handle(<json>)')` out, `JavaScriptChannel('DuoTab')` in), created once in `setupDependencies()` and loading `engineUri`. `EngineView()` is the `WebViewWidget` for that controller. It sits in the score column (Task 13); the shell's `IndexedStack` (Task 7) mounts the Editor page from launch and keeps it mounted, so the engine runs while other tabs show.
+  - Flutter's asset bundle is copied once at launch into `Application Support/engine/<build number>/` so the server can serve it from disk.
+
+- [ ] **Step 1: Write the failing tests**
+
+```dart
+test('answers a request with the reply carrying the same id', () async {
+  final t = FakeTransport(); final b = EngineBridge(t);
+  final f = b.summarize('a.gp');
+  final sent = jsonDecode(t.sent.single) as Map;
+  expect(sent['type'], 'summarize');
+  t.reply({'id': sent['id'], 'ok': true, 'payload': {'title': 'A', 'tracks': []}});
+  expect((await f).title, 'A');
+});
+test('throws EngineException on an error reply', …);
+test('times out a request the engine never answers', () async {
+  final b = EngineBridge(FakeTransport(), timeout: const Duration(milliseconds: 50));
+  await expectLater(b.summarize('a.gp'), throwsA(isA<EngineTimeout>()));
+});
+test('ready completes on the ready event', …);
+test('parses a song summary', …); // kinds, nullable tuning, guitarTracks filter
+test('serves Documents read-only and refuses paths outside it', () async {
+  // GET /songs/a.gp → 200 with bytes; GET /songs/../secret → 404; PUT → 405
+});
+```
+
+- [ ] **Step 2: Run them to see them fail**
+
+Run: `flutter test test/unit/engine`
+Expected: FAIL
+
+- [ ] **Step 3: Implement the protocol, bridge, server and host**
+
+- [ ] **Step 4: Verify on the simulator**
+
+Run: `npm --prefix engine run build && flutter test && flutter analyze && flutter run -d "iPhone Duo"`, with a temporary `debugPrint` of `await bridge.ready` and of a `summarize` call on a file copied into the app's Documents (`cp "$DUOTAB_PRIVATE_SAMPLE" "$(xcrun simctl get_app_container booted me.withedgar.duotab data)/Documents/"`). Remove the prints.
+Expected: tests pass; the log shows `ready` and a summary with 7 guitar tracks.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add -A && git commit -m "feat: bridge Flutter to the alphaTab engine in a web view"
+```
+
+---
+
+### Task 11: Song library
+
+**Files:**
+- Create: `lib/features/library/song_list_entry.dart`, `lib/features/library/library_cubit.dart`, `lib/features/library/library_page.dart`
 - Modify: `ios/Runner/Info.plist` (`UIFileSharingEnabled` = true, `LSSupportsOpeningDocumentsInPlace` = true), `lib/l10n/app_en.arb` (`libraryEmpty: "Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoTab"`, `unreadableFile: "Can't open this file"`, `newSong: "New song"`, `stringsCount: "{count} strings"`)
 - Test: `test/unit/features/library/library_cubit_test.dart`, `test/widget/library/library_page_test.dart`
 
 **Interfaces:**
-- Consumes: `SongLoader` (Task 8).
-- Produces: `class SongSummary { final String path; final String title; final String? tuningLabel; final int? stringCount; final bool readable; }` (`tuningLabel` is the open strings low to high, e.g. `E♭ A♭ D♭ G♭ B♭ E♭`, taken from the first guitar track); `class LibraryCubit extends Cubit<LibraryState>` with `LibraryCubit({required Directory documents, required SongLoader loader})`, `Future<void> refresh()`; `LibraryState { final bool loading; final List<SongSummary> songs; }` sorted by title; `LibraryPage({required void Function(String path) onOpen})`. The "New song" button is shown disabled until Plan 3.
-- Summaries are cached in memory by path and modification time, so `refresh()` re-parses only changed files.
+- Consumes: `EngineBridge.summarize`, `SongSummary` (Task 10).
+- Produces: `class SongListEntry { final String path; final String title; final String? tuningLabel; final int? stringCount; final bool readable; }` (`path` relative to Documents; `tuningLabel` is the first guitar track's open strings low to high as note names with flats, e.g. `E♭ A♭ D♭ G♭ B♭ E♭` from `[63, 58, 54, 49, 44, 39]`); `class LibraryCubit extends Cubit<LibraryState>` with `LibraryCubit({required Directory documents, required EngineBridge engine})`, `Future<void> refresh()`; `LibraryState { final bool loading; final List<SongListEntry> songs; }` sorted by title; `LibraryPage({required void Function(String path) onOpen})`. The "New song" button is shown disabled until Plan 3.
+- Entries are cached in memory by path and modification time, so `refresh()` asks the engine only about changed files. A summarize that throws makes the entry unreadable, titled with the file name.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```dart
 blocTest<LibraryCubit, LibraryState>('lists supported files sorted by title',
-  // temp dir with b.musicxml (fixture copy), a.gp5 (broken), notes.txt
-  expect: () => [isLoading, hasSongs(['a', 'b'])]);   // notes.txt ignored
-test('lists a broken file as unreadable', …);           // a.gp5 → readable false
-test('re-parses only files that changed', …);           // loader spy call count
-testWidgets('shows title, tuning and string count', …); // 'E A D G B E', '6 strings'
+  // temp Documents with b.gp, a.gp5, notes.txt; fake engine returns titles 'B' and 'A'
+  expect: () => [isLoading, hasTitles(['A', 'B'])]);   // notes.txt ignored
+test('lists a broken file as unreadable', …);           // engine throws EngineException for a.gp5
+test('asks the engine only about files that changed', …); // fake engine call count after touching one file
+test('labels the tuning low to high with flats', …);    // [63,58,54,49,44,39] → 'E♭ A♭ D♭ G♭ B♭ E♭'
+testWidgets('shows title, tuning and string count', …);
 testWidgets('shows the empty-library hint', …);
 ```
 
@@ -517,11 +573,11 @@ Expected: FAIL
 
 - [ ] **Step 3: Implement**
 
-`main()` resolves Documents with `getApplicationDocumentsDirectory()` and registers `LibraryCubit` in `setupDependencies()`. The library refreshes when the app returns to the foreground (`AppLifecycleListener.onResume`), so files added in the Files app appear.
+`main()` resolves Documents with `getApplicationDocumentsDirectory()` and registers `LibraryCubit` in `setupDependencies()`. The library refreshes when the engine is ready and when the app returns to the foreground (`AppLifecycleListener.onResume`), so files added in the Files app appear.
 
 - [ ] **Step 4: Verify**
 
-Run: `flutter test && flutter analyze`. Then on the simulator, copy the private sample into the app's Documents with `cp "/Users/eordonez/Desktop/07 Collateral Damage.xml" "$(xcrun simctl get_app_container booted me.withedgar.duotab data)/Documents/"` and relaunch.
+Run: `flutter test && flutter analyze`. Then on the simulator, with the private sample copied into the app's Documents (Task 10 Step 4), relaunch.
 Expected: tests pass; the library shows "Collateral Damage", `E♭ A♭ D♭ G♭ B♭ E♭`, "6 strings", and the Files app lists the DuoTab folder.
 
 - [ ] **Step 5: Commit**
@@ -532,29 +588,29 @@ git add -A && git commit -m "feat: list songs from the DuoTab Files folder"
 
 ---
 
-### Task 10: Open files from other apps
+### Task 12: Open files from other apps
 
 **Files:**
-- Modify: `ios/Runner/Info.plist` (`CFBundleDocumentTypes` for the supported extensions; `UTImportedTypeDeclarations` for `com.arobas-music.guitarpro.gp3`…`.gp`, `org.musicxml.xml`, `com.recordare.musicxml.mxl`, each conforming to `public.data`; exact identifiers to confirm against the ones Guitar Pro 8 declares in its own `Info.plist` on the Mac)
+- Modify: `ios/Runner/Info.plist` (`CFBundleDocumentTypes` for the supported extensions; `UTImportedTypeDeclarations` for the Guitar Pro and MusicXML types, each conforming to `public.data`; take the identifiers from the `Info.plist` inside the owner's Guitar Pro 8 app bundle on the Mac, `/Applications/Guitar Pro 8.app/Contents/Info.plist`)
 - Modify: `ios/Runner/AppDelegate.swift` (an `IncomingFilesStreamHandler`; the scene delegate's `scene(_:openURLContexts:)` and the launch `connectionOptions.urlContexts` copy each URL, inside `startAccessingSecurityScopedResource`, to `Caches/incoming/<uuid>/<original name>`, then send that path)
 - Create: `lib/features/import/incoming_files_provider.dart`, `lib/features/import/unique_destination.dart`
 - Test: `test/unit/features/import/unique_destination_test.dart`, `test/unit/features/import/incoming_files_provider_test.dart`
 
 **Interfaces:**
-- Consumes: `LibraryCubit.refresh()` (Task 9), `NavigationCubit.select` (Task 6), `ScoreCubit.open` (Task 11; wire it in Task 11).
-- Produces: `File uniqueDestination(Directory dir, String fileName)`; `class IncomingFilesProvider` with `IncomingFilesProvider({Stream<dynamic>? events, required Directory documents, required Future<void> Function(String path) onImported})`. It moves each incoming file into Documents at `uniqueDestination`, deletes the staging folder, then calls `onImported` with the final path. Channel `me.withedgar.duotab/incoming_files`.
+- Consumes: `LibraryCubit.refresh()` (Task 11), `NavigationCubit.select` (Task 7), `ScoreCubit.open` (Task 13; wire it in Task 13).
+- Produces: `File uniqueDestination(Directory dir, String fileName)`; `class IncomingFilesProvider` with `IncomingFilesProvider({Stream<dynamic>? events, required Directory documents, required Future<void> Function(String path) onImported})`. It moves each incoming file into Documents at `uniqueDestination`, deletes the staging folder, then calls `onImported` with the path relative to Documents. Channel `me.withedgar.duotab/incoming_files`.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```dart
 test('uniqueDestination adds a counter before the extension', () {
-  // dir contains '07 Collateral Damage.xml' and '07 Collateral Damage (2).xml'
-  expect(p.basename(uniqueDestination(dir, '07 Collateral Damage.xml').path),
-      '07 Collateral Damage (3).xml');
+  // dir contains '07 Collateral Damage.gp' and '07 Collateral Damage (2).gp'
+  expect(p.basename(uniqueDestination(dir, '07 Collateral Damage.gp').path),
+      '07 Collateral Damage (3).gp');
   expect(p.basename(uniqueDestination(dir, 'new.gp').path), 'new.gp');
 });
 test('moves an incoming file into Documents and reports it', () async {
-  // staged file in tmp/incoming/x/song.gp → documents/song.gp exists, staging dir gone, onImported called once
+  // staged file in tmp/incoming/x/song.gp → documents/song.gp exists, staging dir gone, onImported('song.gp') called once
 });
 ```
 
@@ -567,7 +623,7 @@ Expected: FAIL
 
 - [ ] **Step 4: Verify on the simulator**
 
-Run: `flutter test && flutter analyze && flutter run -d "iPhone Duo"`. In the simulator's Files app, put a copy of the fixture into "On My iPhone" (outside DuoTab), long-press it, choose Share › DuoTab.
+Run: `flutter test && flutter analyze && flutter run -d "iPhone Duo"`. Drag a song from the Mac onto the simulator so it lands in Files under "On My iPhone" (outside DuoTab), long-press it, choose Share › DuoTab.
 Expected: DuoTab opens and the file appears in the library. Sharing the same file again adds `(2)`.
 
 - [ ] **Step 5: Commit**
@@ -578,7 +634,7 @@ git add -A && git commit -m "feat: open Guitar Pro and MusicXML files shared fro
 
 ---
 
-### Task 11: Read-only score viewer
+### Task 13: Read-only score view
 
 **Files:**
 - Create: `lib/features/score/score_cubit.dart`, `lib/features/score/score_page.dart`, `lib/features/score/track_panel.dart`
@@ -586,26 +642,28 @@ git add -A && git commit -m "feat: open Guitar Pro and MusicXML files shared fro
 - Test: `test/unit/features/score/score_cubit_test.dart`, `test/widget/score/score_page_test.dart`
 
 **Interfaces:**
-- Consumes: `SongLoader`, `Song`, `SongTrack` (Task 8); `WorkspaceLayout` (Task 7); `NotationTabView` with the parameters recorded in the spike report (answer 3).
-- Produces: `class ScoreCubit extends Cubit<ScoreState>` with `Future<void> open(String path)`, `void selectTrack(int trackIndex)`; `ScoreState { final Song? song; final int? selectedTrackIndex; final bool loading; final String? error; }`. Opening selects the first guitar track; a song with none leaves `selectedTrackIndex` null.
-- `ScorePage` fills `WorkspaceLayout`. `score` is the selected track as notation over tab in a vertical scroll view, with the song title above it. `trackPanel` lists `song.guitarTracks` by name with the selected one highlighted. `palette` is an empty panel until Plan 3.
+- Consumes: `EngineBridge.open`, `EngineBridge.renderTrack`, `SongSummary` (Task 10); `EngineView` (Task 10); `WorkspaceLayout` (Task 8).
+- Produces: `class ScoreCubit extends Cubit<ScoreState>` with `ScoreCubit({required EngineBridge engine})`, `Future<void> open(String path)`, `Future<void> selectTrack(int trackIndex)`; `ScoreState { final SongSummary? song; final String? path; final int? selectedTrackIndex; final bool loading; final String? error; }`. Opening asks the engine to open the file, selects the first guitar track and asks the engine to render it. A song with none leaves `selectedTrackIndex` null and renders nothing.
+- `ScorePage` fills `WorkspaceLayout`. `score` is the song title above `EngineView()` (which scrolls itself); `trackPanel` lists `song.guitarTracks` by name with the selected one highlighted; `palette` is an empty panel until Plan 3. The engine draws on `AppColors.paper`.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```dart
-blocTest<ScoreCubit, ScoreState>('opening selects the first guitar track', …);   // fixture → selectedTrackIndex 0
-blocTest<ScoreCubit, ScoreState>('a song without guitar tracks selects none', …); // drums-only fixture variant
+blocTest<ScoreCubit, ScoreState>('opening selects and renders the first guitar track', …);
+  // fake engine: open → tracks [drums, guitar, guitar]; expect selectedTrackIndex 1 and renderTrack(1) called
+blocTest<ScoreCubit, ScoreState>('a song without guitar tracks selects none', …);
+blocTest<ScoreCubit, ScoreState>('reports an engine error', …); // open throws EngineException → state.error set, loading false
 testWidgets('lists only guitar tracks and switches between them', (tester) async {
   expect(find.text('Guitar 1'), findsOneWidget);
   expect(find.text('Drums'), findsNothing);
   await tester.tap(find.text('Guitar 2')); await tester.pump();
-  expect(cubit.state.selectedTrackIndex, 1);
+  expect(engine.rendered.last, 2);
 });
 testWidgets('says when a song has no guitar track', …);  // 'This song has no guitar track'
 testWidgets('asks to open a song when none is open', …); // 'Open a song from the library'
 ```
 
-Add `test/fixtures/drums_only.musicxml` (one percussion part, 2 bars) for the no-guitar cases.
+The widget tests replace `EngineView` with a placeholder through the widget's injection point, since a real web view cannot run under `flutter test`.
 
 - [ ] **Step 2: Run them to see them fail**
 
@@ -616,8 +674,8 @@ Expected: FAIL
 
 - [ ] **Step 4: Verify the whole plan on the simulator**
 
-Run: `flutter test && flutter analyze && flutter run -d "iPhone Duo"`, then:
-1. The library shows Collateral Damage. Tap it: the Editor tab shows "Guitar 1" as notation over E♭-standard tab, centred, with Guitar 1–7 in the right panel under the vertical bar.
+Run: `npm --prefix engine run build && flutter test && flutter analyze && flutter run -d "iPhone Duo"`, then:
+1. The library shows Collateral Damage. Tap it: the Editor tab shows "Guitar 1" as notation over E♭-standard tab, wrapped into lines and centred, with Guitar 1–7 in the right panel under the vertical bar.
 2. Tap "Guitar 3": the score switches.
 3. Close the device in Device Hub: the folded screen appears. Reopen it: the same song and track are still shown.
 4. Rotate so the bar moves to the left: the layout mirrors, and the score stays centred.

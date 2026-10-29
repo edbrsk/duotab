@@ -16,7 +16,7 @@ It is a personal side project. Success is the owner using it to practise and to 
 3. **Play** all tracks of the file over MIDI, with mute and solo per track, a tone per guitar track (clean, overdrive, high gain), speed control, A–B looping and a cursor that follows playback.
 4. **Write** new songs and edit opened ones, Guitar Pro style (see [Editor](#editor)).
 5. **Retune** a guitar track to another tuning while keeping how it sounds (see [Retuning](#retuning)).
-6. **Save** as `.gp`; **export** PDF and MusicXML.
+6. **Save** as `.gp`; **export** PDF. (alphaTab writes `.gp` only; Guitar Pro 8 can turn a `.gp` into MusicXML.)
 7. **Run only unfolded**: closed, the outer display shows a placeholder logo and "Open your iPhone Duo to continue".
 
 ## Non-goals (v1)
@@ -42,13 +42,14 @@ These count as failures even if every feature works:
 - **Toolchain**: Flutter 3.47.8 stable (installed), Xcode 27.1 with the iOS 27.1 SDK. Apps built with this SDK draw edge to edge on both displays and get vertical toolbars below the status bar ([Apple: Prepare](https://developer.apple.com/iphone-duo/prepare/)).
 - **Apple's layout rules for iPhone Duo** apply: size from the view or window and re-read it on every resize, no layout decisions from device orientation, idiom or fixed screen sizes, any size-class combination can occur.
 - **Flutter has no fold awareness on iOS**: `MediaQuery.displayFeatures` is always empty there ([flutter/flutter#192515](https://github.com/flutter/flutter/issues/192515), open). Resizing and the asymmetric safe areas do reach Dart through `LayoutBuilder` and `MediaQuery.paddingOf`. The hinge and the vertical-bar edge need native bridges.
-- **Licences**: bundled assets must allow redistribution in an app (the Bravura font is SIL OFL; the SoundFont's licence must be recorded alongside it). LGPL Dart packages are avoided because the app ships as a single statically linked binary.
+- **Licences**: bundled code and assets must allow redistribution in an app, and each licence is shown in the app's licence screen: alphaTab (MPL-2.0, shipped unmodified, with a link to its source), the Bravura font (SIL OFL), the Sonivox SoundFont (Apache-2.0). LGPL Dart packages are avoided because the app ships as a single statically linked binary.
 
 ## Decisions
 
 ### Project structure
 
 - App lives in `/Users/eordonez/Code/sideprojects/duotab`, iOS target only.
+- **Two codebases in one repo**: the Flutter app (Dart, plus Swift in `ios/`), and `engine/`, a TypeScript package that bundles alphaTab with DuoTab's own engine code into web assets the app ships. The split follows the [Music engine](#music-engine): everything that reads or changes a song runs in the engine; everything around the score runs in Flutter.
 - Conventions follow `/Users/eordonez/Code/sideprojects/dreambudget_app`: `flutter_bloc` cubits for feature state, `get_it` for dependency injection, `provider` `ChangeNotifier`s for platform signals, `gen-l10n` localisation from day one (English first), design tokens for spacing and sizes, tests in `test/unit` and `test/widget`.
 - The iPhone Duo navigation pattern is ported from dreambudget commit `556e8f9` ("Adapt navigation and layout for iPhone Duo"): `ios/Runner/AppDelegate.swift` (`VerticalBarEdgeStreamHandler`), `lib/core/vertical_bar_edge_provider.dart`, `lib/presentation/widgets/glass_capsule.dart`, `app_navigation_rail.dart` and `vertical_bar_app_bar.dart`.
 
@@ -72,27 +73,31 @@ Mockups: `.superpowers/brainstorm/75036-1793277125/content/editor-layout-v2.html
 
 ### Music engine
 
-- **`crisp_notation_core` 0.13.x** (MIT, pure Dart) is the score model and the file codecs: it reads GP3–GP5, GPX, `.gp` (GPIF) and MusicXML/`.mxl`, and writes `.gp`, MusicXML and MIDI.
-- **`crisp_notation` 0.13.x** (MIT) draws notation and tab with the bundled Bravura font, with per-element hit testing, repaint-only highlighting, loop bands and scroll-to-note.
-- Both are young (one maintainer, about 1,000 downloads), so the first build step is a [spike](#step-0-spike) that decides whether they stay.
-- Gaps found in them are fixed in a fork (both are MIT), with fixes offered upstream. A gap only triggers the spike's fallbacks when fixing it is a larger job than the fallback.
+Chosen by the [engine spike](../spikes/2026-10-29-engine-spike.md): on the owner's Guitar Pro 8 files alphaTab reads every technique, and Guitar Pro 8 opens the `.gp` files it writes.
+
+- **alphaTab 1.6.x** (`@coderline/alphatab`, MPL-2.0) is the score model, the file reader (GP3–GP8, MusicXML), the `.gp` writer (`Gp7Exporter`), the renderer (notation over tab, wrapped into lines, Bravura glyphs) and the player.
+- **It runs in one `WKWebView`** (`webview_flutter`), created at launch and kept alive for the app's lifetime. The score page shows it; when it is off screen it keeps working (library summaries, playback).
+- **The engine** (`engine/`, TypeScript) is the only code that touches alphaTab. It exposes DuoTab's own operations over a JSON message bridge: Dart calls `window.duotab.handle(message)` through `runJavaScript`, and the engine answers and pushes events through a JavaScript channel named `DuoTab`. Each message has an `id`, a `type` and a `payload`; replies carry the same `id`. The message types are declared once, in `engine/src/protocol.ts`, and mirrored by hand in Dart.
+- **Song files reach the engine** from a loopback HTTP server the app runs on `127.0.0.1` (random port), which serves the engine's assets and, read-only, the Documents folder. The engine fetches a song by its path under Documents. If Step 0b shows alphaTab's worker and audio worklet loading from `file://` in `WKWebView`, the server shrinks to serving Documents, or goes.
+- **Dart sees songs as summaries**: title, and per track: name, kind, string count, tuning, MIDI program. Notes never cross the bridge.
 - **Guitar tracks**: a track counts as guitar when the file gives it strings and frets (a tab staff), or when its MIDI program is in the guitar family (25–32). A file with no guitar track plays its tracks and shows "This song has no guitar track".
 - **Automatic fingering**: a guitar part with pitches but no string/fret data (common in MusicXML) gets strings and frets assigned on import, in standard tuning for its string count, preferring the lowest playable position and keeping consecutive notes close together. Retuning step 2 uses the same string-choice logic.
 
 ### Playback
 
-- **Engine**: DuoTab writes a format-1 Standard MIDI File from `crisp_notation_core`'s `playbackTimeline`: one MIDI track per song track, the tempo map, velocities from dynamics, pitch bends for techniques. (`scoreToMidi` in `crisp_notation_core` writes format 0 with one tempo and velocity 80, which cannot carry these.) `AVAudioSequencer` plays it natively, with one `AVAudioUnitSampler` per track loaded from a bundled General MIDI SoundFont. A method channel exposes load, play, pause, seek, rate, loop range, mute/solo, program change, and an immediate single-note preview for editing. Dart polls the sequencer's position in beats to drive the cursor.
-- **SoundFont**: a General MIDI `.sf2` with a licence that allows bundling (FluidR3_GM is the first candidate; the builder records the licence next to the file).
+- **Player**: alphaTab's synthesizer, which turns the song (all tracks, tempo changes, dynamics and techniques) into MIDI and plays it in the web view. The engine exposes play, pause, seek, speed, loop range, mute/solo, program change, count-in, metronome and a single-note preview for editing, and pushes the playback position so the cursor (drawn by alphaTab) and Flutter's transport stay in step.
+- **SoundFont**: `sonivox.sf2` (1.3 MB, Apache-2.0), shipped with alphaTab.
 - **Tones** map to General MIDI programs (1-based): Clean = 28 Electric Guitar (clean), Overdrive = 30 Overdriven Guitar, High gain = 31 Distortion Guitar. A guitar track starts with its file's program when that is one of these three, otherwise Clean.
 - **Practice settings** (tone, mute/solo, speed, loop) are kept by the app per file, outside the song file, so practising never modifies or copies a file. When the song is saved, each guitar track's tone is written as its MIDI program.
-- **Other tracks** play with their file's program; drums play on MIDI channel 10 with the SoundFont's percussion bank.
+- **Other tracks** play with their file's program; drums play with the SoundFont's percussion bank.
 - **Speed**: 25–150% of the written tempo, with 50/75/100% shortcuts. Tempo changes in the song are followed.
 - **Looping**: drag across notes to set an A–B loop; on touch, long-press to start the selection.
 - **Count-in** and **metronome** are toggles in Settings.
-- **Techniques heard in MIDI**, at minimum: dynamics as velocity, bends and slides as pitch bend, vibrato, palm mute and dead notes as shortened, quieter notes, let ring as sustain, ghost notes as lower velocity.
+- **Techniques** sound as alphaTab's player renders them.
 
 ### Editor
 
+- **Where it runs**: editing, the bar check, undo/redo and retuning are engine operations on alphaTab's model, followed by a re-render. Flutter draws the palette, the fret pad and the panels, and sends commands. Taps on the score are resolved to bar, voice, beat and string by the engine from alphaTab's layout information.
 - **New song**: title, guitar with 6, 7 or 8 strings, tuning, tempo, starting time signature.
 - **Guitar tracks**: a song can have several. The track panel adds, removes, renames and reorders them, and each has its own string count, tuning and tone. Non-guitar tracks from opened files are kept and played but cannot be edited.
 - **Tuning presets** include at least the standard tunings for each string count (6: E, E♭, D, C♯, C, B; 7: B, A; 8: F♯, E), the common drop tunings, and a custom tuning per string.
@@ -129,38 +134,40 @@ Retuning applies to one guitar track, keeps every note's pitch and moves the fre
 - Songs live in the app's Documents folder, visible in the Files app under On My iPhone › DuoTab (`UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace`).
 - The app registers document types for every supported extension, so Open In / AirDrop / Files offer DuoTab; an incoming file is copied into Documents.
 - **Opened files are never overwritten.** The first edit to an opened file (any change to notes, bars, tracks or tuning) creates `<name> (DuoTab).gp` beside it, and autosave writes to that copy from then on. The library lists both. Songs created in the app save to `<title>.gp`.
-- **Exports**, shared through the iOS share sheet: `.gp`, MusicXML, and PDF with title, tempo, tuning and notation over tab, paginated with `crisp_notation_core`'s page layout.
+- **Exports**, shared through the iOS share sheet: `.gp`, and PDF with title, tempo, tuning and notation over tab as alphaTab lays it out in pages.
 
 ### Library screen
 
 A list of the songs in Documents showing title, tuning and string count, and a **New song** button.
 
-## Step 0: spike
+## Step 0: spikes
 
-A throwaway build, run before the plan's first real task, decides the music-engine and playback choices. It checks:
+**Step 0a (done)** compared `crisp_notation` 0.13.0 with alphaTab 1.6.1 on the owner's files and the alphaTab test corpus, and chose alphaTab. Results: `docs/superpowers/spikes/2026-10-29-engine-spike.md`.
 
-1. Guitar tracks of the [test files](#test-assets) render as notation over tab, with techniques visible.
-2. A song created in code with 7 and 8 strings, mixed time signatures, a tempo change and four voices renders correctly.
-3. That song saved as `.gp` opens in Guitar Pro 8 with nothing lost, voices 3 and 4 and the tunings included. The owner runs this check on their copy of Guitar Pro 8. `scoreToGpif` drops notes the tuning cannot reach, so the result also decides how retuning's unplayable notes are saved.
-4. A MIDI file built from `playbackTimeline` plays through `AVAudioSequencer` with a SoundFont, in time, with a cursor that keeps up.
-5. The spike report records the `crisp_notation_core` calls that give each imported track's name, tuning, string count, MIDI program and string/fret pins, which the import code depends on.
+**Step 0b** is a throwaway build, run before any task that depends on the web view. On the iPhone Duo simulator, it checks:
 
-If 1 or 2 fails, rendering moves to a custom `CustomPainter` tab and notation renderer over the same model, or, as a last resort, alphaTab in a `WKWebView` (mature; renders and plays GP3–GP8 and MusicXML). If 3 fails, songs save in a DuoTab JSON format, MusicXML stays the interchange export, and `.gp` export waits until it works. If 4 fails, playback uses `dart_melty_soundfont` (pure Dart SoundFont synth) rendering PCM with sample-accurate event timing. MusicXML reading can fall back to `music_xml` 2.10.x (BSD).
+1. alphaTab in a `WKWebView` draws one guitar track of Collateral Damage as notation over tab, wrapped into lines.
+2. It plays that song with `sonivox.sf2`, in time, with the cursor following.
+3. It loads from `file://` or needs the loopback server; the result settles the [Music engine](#music-engine) choice.
+4. It takes this long to load and draw the song: the time is recorded.
+5. The bridge round-trip time for a small message: recorded.
+
+If alphaTab cannot draw or play inside `WKWebView` on the device, the plan stops and the owner decides.
 
 ## Test assets
 
 - **Devices**: the iPhone Duo simulator in Xcode 27.1 is the default test target; the owner also has a physical iPhone Duo.
 - **Guitar Pro 8**: the owner has it, for checking saved `.gp` files and comparing rendering.
-- **Primary real-world file**: `/Users/eordonez/Desktop/07 Collateral Damage.xml`, a MusicXML 2.0 export from Guitar Pro 8.1.5. It has 7 guitar parts, all 6-string in E♭ standard, at 130 bpm. It has time signatures 2/4, 3/4, 3/8, 4/4, 5/8, 6/4 and 7/8, and hundreds of bends, hammer-ons, slides, vibratos, palm mutes, ties, tuplets, chords and dynamics. It has no second voices, no 7-string part and no tempo changes.
-- **That file is a purchased Sheet Happens transcription** and must never be committed or bundled. Tests that use it read its path from an environment variable and skip when it is absent.
-- **Gaps** (GP3, GP4, GP5, GPX and `.gp` binaries, several voices, 7- and 8-string, tempo changes): covered by files the owner exports from Guitar Pro 8 where it can, files the app writes itself, and open-source test corpora whose licence allows use as test fixtures.
+- **The owner's songs**: `/Users/eordonez/Desktop/2. Guitar Pro Files/`, 21 Guitar Pro 8 files. The primary one is `07 Collateral Damage.gp`: 7 guitar tracks, all 6-string in E♭ standard, 153 bars, 19 time-signature changes, 4,030 notes, with hundreds of bends, vibratos, palm mutes, let rings, slides and hammer-ons.
+- **These are purchased Sheet Happens transcriptions** and must never be committed or bundled. Tests that use them read the path from the environment variable `DUOTAB_PRIVATE_SAMPLE` and skip when it is unset.
+- **The alphaTab test corpus** (`test-data/` from github.com/CoderLine/alphaTab, MPL-2.0) covers GP3–GP8 and MusicXML features, several voices and 7-string tracks. It lives in the git-ignored `test_assets_private/` and is not committed either.
+- **Committed fixtures** are generated by the engine's own tests from alphaTex (alphaTab's text format), so the repo holds no third-party song files.
 
 ## Left to the builder
 
 - What the app does when the hinge status is unknown or the hierarchy has no hinge.
 - The Split View width at which the side panels collapse.
 - Exact panel widths, colours and typography, staying within the approved mockups.
-- How each remaining technique is rendered in MIDI beyond the minimum list.
 - Default fret count per string count, and the full tuning preset list beyond the minimum.
 - Settings contents beyond count-in, metronome and default tone.
 - Library sorting and search.
@@ -173,4 +180,4 @@ Drum tracks drawn and edited as drum notation, with their own palette and input.
 
 - Inspiration: [tocarlagralla.cat](https://www.tocarlagralla.cat) (static web app: abcjs rendering, Web Audio sampler with look-ahead scheduling, A–B loop by dragging over notes, speed shortcuts, count-in).
 - Apple: [Get ready for iPhone Duo](https://developer.apple.com/iphone-duo/), [Prepare](https://developer.apple.com/iphone-duo/prepare/), tech talks [111461](https://developer.apple.com/videos/play/tech-talks/111461/), [111463](https://developer.apple.com/videos/play/tech-talks/111463/), [111464](https://developer.apple.com/videos/play/tech-talks/111464/), [111466](https://developer.apple.com/videos/play/tech-talks/111466/).
-- Packages: [crisp_notation](https://pub.dev/packages/crisp_notation), [crisp_notation_core](https://pub.dev/packages/crisp_notation_core), [music_xml](https://pub.dev/packages/music_xml), [dart_melty_soundfont](https://pub.dev/packages/dart_melty_soundfont), [alphaTab](https://alphatab.net).
+- Packages: [alphaTab](https://alphatab.net) ([source](https://github.com/CoderLine/alphaTab)), [webview_flutter](https://pub.dev/packages/webview_flutter).
