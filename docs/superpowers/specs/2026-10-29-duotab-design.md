@@ -65,10 +65,11 @@ These count as failures even if every feature works:
 Mockups: `.superpowers/brainstorm/75036-1793277125/content/editor-layout-v2.html` (layout) and `palette-v3.html` (palette), both approved.
 
 - **Three columns**: tool palette on the left, score in the middle, track information on the right (name, tuning, string count, tone; notation options later), with the [track drawer](#track-drawer) along the bottom of the score column.
-- **The score is centred on the whole screen**: the two side panels have the same total width, counting the part of a panel that sits under the vertical bar.
+- **The score is centred on the whole screen** while both side panels are in the same state: they have the same total width, counting the part of a panel that sits under the vertical bar.
+- **Each side panel collapses** with a button at its top to a strip holding only the expand button, and the score takes the freed width; the app remembers the choice. The palette exists from the editor plan on; until then there is no left panel, and a vertical bar on the leading edge sits on a strip of panel colour.
 - **The panel on the vertical bar's side runs to the screen edge.** The bar's area keeps the panel's own colour; only the system clock and the app's glass tab capsule are drawn there. The panel's controls are inset by the bar's safe-area padding. When the bar is on the leading edge, the arrangement mirrors.
 - **Tab capsule** in the vertical bar: Library, Editor, Settings.
-- **Transport** under the score, above the track drawer: play/pause, tempo, speed, loop.
+- **Transport** under the score, above the track drawer: play/pause, tempo, speed, loop. Tapping the tempo opens the speed control.
 - The fold runs through the middle of the score. Notes on the crease stay tappable; no layout change is made for it in v1.
 
 ### Track drawer
@@ -181,9 +182,10 @@ If alphaTab cannot draw or play inside `WKWebView` on the device, the plan stops
 - Settings contents beyond count-in, metronome and default tone.
 - Library sorting and search.
 
-## Next phase (separate design)
+## Later phases (separate designs)
 
-Drum tracks drawn and edited as drum notation, with their own palette and input. The v1 model already records each track's instrument kind, so drums add a view and an editor without changing the model.
+- **Drums**: drum tracks drawn and edited as drum notation, with their own palette and input. The v1 model already records each track's instrument kind, so drums add a view and an editor without changing the model.
+- **Sound bank**: the three tones sound alike with Sonivox. A throwaway comparison in the app (GeneralUser GS, MuseScore General, FluidR3 GM, Sonivox) lets the owner choose by ear the bank closest to Guitar Pro 8's MIDI sound; the chosen bank replaces Sonivox and its licence joins the licence screen.
 
 ## References
 
