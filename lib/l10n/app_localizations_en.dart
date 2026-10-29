@@ -231,4 +231,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get redo => 'Redo';
+
+  @override
+  String get songTitle => 'Title';
+
+  @override
+  String get strings => 'Strings';
+
+  @override
+  String get custom => 'Custom';
+
+  @override
+  String get tempoBpm => 'Tempo (BPM)';
+
+  @override
+  String get timeSignature => 'Time signature';
+
+  @override
+  String get create => 'Create';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String stringN(int number) {
+    return 'String $number';
+  }
 }

@@ -111,5 +111,20 @@
   "dot": "Dot",
   "doubleDot": "Double dot",
   "undo": "Undo",
-  "redo": "Redo"
+  "redo": "Redo",
+  "songTitle": "Title",
+  "strings": "Strings",
+  "custom": "Custom",
+  "tempoBpm": "Tempo (BPM)",
+  "timeSignature": "Time signature",
+  "create": "Create",
+  "cancel": "Cancel",
+  "stringN": "String {number}",
+  "@stringN": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  }
 }

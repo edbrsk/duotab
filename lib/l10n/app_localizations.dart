@@ -513,6 +513,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Redo'**
   String get redo;
+
+  /// No description provided for @songTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get songTitle;
+
+  /// No description provided for @strings.
+  ///
+  /// In en, this message translates to:
+  /// **'Strings'**
+  String get strings;
+
+  /// No description provided for @custom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get custom;
+
+  /// No description provided for @tempoBpm.
+  ///
+  /// In en, this message translates to:
+  /// **'Tempo (BPM)'**
+  String get tempoBpm;
+
+  /// No description provided for @timeSignature.
+  ///
+  /// In en, this message translates to:
+  /// **'Time signature'**
+  String get timeSignature;
+
+  /// No description provided for @create.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get create;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @stringN.
+  ///
+  /// In en, this message translates to:
+  /// **'String {number}'**
+  String stringN(int number);
 }
 
 class _AppLocalizationsDelegate

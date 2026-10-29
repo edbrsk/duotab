@@ -184,4 +184,17 @@ void main() {
     expect(cubit.state.openId, 1);
     verify(() => engine.renderTrack(0)).called(1);
   });
+
+  test('an engine restart reopens the saved copy', () async {
+    when(() => engine.open(any())).thenAnswer((_) async => drumsAndTwoGuitars);
+    final cubit = ScoreCubit(engine: engine);
+    addTearDown(cubit.close);
+    await cubit.open('a.gp');
+    cubit.moveTo('a (DuoTab).gp');
+
+    events.add(const EngineEvent('ready', {}));
+    await pumpEventQueue();
+
+    verify(() => engine.open('a (DuoTab).gp')).called(1);
+  });
 }

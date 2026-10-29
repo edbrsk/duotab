@@ -1,4 +1,5 @@
 import 'package:bloc_test/bloc_test.dart';
+import 'package:duotab/engine/protocol.dart';
 import 'package:duotab/features/library/library_cubit.dart';
 import 'package:duotab/features/library/library_page.dart';
 import 'package:duotab/features/library/song_list_entry.dart';
@@ -15,6 +16,7 @@ void main() {
     WidgetTester tester,
     LibraryState state, {
     void Function(String path)? onOpen,
+    Future<void> Function(NewSongOptions options)? onNewSong,
   }) async {
     final library = _Library();
     whenListen(
@@ -29,7 +31,10 @@ void main() {
         supportedLocales: AppLocalizations.supportedLocales,
         home: BlocProvider<LibraryCubit>.value(
           value: library,
-          child: LibraryPage(onOpen: onOpen ?? (_) {}),
+          child: LibraryPage(
+            onOpen: onOpen ?? (_) {},
+            onNewSong: onNewSong ?? (_) async {},
+          ),
         ),
       ),
     );
@@ -80,5 +85,27 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('New song opens the dialog and creates the song', (tester) async {
+    tester.view
+      ..physicalSize = const Size(951, 1400)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    NewSongOptions? created;
+    await pumpPage(
+      tester,
+      const LibraryState(loading: false, songs: []),
+      onNewSong: (options) async => created = options,
+    );
+
+    await tester.tap(find.text('New song'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('title')), 'Riff');
+    await tester.pump();
+    await tester.tap(find.text('Create'));
+    await tester.pumpAndSettle();
+
+    expect(created?.title, 'Riff');
   });
 }

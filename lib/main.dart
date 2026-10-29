@@ -8,6 +8,7 @@ import 'core/dependency_injection.dart';
 import 'core/duo/hinge_status_provider.dart';
 import 'core/duo/vertical_bar_edge_provider.dart';
 import 'features/editor/editor_cubit.dart';
+import 'features/editor/song_saver.dart';
 import 'features/library/library_cubit.dart';
 import 'features/library/library_page.dart';
 import 'features/playback/playback_cubit.dart';
@@ -45,6 +46,15 @@ Future<void> main() async {
                 onOpen: (path) {
                   getIt<NavigationCubit>().select(AppTab.editor);
                   getIt<ScoreCubit>().open(path);
+                },
+                onNewSong: (options) async {
+                  getIt<NavigationCubit>().select(AppTab.editor);
+                  try {
+                    await getIt<SongSaver>().createSong(options);
+                  } on SongNotCreated catch (e) {
+                    // The score page already shows the engine's error.
+                    debugPrint('$e');
+                  }
                 },
               ),
               AppTab.editor => const ScorePage(),

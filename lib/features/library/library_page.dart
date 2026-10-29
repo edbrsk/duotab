@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/design/design_tokens.dart';
+import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
+import '../editor/new_song_dialog.dart';
 import 'library_cubit.dart';
 import 'song_list_entry.dart';
 
 class LibraryPage extends StatefulWidget {
   final void Function(String path) onOpen;
+  final Future<void> Function(NewSongOptions options) onNewSong;
 
-  const LibraryPage({required this.onOpen, super.key});
+  const LibraryPage({required this.onOpen, required this.onNewSong, super.key});
 
   @override
   State<LibraryPage> createState() => _LibraryPageState();
@@ -55,9 +58,14 @@ class _LibraryPageState extends State<LibraryPage> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
-                  // Enabled once the editor exists (Plan 3).
                   FilledButton.icon(
-                    onPressed: null,
+                    onPressed: () async {
+                      final options = await showDialog<NewSongOptions>(
+                        context: context,
+                        builder: (_) => const NewSongDialog(),
+                      );
+                      if (options != null) await widget.onNewSong(options);
+                    },
                     icon: const Icon(Icons.add),
                     label: Text(l10n.newSong),
                   ),
