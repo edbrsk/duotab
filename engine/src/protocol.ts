@@ -86,6 +86,40 @@ export type NewSongOptions = {
   denominator: number;
 };
 
+export type TechniqueId =
+  | 'hammerPull'
+  | 'slide'
+  | 'bend'
+  | 'vibrato'
+  | 'palmMute'
+  | 'letRing'
+  | 'deadNote'
+  | 'ghostNote'
+  | 'naturalHarmonic'
+  | 'artificialHarmonic'
+  | 'tie'
+  | 'accent'
+  | 'marcato'
+  | 'tenuto'
+  | 'staccato'
+  | 'doubleFlat'
+  | 'flat'
+  | 'natural'
+  | 'sharp'
+  | 'doubleSharp'
+  | 'tapping'
+  | 'pickUp'
+  | 'pickDown'
+  | 'tremolo'
+  | 'fermata'
+  | 'crescendo'
+  | 'diminuendo';
+
+export type Dynamic = 'ppp' | 'pp' | 'p' | 'mp' | 'mf' | 'f' | 'ff' | 'fff';
+
+/** 1 is no tuplet; 3, 5 and 6 are 3:2, 5:4 and 6:4. */
+export type Tuplet = 1 | 3 | 5 | 6;
+
 export type EditCommand =
   | { op: 'setFret'; fret: number }
   | { op: 'deleteNote' }

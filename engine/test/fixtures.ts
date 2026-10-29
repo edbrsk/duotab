@@ -32,6 +32,11 @@ export const sixEight = String.raw`\title "Six"
 \track "G" \tuning E4 B3 G3 D3 A2 E2
 \ts 6 8 0.6.4{d} 2.5.4{d}`;
 
+export const lineOfEighths = String.raw`\title "Line"
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+5.3.8 7.3.8 5.3.8 7.3.8 5.3.4 5.3.4 | 0.6.4 0.6.4 0.6.4 0.6.4`;
+
 export function score(alphaTex: string): alphaTab.model.Score {
   const importer = new alphaTab.importer.AlphaTexImporter();
   importer.initFromString(alphaTex, new alphaTab.Settings());
