@@ -7,6 +7,7 @@ const beats: FakeBeat[] = ['b0', 'b1', 'b2'].map((name, i) => ({ name, absoluteP
 const beatAt = (x: number) => beats[Math.floor(x / 100)] ?? null;
 
 let selected: [string, string][];
+let committed: [string, string][];
 let prevented = 0;
 let selection: LongPressSelection<FakeBeat>;
 
@@ -19,10 +20,12 @@ const end = (): TouchLike => ({ touches: [], preventDefault: () => prevented++ }
 beforeEach(() => {
   vi.useFakeTimers();
   selected = [];
+  committed = [];
   prevented = 0;
   selection = new LongPressSelection<FakeBeat>({
     beatAt: (x) => beatAt(x),
     select: (start, finish) => selected.push([start.name, finish.name]),
+    commit: (start, finish) => committed.push([start.name, finish.name]),
   });
 });
 
@@ -66,4 +69,14 @@ test('a second finger cancels', () => {
   vi.advanceTimersByTime(400);
   selection.touchEnd(end());
   expect(selected).toEqual([]);
+});
+
+test('the selection is committed once, when the finger lifts', () => {
+  selection.touchStart(touch(50));
+  vi.advanceTimersByTime(400);
+  selection.touchMove(touch(150));
+  selection.touchMove(touch(250));
+  expect(committed).toEqual([]);
+  selection.touchEnd(end());
+  expect(committed).toEqual([['b0', 'b2']]);
 });

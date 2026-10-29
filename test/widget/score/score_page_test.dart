@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:duotab/engine/engine_bridge.dart';
 import 'package:duotab/engine/protocol.dart';
 import 'package:duotab/features/playback/playback_cubit.dart';
+import 'package:duotab/features/playback/transport_bar.dart';
 import 'package:duotab/features/score/score_cubit.dart';
 import 'package:duotab/features/score/score_page.dart';
 import 'package:duotab/l10n/app_localizations.dart';
@@ -74,6 +75,11 @@ void main() {
     await pumpPage(tester);
 
     expect(find.text('This song has no guitar track'), findsOneWidget);
+  });
+
+  testWidgets('hides the transport when no song is open', (tester) async {
+    await pumpPage(tester);
+    expect(find.byType(TransportBar), findsNothing);
   });
 
   testWidgets('asks to open a song when none is open', (tester) async {

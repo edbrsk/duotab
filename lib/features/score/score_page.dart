@@ -32,7 +32,7 @@ class ScorePage extends StatelessWidget {
     return WorkspaceLayout(
       palette: const SizedBox.shrink(),
       trackPanel: const TrackInfoPanel(),
-      transport: const TransportBar(),
+      transport: state.song != null ? const TransportBar() : null,
       drawer: state.song != null ? const TrackDrawer() : null,
       score: Column(
         children: [

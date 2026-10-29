@@ -2,7 +2,7 @@ import * as alphaTab from '@coderline/alphatab';
 
 import type { TrackMix } from './protocol';
 
-export type MixerTrack = { playbackInfo: { program: number } };
+export type MixerTrack = { playbackInfo: { program: number; primaryChannel: number; secondaryChannel: number } };
 
 /** The part of AlphaTabApi the mixer drives. */
 export interface MixerApi {
@@ -17,15 +17,28 @@ export interface MixerApi {
   changeTrackMute(tracks: MixerTrack[], mute: boolean): void;
   changeTrackSolo(tracks: MixerTrack[], solo: boolean): void;
   readonly midiLoaded: { on(handler: () => void): () => void };
+  readonly player: {
+    setChannelMute(channel: number, mute: boolean): void;
+    setChannelSolo(channel: number, solo: boolean): void;
+  } | null;
 }
 
 export class Mixer {
   private readonly mixes = new Map<number, TrackMix>();
+  private readonly changedChannels = new Set<number>();
 
   constructor(private readonly api: MixerApi) {}
 
-  /** Forgets the previous song's mix. */
-  reset(): void {
+  /**
+   * Call once the next song has loaded. alphaTab keeps mute and solo per MIDI
+   * channel across songs, so a solo left on would silence the new song.
+   */
+  newSong(): void {
+    for (const channel of this.changedChannels) {
+      this.api.player?.setChannelMute(channel, false);
+      this.api.player?.setChannelSolo(channel, false);
+    }
+    this.changedChannels.clear();
     this.mixes.clear();
   }
 
@@ -62,17 +75,23 @@ export class Mixer {
     });
     api.loadMidiForScore();
     await loaded;
-    api.tickPosition = tick;
+    // Setting a range seeks to its start, so the position goes back last.
     api.playbackRange = range;
     api.isLooping = looping;
+    api.tickPosition = tick;
     this.send(tracks, [...this.mixes.values()]);
     if (wasPlaying) api.play();
   }
 
   private send(tracks: MixerTrack[], mixes: TrackMix[]): void {
     for (const mix of mixes) {
-      this.api.changeTrackMute([tracks[mix.index]], mix.mute);
-      this.api.changeTrackSolo([tracks[mix.index]], mix.solo);
+      const track = tracks[mix.index];
+      this.api.changeTrackMute([track], mix.mute);
+      this.api.changeTrackSolo([track], mix.solo);
+      if (mix.mute || mix.solo) {
+        this.changedChannels.add(track.playbackInfo.primaryChannel);
+        this.changedChannels.add(track.playbackInfo.secondaryChannel);
+      }
     }
   }
 }

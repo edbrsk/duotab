@@ -6,13 +6,27 @@ import { Mixer, type MixerApi, type MixerTrack } from '../src/mixer';
 function fakeApi(programs: number[]) {
   const calls: string[] = [];
   const handlers: (() => void)[] = [];
-  const tracks: MixerTrack[] = programs.map((program) => ({ playbackInfo: { program } }));
+  const tracks: MixerTrack[] = programs.map((program, i) => ({
+    playbackInfo: { program, primaryChannel: i * 2, secondaryChannel: i * 2 + 1 },
+  }));
+  let range: { startTick: number; endTick: number } | null = null;
   const api = {
     score: { tracks },
     tickPosition: 0,
     playerState: alphaTab.synth.PlayerState.Paused as alphaTab.synth.PlayerState,
     isLooping: false as boolean,
-    playbackRange: null as { startTick: number; endTick: number } | null,
+    // alphaTab's player seeks to the start of a range it is given.
+    get playbackRange() {
+      return range;
+    },
+    set playbackRange(value: { startTick: number; endTick: number } | null) {
+      range = value;
+      if (value) this.tickPosition = value.startTick;
+    },
+    player: {
+      setChannelMute: (channel: number, mute: boolean) => calls.push(`channel mute ${channel} ${mute}`),
+      setChannelSolo: (channel: number, solo: boolean) => calls.push(`channel solo ${channel} ${solo}`),
+    },
     play() {
       calls.push('play');
       this.playerState = alphaTab.synth.PlayerState.Playing;
@@ -55,8 +69,8 @@ test('a program change keeps position, mixer and loop', async () => {
   const mixer = new Mixer(mixerApi);
   await mixer.apply([{ index: 1, mute: true, solo: false, program: 29 }]);
   api.play();
-  api.tickPosition = 5000;
   api.playbackRange = { startTick: 960, endTick: 3840 };
+  api.tickPosition = 5000;
   api.isLooping = true;
   calls.length = 0;
 
@@ -74,4 +88,23 @@ test('a program change keeps position, mixer and loop', async () => {
 test('an unknown track is an error', async () => {
   const { mixerApi } = fakeApi([29]);
   await expect(new Mixer(mixerApi).apply([{ index: 4, mute: false, solo: false, program: 29 }])).rejects.toThrow('no track 4');
+});
+
+test('a new song starts with no channel muted or soloed', async () => {
+  const { mixerApi, calls } = fakeApi([29, 29]);
+  const mixer = new Mixer(mixerApi);
+  await mixer.apply([
+    { index: 0, mute: false, solo: false, program: 29 },
+    { index: 1, mute: true, solo: true, program: 29 },
+  ]);
+  calls.length = 0;
+
+  mixer.newSong();
+
+  expect(calls.sort()).toEqual([
+    'channel mute 2 false',
+    'channel mute 3 false',
+    'channel solo 2 false',
+    'channel solo 3 false',
+  ]);
 });

@@ -19,6 +19,8 @@ import '../score/score_test_data.dart';
 
 class _Engine extends Mock implements EngineBridge {}
 
+class _Store extends Mock implements PracticeStore {}
+
 List<TrackMix> _sentMixes(_Engine engine) =>
     verify(() => engine.setTracks(captureAny())).captured.last
         as List<TrackMix>;
@@ -37,6 +39,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(<TrackMix>[]);
     registerFallbackValue(const PlaybackRange(startTick: 0, endTick: 0));
+    registerFallbackValue(const PracticeSettings());
   });
 
   setUp(() async {
@@ -248,5 +251,60 @@ void main() {
     await pumpEventQueue();
     verify(() => engine.setPlayerOptions(countIn: false, metronome: false))
         .called(1);
+  });
+
+  group('while a song settings load', () {
+    late _Store slowStore;
+    late Completer<PracticeSettings?> load;
+    late PlaybackCubit slow;
+
+    setUp(() {
+      slowStore = _Store();
+      load = Completer<PracticeSettings?>();
+      when(() => slowStore.load(any())).thenAnswer((_) => load.future);
+      when(() => slowStore.save(any(), any())).thenAnswer((_) async {});
+      slow = PlaybackCubit(
+        engine: engine,
+        hinge: hinge,
+        score: score,
+        practice: slowStore,
+        settings: settings,
+      );
+    });
+
+    tearDown(() => slow.close());
+
+    test('the previous song practice is cleared from view', () async {
+      load.complete(
+        const PracticeSettings(tracks: {1: TrackPractice(mute: true)}),
+      );
+      await openFixture();
+      expect(slow.state.practice.tracks[1]!.mute, isTrue);
+
+      load = Completer<PracticeSettings?>();
+      await openFixture();
+      expect(slow.state.practice.tracks, isEmpty);
+    });
+
+    test('a range event is not saved under the opening song', () async {
+      await openFixture();
+      events.add(
+        const EngineEvent('rangeChanged', {
+          'range': {'startTick': 0, 'endTick': 960},
+        }),
+      );
+      await pumpEventQueue();
+      verifyNever(() => slowStore.save(any(), any()));
+    });
+
+    test('edits wait for the song settings', () async {
+      await openFixture();
+      await slow.setMute(1, on: true);
+      verifyNever(() => slowStore.save(any(), any()));
+      load.complete(null);
+      await pumpEventQueue();
+      await slow.setMute(1, on: true);
+      verify(() => slowStore.save('fixture.gp', any())).called(1);
+    });
   });
 }

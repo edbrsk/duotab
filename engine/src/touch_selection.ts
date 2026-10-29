@@ -5,7 +5,10 @@ export type TouchLike = {
 
 type Deps<B> = {
   beatAt(x: number, y: number): B | null;
+  /** Shows the selection while the finger moves. */
   select(start: B, end: B): void;
+  /** The finished selection, once the finger lifts. */
+  commit?(start: B, end: B): void;
   delayMs?: number;
   slopPx?: number;
 };
@@ -64,13 +67,18 @@ export class LongPressSelection<B extends { absolutePlaybackStart: number }> {
       // Keeps WebKit from sending the click that would clear alphaTab's range.
       e.preventDefault();
       this.emit();
+      this.deps.commit?.(...this.ordered());
     }
     this.cancel();
   }
 
-  private emit(): void {
+  private ordered(): [B, B] {
     const [a, b] = [this.start!, this.current!];
-    this.deps.select(...(a.absolutePlaybackStart <= b.absolutePlaybackStart ? [a, b] : [b, a]) as [B, B]);
+    return a.absolutePlaybackStart <= b.absolutePlaybackStart ? [a, b] : [b, a];
+  }
+
+  private emit(): void {
+    this.deps.select(...this.ordered());
   }
 
   private cancel(): void {

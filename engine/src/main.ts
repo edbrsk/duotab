@@ -14,6 +14,7 @@ import type {
   SetSpeedPayload,
   SetTracksPayload,
 } from './protocol';
+import { type HighlightApi, keepRangeHighlighted } from './range_highlight';
 import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
 import { LongPressSelection } from './touch_selection';
@@ -53,10 +54,16 @@ api.playerStateChanged.on((e) =>
 
 const mixer = new Mixer(api);
 
-api.playbackRangeChanged.on((e) => {
-  const range = e.playbackRange ? { startTick: e.playbackRange.startTick, endTick: e.playbackRange.endTick } : null;
+// Only the owner's own selections are reported: ranges the engine sets
+// (opening a song, restoring a saved loop) are not choices to save.
+const postRange = () => {
+  const r = api.playbackRange;
+  const range = r ? { startTick: r.startTick, endTick: r.endTick } : null;
   post({ event: 'rangeChanged', payload: { range } satisfies RangePayload });
-});
+};
+// alphaTab's own tap and mouse selection set or clear the range before this fires.
+api.beatMouseUp.on(postRange);
+keepRangeHighlighted(api as unknown as HighlightApi);
 
 const scoreElement = document.getElementById('score')!;
 const touchSelection = new LongPressSelection<alphaTab.model.Beat>({
@@ -74,6 +81,7 @@ const touchSelection = new LongPressSelection<alphaTab.model.Beat>({
     api.playbackRange = range;
     api.tickPosition = range.startTick;
   },
+  commit: postRange,
 });
 scoreElement.addEventListener('touchstart', (e) => touchSelection.touchStart(e), { passive: true });
 scoreElement.addEventListener('touchmove', (e) => touchSelection.touchMove(e), { passive: false });
@@ -91,6 +99,19 @@ api.playerPositionChanged.on((e) => {
   const bar = barAtTick(lookups, e.currentTick);
   if (bar !== postedBar) postBar(bar);
 });
+
+let openCount = 0;
+
+/**
+ * Waits for the open song's player. Throws without a song, and when another
+ * song opened while waiting, so a stale command never reaches the new song.
+ */
+async function whenSongReady(): Promise<void> {
+  if (!api.score) throw new Error('no song open');
+  const opened = openCount;
+  await whenPlayerReady();
+  if (opened !== openCount) throw new Error('another song opened');
+}
 
 function whenPlayerReady(): Promise<void> {
   if (api.isReadyForPlayback) return Promise.resolve();
@@ -133,14 +154,16 @@ async function run(request: Request): Promise<unknown> {
       const loaded = new Promise<alphaTab.model.Score>((resolve, reject) => {
         pendingOpen = { resolve, reject };
       });
-      // An empty track list keeps alphaTab from drawing before a track is chosen.
+      openCount++;
+      api.load(bytes, []);
+      const score = await loaded;
+      // Only once the new song is in: a failed open leaves the old one as it was.
       postedBar = -1;
-      mixer.reset();
+      mixer.newSong();
       api.playbackSpeed = 1;
       api.isLooping = false;
       api.playbackRange = null;
-      api.load(bytes, []);
-      return describeOpened(await loaded, fileName(path));
+      return describeOpened(score, fileName(path));
     }
     case 'renderTrack': {
       const { index } = request.payload as RenderTrackPayload;
@@ -150,7 +173,7 @@ async function run(request: Request): Promise<unknown> {
       return {};
     }
     case 'play':
-      await whenPlayerReady();
+      await whenSongReady();
       api.play();
       return {};
     case 'pause':
@@ -161,7 +184,7 @@ async function run(request: Request): Promise<unknown> {
       return {};
     case 'seekBar': {
       const { bar } = request.payload as SeekBarPayload;
-      await whenPlayerReady();
+      await whenSongReady();
       const masterBar = api.score?.masterBars[bar];
       if (!masterBar || !api.tickCache) throw new Error(`no bar ${bar}`);
       api.tickPosition = api.tickCache.getMasterBarStart(masterBar);
@@ -171,7 +194,7 @@ async function run(request: Request): Promise<unknown> {
     }
     case 'setTracks': {
       const { tracks } = request.payload as SetTracksPayload;
-      await whenPlayerReady();
+      await whenSongReady();
       await mixer.apply(tracks);
       return {};
     }
