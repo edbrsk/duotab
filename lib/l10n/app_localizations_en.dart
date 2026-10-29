@@ -29,4 +29,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get widerToEdit => 'Make DuoTab wider to edit';
+
+  @override
+  String get libraryEmpty =>
+      'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoTab';
+
+  @override
+  String get unreadableFile => 'Can\'t open this file';
+
+  @override
+  String get newSong => 'New song';
+
+  @override
+  String stringsCount(int count) {
+    return '$count strings';
+  }
 }

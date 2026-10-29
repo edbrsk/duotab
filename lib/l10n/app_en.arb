@@ -6,5 +6,16 @@
   "tabEditor": "Editor",
   "tabSettings": "Settings",
   "navigationLabel": "Main navigation",
-  "widerToEdit": "Make DuoTab wider to edit"
+  "widerToEdit": "Make DuoTab wider to edit",
+  "libraryEmpty": "Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoTab",
+  "unreadableFile": "Can't open this file",
+  "newSong": "New song",
+  "stringsCount": "{count} strings",
+  "@stringsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

@@ -135,6 +135,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Make DuoTab wider to edit'**
   String get widerToEdit;
+
+  /// No description provided for @libraryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoTab'**
+  String get libraryEmpty;
+
+  /// No description provided for @unreadableFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t open this file'**
+  String get unreadableFile;
+
+  /// No description provided for @newSong.
+  ///
+  /// In en, this message translates to:
+  /// **'New song'**
+  String get newSong;
+
+  /// No description provided for @stringsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} strings'**
+  String stringsCount(int count);
 }
 
 class _AppLocalizationsDelegate
