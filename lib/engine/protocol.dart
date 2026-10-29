@@ -106,6 +106,21 @@ class SongSummary {
       tracks.where((t) => t.kind == TrackKind.guitar).toList();
 }
 
+/// An A–B loop, in MIDI ticks.
+class PlaybackRange {
+  final int startTick;
+  final int endTick;
+
+  const PlaybackRange({required this.startTick, required this.endTick});
+
+  factory PlaybackRange.fromJson(Map<String, dynamic> json) => PlaybackRange(
+    startTick: (json['startTick'] as num).toInt(),
+    endTick: (json['endTick'] as num).toInt(),
+  );
+
+  Map<String, Object> toJson() => {'startTick': startTick, 'endTick': endTick};
+}
+
 class EngineEvent {
   /// `ready`, `rendered`, `error`, `playerState` or `position`.
   final String type;

@@ -11,6 +11,7 @@ import 'features/library/library_page.dart';
 import 'features/playback/playback_cubit.dart';
 import 'features/score/score_cubit.dart';
 import 'features/score/score_page.dart';
+import 'features/settings/settings_cubit.dart';
 import 'features/settings/settings_page.dart';
 import 'presentation/shell/app_destinations.dart';
 import 'presentation/shell/app_shell.dart';
@@ -29,6 +30,7 @@ Future<void> main() async {
         BlocProvider.value(value: getIt<LibraryCubit>()),
         BlocProvider.value(value: getIt<ScoreCubit>()),
         BlocProvider.value(value: getIt<PlaybackCubit>()),
+        BlocProvider.value(value: getIt<SettingsCubit>()),
       ],
       child: DuoTabApp(
         home: FoldGate(
