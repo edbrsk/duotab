@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 import { runCommand } from '../../src/editing/commands';
 import { History } from '../../src/editing/history';
 import type { EditPosition } from '../../src/protocol';
-import { fourQuarters, score } from '../fixtures';
+import { fourQuarters, lineOfEighths, score } from '../fixtures';
 
 const start: EditPosition = { track: 0, bar: 0, voice: 0, beat: 0, string: 1 };
 
@@ -64,4 +64,28 @@ test('a command that changes nothing is not an edit', () => {
     expect(runCommand(s, at, command, history).edited, command.op).toBe(false);
   }
   expect(history.canUndo).toBe(false);
+});
+
+test('a note technique on an empty string is not an edit', () => {
+  const history = new History();
+  const result = runCommand(score(lineOfEighths), start, { op: 'toggle', technique: 'palmMute' }, history);
+  expect(result.edited).toBe(false);
+  expect(history.canUndo).toBe(false);
+});
+
+test('a technique toggle is an edit and can be undone', async () => {
+  const s = score(lineOfEighths);
+  const history = new History();
+  const at = { ...start, string: 4 };
+  for (const command of [
+    { op: 'toggle', technique: 'palmMute' },
+    { op: 'setDynamic', dynamic: 'pp' },
+    { op: 'setTuplet', tuplet: 3 },
+    { op: 'addGrace' },
+  ] as const) {
+    expect(runCommand(s, at, command, history).edited, command.op).toBe(true);
+  }
+  let undone = s;
+  for (let i = 0; i < 4; i++) undone = (await history.undo(undone))!;
+  expect(undone.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].isPalmMute).toBe(false);
 });

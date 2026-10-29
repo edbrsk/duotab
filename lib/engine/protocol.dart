@@ -256,6 +256,18 @@ class EditState {
   final int? beatDuration;
   final int? beatDots;
 
+  /// Engine `TechniqueId`s on the cursor's beat and the cursor string's note.
+  final Set<String> techniques;
+
+  /// `ppp` … `fff`; null for no cursor or a dynamic the palette doesn't offer.
+  final String? dynamicMark;
+
+  /// 1 for none; 3, 5 or 6.
+  final int tuplet;
+
+  /// The cursor string has a note, so note techniques apply.
+  final bool hasNote;
+
   const EditState({
     required this.position,
     required this.issues,
@@ -265,6 +277,10 @@ class EditState {
     required this.edited,
     this.beatDuration,
     this.beatDots,
+    this.techniques = const {},
+    this.dynamicMark,
+    this.tuplet = 1,
+    this.hasNote = false,
   });
 
   factory EditState.fromJson(Map<String, dynamic> json) {
@@ -284,6 +300,13 @@ class EditState {
       edited: json['edited'] as bool,
       beatDuration: beat?['duration'] as int?,
       beatDots: beat?['dots'] as int?,
+      techniques: {
+        for (final t in beat?['techniques'] as List<dynamic>? ?? const [])
+          t as String,
+      },
+      dynamicMark: beat?['dynamic'] as String?,
+      tuplet: beat?['tuplet'] as int? ?? 1,
+      hasNote: beat?['hasNote'] as bool? ?? false,
     );
   }
 }
@@ -360,6 +383,43 @@ class Move extends EditCommand {
 
   @override
   Map<String, Object> toJson() => {'op': 'move', 'direction': direction};
+}
+
+class Toggle extends EditCommand {
+  /// An engine `TechniqueId`, such as `palmMute`.
+  final String technique;
+
+  const Toggle(this.technique);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'toggle', 'technique': technique};
+}
+
+class SetDynamic extends EditCommand {
+  /// `ppp` … `fff`.
+  final String mark;
+
+  const SetDynamic(this.mark);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'setDynamic', 'dynamic': mark};
+}
+
+class SetTuplet extends EditCommand {
+  /// 1 for none; 3, 5 or 6.
+  final int tuplet;
+
+  const SetTuplet(this.tuplet);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'setTuplet', 'tuplet': tuplet};
+}
+
+class AddGrace extends EditCommand {
+  const AddGrace();
+
+  @override
+  Map<String, Object> toJson() => {'op': 'addGrace'};
 }
 
 class Place extends EditCommand {

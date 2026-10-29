@@ -39,6 +39,10 @@ export function deleteNote(score: Score, at: EditPosition, settings = defaultSet
   const note = beat.notes.find((n) => n.string === at.string);
   if (note) {
     beat.removeNote(note);
+    // A grace note without notes has no rest to become.
+    if (beat.graceType !== alphaTab.model.GraceType.None && beat.notes.length === 0) {
+      removeBeat(score, at, beat);
+    }
     score.finish(settings);
     return at;
   }
@@ -46,10 +50,7 @@ export function deleteNote(score: Score, at: EditPosition, settings = defaultSet
 
   const voice = voiceOf(score, at);
   if (voice.beats.length > 1) {
-    voice.beats.splice(at.beat, 1);
-    // Voice.finish relinks beats, but not a last beat that now has none after it.
-    if (beat.previousBeat) beat.previousBeat.nextBeat = beat.nextBeat;
-    if (beat.nextBeat) beat.nextBeat.previousBeat = beat.previousBeat;
+    removeBeat(score, at, beat);
     score.finish(settings);
     return { ...at, beat: Math.min(at.beat, voice.beats.length - 1) };
   }
@@ -63,6 +64,13 @@ export function deleteNote(score: Score, at: EditPosition, settings = defaultSet
   }
   score.finish(settings);
   return { ...at, beat: 0 };
+}
+
+function removeBeat(score: Score, at: EditPosition, beat: alphaTab.model.Beat): void {
+  voiceOf(score, at).beats.splice(at.beat, 1);
+  // Voice.finish relinks beats, but not a last beat that now has none after it.
+  if (beat.previousBeat) beat.previousBeat.nextBeat = beat.nextBeat;
+  if (beat.nextBeat) beat.nextBeat.previousBeat = beat.previousBeat;
 }
 
 export function setDuration(

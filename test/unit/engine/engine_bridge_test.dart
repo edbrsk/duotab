@@ -82,9 +82,22 @@ void main() {
         'canRedo': false,
         'edited': true,
         'song': {'title': 'T', 'tracks': <Object>[]},
+        'beat': {
+          'duration': 8,
+          'dots': 0,
+          'techniques': ['palmMute'],
+          'dynamic': 'pp',
+          'tuplet': 3,
+          'hasNote': true,
+        },
       },
     });
     final s = await state;
+    expect(s.beatDuration, 8);
+    expect(s.techniques, {'palmMute'});
+    expect(s.dynamicMark, 'pp');
+    expect(s.tuplet, 3);
+    expect(s.hasNote, isTrue);
     expect(s.position!.bar, 2);
     expect(s.position!.string, 3);
     expect(s.issues.single.ticksOff, -480);
@@ -127,6 +140,19 @@ void main() {
       'op': 'place',
       'position': {'track': 0, 'bar': 1, 'voice': 0, 'beat': 2, 'string': 4},
     });
+  });
+
+  test('technique commands serialise their op', () {
+    expect(const Toggle('slide').toJson(), {
+      'op': 'toggle',
+      'technique': 'slide',
+    });
+    expect(const SetDynamic('mf').toJson(), {
+      'op': 'setDynamic',
+      'dynamic': 'mf',
+    });
+    expect(const SetTuplet(5).toJson(), {'op': 'setTuplet', 'tuplet': 5});
+    expect(const AddGrace().toJson(), {'op': 'addGrace'});
   });
 
   test('answers a request with the reply carrying the same id', () async {

@@ -3,7 +3,8 @@ import { beforeEach, expect, test } from 'vitest';
 
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from '../../src/editing/operations';
 import type { EditPosition } from '../../src/protocol';
-import { fourQuarters, score, sixEight } from '../fixtures';
+import { addGrace } from '../../src/editing/techniques';
+import { fourQuarters, lineOfEighths, score, sixEight } from '../fixtures';
 
 const at = (bar: number, beat: number, string = 1, voice = 0): EditPosition => ({ track: 0, bar, voice, beat, string });
 let s: alphaTab.model.Score;
@@ -172,4 +173,12 @@ test('new beats, notes, voices and bars get ids no other object in the song has'
   unique(voices.map((v) => v.id));
   unique(beats.map((b) => b.id));
   unique(beats.flatMap((b) => b.notes.map((n) => n.id)));
+});
+
+test('deleting the only note of a grace beat removes the grace beat', () => {
+  s = score(lineOfEighths);
+  addGrace(s, at(0, 2, 4));
+  expect(deleteNote(s, at(0, 2, 4))).toEqual(at(0, 2, 4));
+  expect(voice(0).beats.map((b) => b.graceType)).toEqual([0, 0, 0, 0, 0, 0]);
+  expect(voice(0).beats[2].notes.map((n) => n.fret)).toEqual([5]);
 });

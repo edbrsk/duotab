@@ -127,7 +127,11 @@ export type EditCommand =
   | { op: 'setRest' }
   | { op: 'selectVoice'; voice: number }
   | { op: 'move'; direction: 'left' | 'right' | 'up' | 'down' }
-  | { op: 'place'; position: EditPosition };
+  | { op: 'place'; position: EditPosition }
+  | { op: 'toggle'; technique: TechniqueId }
+  | { op: 'setDynamic'; dynamic: Dynamic }
+  | { op: 'setTuplet'; tuplet: Tuplet }
+  | { op: 'addGrace' };
 
 export type EditPayload = { command: EditCommand };
 
@@ -140,8 +144,18 @@ export type EditState = {
   canRedo: boolean;
   song: SongSummary;
   edited: boolean;
-  /** The note value of the beat under the cursor, which the palette shows. */
-  beat: { duration: number; dots: number } | null;
+  /** The beat under the cursor, which the palette shows. */
+  beat: {
+    duration: number;
+    dots: number;
+    /** Beat techniques, and the note techniques of the cursor string's note. */
+    techniques: TechniqueId[];
+    /** Null for a dynamic the palette doesn't offer. */
+    dynamic: Dynamic | null;
+    tuplet: Tuplet;
+    /** The cursor string has a note, so note techniques apply. */
+    hasNote: boolean;
+  } | null;
 };
 
 /** Posted for a tap on the drawn track. */

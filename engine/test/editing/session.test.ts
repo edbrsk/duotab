@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 
 import { setDuration } from '../../src/editing/operations';
 import { EditSession } from '../../src/editing/session';
-import { fourQuarters, score, twoGuitarsAndDrums } from '../fixtures';
+import { fourQuarters, lineOfEighths, score, twoGuitarsAndDrums } from '../fixtures';
 
 test("opening a song checks its bars and clears the cursor and history", async () => {
   const s = score(fourQuarters);
@@ -37,7 +37,7 @@ test("the state tells the cursor beat's note value", () => {
   const session = new EditSession();
   session.open(s, 0);
   session.command(s, { op: 'place', position: { track: 0, bar: 1, voice: 0, beat: 0, string: 1 } });
-  expect(session.state(s, false).beat).toEqual({ duration: 1, dots: 0 });
+  expect(session.state(s, false).beat).toMatchObject({ duration: 1, dots: 0 });
 });
 
 test('an edit rechecks the bars', () => {
@@ -48,4 +48,22 @@ test('an edit rechecks the bars', () => {
   const { edited } = session.command(s, { op: 'setDuration', duration: 8, dots: 0 });
   expect(edited).toBe(true);
   expect(session.state(s, true).issues).toEqual([{ bar: 0, voice: 0, ticksOff: -480 }]);
+});
+
+test('the state lists the techniques at the cursor', () => {
+  const s = score(lineOfEighths);
+  const session = new EditSession();
+  session.open(s, 0);
+  session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 4 } });
+  session.command(s, { op: 'toggle', technique: 'palmMute' });
+  expect(session.state(s, true).beat).toEqual({
+    duration: 8,
+    dots: 0,
+    techniques: ['palmMute'],
+    dynamic: 'f',
+    tuplet: 1,
+    hasNote: true,
+  });
+  session.command(s, { op: 'move', direction: 'up' });
+  expect(session.state(s, false).beat).toMatchObject({ techniques: [], hasNote: false });
 });

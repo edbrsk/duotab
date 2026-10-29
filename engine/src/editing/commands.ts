@@ -4,22 +4,35 @@ import type { EditCommand, EditPosition } from '../protocol';
 import { History } from './history';
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from './operations';
 import { clampPosition, staffOf } from './position';
+import { activeTechniques, addGrace, setDynamic, setTuplet, toggleTechnique } from './techniques';
 
 type Score = alphaTab.model.Score;
 
-/** Every beat of the staff: value, rest or empty, and notes. Comparing it before and after tells a real change from a no-op. */
-const shape = (score: Score, at: EditPosition) =>
-  staffOf(score, at)
-    .bars.map((bar) =>
+/**
+ * Every beat of the staff: value, rest or empty, grace, tuplet, dynamic,
+ * techniques and notes. Comparing it before and after tells a real change
+ * from a no-op.
+ */
+const shape = (score: Score, at: EditPosition) => {
+  const staff = staffOf(score, at);
+  return staff.bars
+    .map((bar) =>
       bar.voices
         .map((voice) =>
           voice.beats
-            .map((b) => `${b.duration}.${b.dots}${b.isEmpty ? 'e' : ''}:${b.notes.map((n) => `${n.string}/${n.fret}`).sort()}`)
+            .map((b) => {
+              const value = `${b.duration}.${b.dots}${b.isEmpty ? 'e' : ''}g${b.graceType}t${b.tupletNumerator}d${b.dynamics}`;
+              const position = { ...at, bar: bar.index, voice: voice.index, beat: b.index };
+              const notes = b.notes.map((n) => `${n.string}/${n.fret}${activeTechniques(score, { ...position, string: n.string })}`);
+              // String 0 has no note, so it lists only the beat techniques.
+              return `${value}${activeTechniques(score, { ...position, string: 0 })}:${notes.sort()}`;
+            })
             .join(' '),
         )
         .join(','),
     )
     .join('|');
+};
 
 /**
  * One edit command on the song. A step goes into `history` only when the song
@@ -55,6 +68,14 @@ export function runCommand(
         return selectVoice(score, at, command.voice, settings);
       case 'move':
         return move(score, at, command.direction, settings);
+      case 'toggle':
+        return toggleTechnique(score, at, command.technique, settings);
+      case 'setDynamic':
+        return setDynamic(score, at, command.dynamic, settings);
+      case 'setTuplet':
+        return setTuplet(score, at, command.tuplet, settings);
+      case 'addGrace':
+        return addGrace(score, at, settings);
     }
   })();
   const edited = shape(score, at) !== shapeBefore;

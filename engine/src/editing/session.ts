@@ -6,6 +6,7 @@ import { checkBars } from './bar_check';
 import { runCommand } from './commands';
 import { History } from './history';
 import { beatOf, clampPosition } from './position';
+import { activeTechniques, dynamicAt, tupletAt } from './techniques';
 
 type Score = alphaTab.model.Score;
 
@@ -56,7 +57,8 @@ export class EditSession {
   }
 
   state(score: Score, edited: boolean): EditState {
-    const beat = this.position ? beatOf(score, this.position) : null;
+    const at = this.position;
+    const beat = at ? beatOf(score, at) : null;
     return {
       position: this.position,
       issues: this.issues,
@@ -64,7 +66,17 @@ export class EditSession {
       canRedo: this.history.canRedo,
       song: describeOpened(score, this.name),
       edited,
-      beat: beat ? { duration: beat.duration, dots: beat.dots } : null,
+      beat:
+        at && beat
+          ? {
+              duration: beat.duration,
+              dots: beat.dots,
+              techniques: activeTechniques(score, at),
+              dynamic: dynamicAt(score, at),
+              tuplet: tupletAt(score, at),
+              hasNote: beat.notes.some((n) => n.string === at.string),
+            }
+          : null,
     };
   }
 }
