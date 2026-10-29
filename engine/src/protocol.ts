@@ -73,3 +73,6 @@ export type SongSummary = {
 
 /** alphaTab numbers strings from the lowest: string 1 is the lowest-pitched. */
 export type EditPosition = { track: number; bar: number; voice: number; beat: number; string: number };
+
+/** A voice whose notes and rests don't add up to its bar; negative `ticksOff` means short. */
+export type BarIssue = { bar: number; voice: number; ticksOff: number };
