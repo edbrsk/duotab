@@ -64,7 +64,7 @@ These count as failures even if every feature works:
 
 Mockups: `.superpowers/brainstorm/75036-1793277125/content/editor-layout-v2.html` (layout) and `palette-v3.html` (palette), both approved.
 
-- **Three columns**: tool palette on the left, score in the middle, track information on the right (name, tuning, string count, tone; notation options later), with the [track drawer](#track-drawer) along the bottom of the score column.
+- **Three columns**: tool palette on the left, score in the middle, track information on the right (name, tuning, string count, tone, and which staves to draw: standard notation and tab, each on or off with at least one on, both on by default whatever the file says), with the [track drawer](#track-drawer) along the bottom of the score column.
 - **The score is centred on the whole screen** while both side panels are in the same state: they have the same total width, counting the part of a panel that sits under the vertical bar.
 - **Each side panel collapses** with a button at its top to a strip holding only the expand button, and the score takes the freed width; the app remembers the choice. The palette exists from the editor plan on; until then there is no left panel, and a vertical bar on the leading edge sits on a strip of panel colour.
 - **The panel on the vertical bar's side runs to the screen edge.** The bar's area keeps the panel's own colour; only the system clock and the app's glass tab capsule are drawn there. The panel's controls are inset by the bar's safe-area padding. When the bar is on the leading edge, the arrangement mirrors.
@@ -98,7 +98,7 @@ Chosen by the [engine spike](../spikes/2026-10-29-engine-spike.md): on the owner
 - **Player**: alphaTab's synthesizer, which turns the song (all tracks, tempo changes, dynamics and techniques) into MIDI and plays it in the web view. The engine exposes play, pause, seek, speed, loop range, mute/solo, program change, count-in, metronome and a single-note preview for editing, and pushes the playback position so the cursor (drawn by alphaTab) and Flutter's transport stay in step.
 - **SoundFont**: `sonivox.sf2` (1.3 MB, Apache-2.0), shipped with alphaTab.
 - **Tones** map to General MIDI programs (1-based): Clean = 28 Electric Guitar (clean), Overdrive = 30 Overdriven Guitar, High gain = 31 Distortion Guitar. A guitar track starts with its file's program when that is one of these three, otherwise Clean.
-- **Practice settings** (tone, mute/solo, speed, loop) are kept by the app per file, outside the song file, so practising never modifies or copies a file. When the song is saved, each guitar track's tone is written as its MIDI program.
+- **Practice settings** (tone, mute/solo, speed, loop, the staves drawn) are kept by the app per file, outside the song file, so practising never modifies or copies a file. When the song is saved, each guitar track's tone is written as its MIDI program.
 - **Other tracks** play with their file's program; drums play with the SoundFont's percussion bank.
 - **Speed**: 25–150% of the written tempo, with 50/75/100% shortcuts. Tempo changes in the song are followed.
 - **Looping**: drag across notes to set an A–B loop; on touch, long-press to start the selection.

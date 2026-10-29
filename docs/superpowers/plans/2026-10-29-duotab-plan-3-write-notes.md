@@ -21,7 +21,7 @@ The editor is split in two so each plan stays reviewable; retune and export move
 
 | Plan | Delivers |
 |---|---|
-| 3 Write notes (this) | new song, tap-to-cursor, fret pad, palette (voices, note values, rests, dots) with collapse, bar check, undo/redo, autosave and the "(DuoTab)" copy |
+| 3 Write notes (this) | standard notation above tab with per-track staff toggles, new song, tap-to-cursor, fret pad, palette (voices, note values, rests, dots) with collapse, bar check, undo/redo, autosave and the "(DuoTab)" copy |
 | 4 Notation tools | tuplets, ties, grace notes, accidentals, dynamics, guitar techniques, articulations; bar tools (clef, time signature per bar, key signature, repeats, alternate endings, segno/coda, tempo marking); insert, delete, copy and paste bars; guitar track management in the drawer; tones written into saved songs |
 | 5 Retune and export | retuning, automatic fingering, `.gp` and PDF export, share sheet |
 
@@ -41,11 +41,72 @@ Plans 1–2's Global Constraints all apply. In addition:
 
 ## Review Focus
 
+0. **A file that saved a guitar track with notation or tab switched off** must still open with both drawn; only the owner's own toggles hide one. Test: Task 0 `opens every string track with notation and tab`.
+
 1. **Editing an opened file** must never write to it, including when a `<name> (DuoTab).gp` already exists (the copy becomes `<name> (DuoTab) (2).gp`) and when the opened file is itself an earlier copy the app no longer remembers. Tests: Task 8 `the first edit of an opened file writes a copy beside it`, `an existing copy name gets a counter`, `a file the app did not create is never written`.
 2. **Moving the cursor past the last beat of the last bar** must append a bar in the time signature in force, and the bar check must cover it. Test: Task 1 `moving right from the last beat appends a bar`.
 3. **The engine restarting during editing** must reopen the copy being edited, not the original, and keep the cursor's track. Test: Task 8 `an engine restart reopens the saved copy`.
 4. **Fret entry edge cases**: a second digit that would pass 24, a digit after the time window, and ⌫ on a rest. Tests: Task 6 `a second digit past 24 starts a new fret`, `a digit after the window starts a new fret`; Task 1 `deleting the only note leaves a rest`.
 5. **Playback state across edits**: an edit must not reset the song's practice settings (tone, mute, loop) the way opening a song does. Test: Task 7 `an edit keeps the practice settings`.
+
+---
+
+### Task 0: Notation above tab, with staff toggles
+
+The `ScoreTab` profile in alphaTab 1.6.1 draws the staves each staff's own flags allow (`showStandardNotation`, `showTablature`; `ScoreBarRendererFactory.canCreate`), so a Guitar Pro file saved with notation hidden shows tab only.
+
+**Files:**
+- Create: `engine/src/staves.ts`, `engine/test/staves.test.ts`
+- Modify: `engine/src/protocol.ts`, `engine/src/main.ts`, `lib/engine/protocol.dart`, `lib/engine/engine_bridge.dart`, `lib/features/playback/practice_settings.dart`, `lib/features/playback/playback_cubit.dart`, `lib/features/score/track_info_panel.dart`, `lib/l10n/app_en.arb`
+- Test: `test/unit/engine/engine_bridge_test.dart`, `test/unit/features/playback/practice_store_test.dart`, `test/unit/features/playback/playback_cubit_test.dart`, `test/widget/score/track_info_panel_test.dart`
+
+**Interfaces:**
+- Produces (engine):
+  - `showNotationAndTab(score: Score): void` sets both flags on the first staff of every track that has strings.
+  - `setStaves(score: Score, staves: StaffView[]): void`, where `type StaffView = { index: number; notation: boolean; tab: boolean }` (in `protocol.ts`).
+- Produces (protocol): request `setStaves` with `{ staves: StaffView[] }`, which applies them and re-renders once.
+- Produces (Dart):
+  - `class StaffView { index, notation, tab }` with `toJson`, and `EngineBridge.setStaves(List<StaffView>)`.
+  - `TrackPractice` gains `showNotation` and `showTab` (both default true, stored in `practice.json`).
+  - `PlaybackCubit.setStaffView(int track, {required bool notation, required bool tab})`.
+
+- [ ] **Step 1: Write the failing tests.**
+  - `staves.test.ts`:
+    - `opens every string track with notation and tab`: a fixture whose first track has `showStandardNotation = false` and whose second has `showTablature = false` → after `showNotationAndTab`, both flags are true on both; a percussion track is untouched.
+    - `setStaves hides what is asked`: `setStaves(score, [{ index: 0, notation: false, tab: true }])` → track 0 `showStandardNotation` false, `showTablature` true.
+    - `setStaves refuses to hide both`: `{ notation: false, tab: false }` throws `a track needs notation or tab`.
+  - `engine_bridge_test.dart`: `setStaves sends the views`.
+  - `practice_store_test.dart`: `round-trips practice settings` also covers `showNotation: false` on track 1, and an older file without the keys reads as `true`.
+  - `playback_cubit_test.dart`:
+    - `opening a song sends only staff views that differ from the default`: saved track 1 `showNotation: false` → `setStaves([StaffView(1, notation: false, tab: true)])` once; with nothing saved, `setStaves` is never sent.
+    - `setStaffView updates, persists and sends`.
+  - `track_info_panel_test.dart`:
+    - `notation toggles show the drawn track's staves`: `Standard notation` and `Tab` `FilterChip`s, both selected by default.
+    - `turning one off calls the cubit`: tapping `Standard notation` → `setStaffView(1, notation: false, tab: true)`.
+    - `the last staff on cannot be turned off`: with `showTab: false`, the `Standard notation` chip is disabled.
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `npm --prefix engine test; flutter test test/unit test/widget/score`
+Expected: FAIL: `staves` module missing; `setStaves` and `showNotation` not defined.
+
+- [ ] **Step 3: Implement.**
+  - **Engine.** `main.ts` calls `showNotationAndTab(score)` inside the `scoreLoaded` handler, which runs before alphaTab's first render of the song. `setStaves` applies the views and calls `api.render()`.
+  - **Dart.**
+    - `_applyPractice` sends `setStaves` for guitar tracks whose saved view differs from both-on. It runs after `setTracks`, under the same current-song check.
+    - `TrackInfoPanel` adds a `Notation` heading (l10n `notation`) with two `FilterChip`s (l10n `standardNotation`, `tab`) above Tone.
+
+- [ ] **Step 4: Run the tests and suites**
+
+Run: `npm --prefix engine test && (cd engine && npx tsc --noEmit -p .) && flutter test && flutter analyze`
+Expected: all pass, `No issues found!`
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add -A engine lib test
+git commit -m "feat: notation above tab by default, with per-track staff toggles"
+```
 
 ---
 
@@ -485,6 +546,7 @@ Run: `npm --prefix engine run build && flutter build ios --simulator && xcrun si
 Expected: build succeeds; the app launches.
 
 - [ ] **Step 2: Owner checks**, reported back in one message:
+  0. **Open Collateral Damage**: notation is drawn above the tab. Turning Standard notation off in the track panel leaves tab only, and the choice is still there after a relaunch.
   1. **New song**, 7 strings, Standard A, 140, 6/8: the editor opens with four empty bars in 6/8, notation over a 7-line tab.
   2. **Tap a string** in bar 1: the cursor shows on that string. Type `5`, then `1` and `2` quickly: the frets read 5, then 12, and the notation updates.
   3. **Note values and dots**: an eighth, then a dotted quarter. A bar that's too long or too short turns red with its amount; filling it right clears the red.
