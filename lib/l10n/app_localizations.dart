@@ -99,6 +99,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'DuoTab'**
   String get appTitle;
+
+  /// No description provided for @foldedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Open your iPhone Duo to continue'**
+  String get foldedMessage;
 }
 
 class _AppLocalizationsDelegate

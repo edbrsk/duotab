@@ -1,4 +1,5 @@
 {
   "@@locale": "en",
-  "appTitle": "DuoTab"
+  "appTitle": "DuoTab",
+  "foldedMessage": "Open your iPhone Duo to continue"
 }

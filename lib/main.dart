@@ -5,6 +5,7 @@ import 'app.dart';
 import 'core/dependency_injection.dart';
 import 'core/duo/hinge_status_provider.dart';
 import 'core/duo/vertical_bar_edge_provider.dart';
+import 'presentation/shell/fold_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,7 +16,7 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: getIt<VerticalBarEdgeProvider>()),
         ChangeNotifierProvider.value(value: getIt<HingeStatusProvider>()),
       ],
-      child: const DuoTabApp(home: SizedBox()),
+      child: const DuoTabApp(home: FoldGate(child: SizedBox())),
     ),
   );
 }
