@@ -35,8 +35,39 @@ class Palette extends StatelessWidget {
       64: l10n.sixtyFourthRest,
     };
     final voice = state.position?.voice ?? 0;
-    // Voices and rests change the song, so they wait for a placed cursor.
+    final dynamicNames = {
+      'ppp': l10n.pianississimo,
+      'pp': l10n.pianissimo,
+      'p': l10n.piano,
+      'mp': l10n.mezzoPiano,
+      'mf': l10n.mezzoForte,
+      'f': l10n.forte,
+      'ff': l10n.fortissimo,
+      'fff': l10n.fortississimo,
+    };
+    final tupletNames = {
+      3: l10n.triplet,
+      5: l10n.quintuplet,
+      6: l10n.sextuplet,
+    };
+    // Voices, rests and techniques change the song, so they wait for a placed
+    // cursor; note techniques also need a note on the cursor string.
     final placed = state.position != null;
+    final onNote = placed && state.hasNote;
+
+    _Chip technique(
+      String id,
+      String tooltip,
+      Widget label, {
+      bool needsNote = true,
+    }) => _Chip(
+      tooltip: tooltip,
+      label: label,
+      selected: state.techniques.contains(id),
+      onSelected: (needsNote ? onNote : placed)
+          ? () => editor.toggle(id)
+          : null,
+    );
 
     return Material(
       type: MaterialType.transparency,
@@ -118,6 +149,138 @@ class Palette extends StatelessWidget {
                 selected: state.dots == 2,
                 onSelected: () => editor.chooseDots(state.dots == 2 ? 0 : 2),
               ),
+              for (final MapEntry(key: tuplet, value: glyph)
+                  in Smufl.tuplets.entries)
+                _Chip(
+                  tooltip: tupletNames[tuplet]!,
+                  label: _Glyph(glyph),
+                  selected: state.tuplet == tuplet,
+                  onSelected: placed
+                      ? () => editor.setTuplet(
+                          state.tuplet == tuplet ? 1 : tuplet,
+                        )
+                      : null,
+                ),
+              technique('tie', l10n.tie, const _Text('‿')),
+              _Chip(
+                tooltip: l10n.graceNote,
+                label: const _Glyph(Smufl.graceNote),
+                selected: false,
+                onSelected: placed ? editor.addGrace : null,
+              ),
+            ],
+          ),
+          _Group(
+            title: l10n.accidentals,
+            children: [
+              technique(
+                'doubleFlat',
+                l10n.doubleFlat,
+                const _Glyph(Smufl.doubleFlat),
+              ),
+              technique('flat', l10n.flat, const _Glyph(Smufl.flat)),
+              technique('natural', l10n.natural, const _Glyph(Smufl.natural)),
+              technique('sharp', l10n.sharp, const _Glyph(Smufl.sharp)),
+              technique(
+                'doubleSharp',
+                l10n.doubleSharp,
+                const _Glyph(Smufl.doubleSharp),
+              ),
+            ],
+          ),
+          _Group(
+            title: l10n.dynamics,
+            children: [
+              for (final MapEntry(key: mark, value: glyph)
+                  in Smufl.dynamics.entries)
+                _Chip(
+                  tooltip: dynamicNames[mark]!,
+                  label: _Glyph(glyph),
+                  selected: state.dynamicMark == mark,
+                  onSelected: placed ? () => editor.setDynamic(mark) : null,
+                ),
+              technique(
+                'crescendo',
+                l10n.crescendo,
+                const _Text('cresc.'),
+                needsNote: false,
+              ),
+              technique(
+                'diminuendo',
+                l10n.diminuendo,
+                const _Text('dim.'),
+                needsNote: false,
+              ),
+            ],
+          ),
+          _Group(
+            title: l10n.guitarTechniques,
+            children: [
+              technique('hammerPull', l10n.hammerPull, const _Text('H/P')),
+              technique('slide', l10n.slide, const _Text('sl.')),
+              technique('bend', l10n.bend, const _Text('⤴')),
+              technique('vibrato', l10n.vibrato, const _Glyph(Smufl.vibrato)),
+              technique('palmMute', l10n.palmMute, const _Text('P.M.')),
+              technique('letRing', l10n.letRing, const _Text('let ring')),
+              technique(
+                'deadNote',
+                l10n.deadNote,
+                const _Glyph(Smufl.deadNote),
+              ),
+              technique('ghostNote', l10n.ghostNote, const _Text('( )')),
+              technique(
+                'naturalHarmonic',
+                l10n.naturalHarmonic,
+                const _Text('N.H.'),
+              ),
+              technique(
+                'artificialHarmonic',
+                l10n.artificialHarmonic,
+                const _Text('A.H.'),
+              ),
+              technique(
+                'tapping',
+                l10n.tapping,
+                const _Text('T'),
+                needsNote: false,
+              ),
+              technique(
+                'pickUp',
+                l10n.pickUp,
+                const _Glyph(Smufl.pickUp),
+                needsNote: false,
+              ),
+              technique(
+                'pickDown',
+                l10n.pickDown,
+                const _Glyph(Smufl.pickDown),
+                needsNote: false,
+              ),
+              technique(
+                'tremolo',
+                l10n.tremoloPicking,
+                const _Glyph(Smufl.tremolo),
+                needsNote: false,
+              ),
+            ],
+          ),
+          _Group(
+            title: l10n.articulation,
+            children: [
+              technique('accent', l10n.accent, const _Glyph(Smufl.accent)),
+              technique('marcato', l10n.marcato, const _Glyph(Smufl.marcato)),
+              technique(
+                'staccato',
+                l10n.staccato,
+                const _Glyph(Smufl.staccato),
+              ),
+              technique('tenuto', l10n.tenuto, const _Glyph(Smufl.tenuto)),
+              technique(
+                'fermata',
+                l10n.fermata,
+                const _Glyph(Smufl.fermata),
+                needsNote: false,
+              ),
             ],
           ),
         ],
@@ -186,4 +349,15 @@ class _Glyph extends StatelessWidget {
     glyph,
     style: const TextStyle(fontFamily: 'Bravura', fontSize: 22, height: 1),
   );
+}
+
+/// Guitar Pro's printed abbreviation, for a technique without a SMuFL symbol.
+class _Text extends StatelessWidget {
+  final String text;
+
+  const _Text(this.text);
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(text, style: const TextStyle(fontSize: 14, height: 1));
 }

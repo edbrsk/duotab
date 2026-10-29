@@ -502,6 +502,264 @@ abstract class AppLocalizations {
   /// **'Double dot'**
   String get doubleDot;
 
+  /// No description provided for @triplet.
+  ///
+  /// In en, this message translates to:
+  /// **'Triplet'**
+  String get triplet;
+
+  /// No description provided for @quintuplet.
+  ///
+  /// In en, this message translates to:
+  /// **'Quintuplet'**
+  String get quintuplet;
+
+  /// No description provided for @sextuplet.
+  ///
+  /// In en, this message translates to:
+  /// **'Sextuplet'**
+  String get sextuplet;
+
+  /// No description provided for @tie.
+  ///
+  /// In en, this message translates to:
+  /// **'Tie'**
+  String get tie;
+
+  /// No description provided for @graceNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Grace note'**
+  String get graceNote;
+
+  /// No description provided for @accidentals.
+  ///
+  /// In en, this message translates to:
+  /// **'Accidentals'**
+  String get accidentals;
+
+  /// No description provided for @doubleFlat.
+  ///
+  /// In en, this message translates to:
+  /// **'Double flat'**
+  String get doubleFlat;
+
+  /// No description provided for @flat.
+  ///
+  /// In en, this message translates to:
+  /// **'Flat'**
+  String get flat;
+
+  /// No description provided for @natural.
+  ///
+  /// In en, this message translates to:
+  /// **'Natural'**
+  String get natural;
+
+  /// No description provided for @sharp.
+  ///
+  /// In en, this message translates to:
+  /// **'Sharp'**
+  String get sharp;
+
+  /// No description provided for @doubleSharp.
+  ///
+  /// In en, this message translates to:
+  /// **'Double sharp'**
+  String get doubleSharp;
+
+  /// No description provided for @dynamics.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamics'**
+  String get dynamics;
+
+  /// No description provided for @pianississimo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pianississimo'**
+  String get pianississimo;
+
+  /// No description provided for @pianissimo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pianissimo'**
+  String get pianissimo;
+
+  /// No description provided for @piano.
+  ///
+  /// In en, this message translates to:
+  /// **'Piano'**
+  String get piano;
+
+  /// No description provided for @mezzoPiano.
+  ///
+  /// In en, this message translates to:
+  /// **'Mezzo-piano'**
+  String get mezzoPiano;
+
+  /// No description provided for @mezzoForte.
+  ///
+  /// In en, this message translates to:
+  /// **'Mezzo-forte'**
+  String get mezzoForte;
+
+  /// No description provided for @forte.
+  ///
+  /// In en, this message translates to:
+  /// **'Forte'**
+  String get forte;
+
+  /// No description provided for @fortissimo.
+  ///
+  /// In en, this message translates to:
+  /// **'Fortissimo'**
+  String get fortissimo;
+
+  /// No description provided for @fortississimo.
+  ///
+  /// In en, this message translates to:
+  /// **'Fortississimo'**
+  String get fortississimo;
+
+  /// No description provided for @crescendo.
+  ///
+  /// In en, this message translates to:
+  /// **'Crescendo'**
+  String get crescendo;
+
+  /// No description provided for @diminuendo.
+  ///
+  /// In en, this message translates to:
+  /// **'Diminuendo'**
+  String get diminuendo;
+
+  /// No description provided for @guitarTechniques.
+  ///
+  /// In en, this message translates to:
+  /// **'Guitar techniques'**
+  String get guitarTechniques;
+
+  /// No description provided for @hammerPull.
+  ///
+  /// In en, this message translates to:
+  /// **'Hammer-on or pull-off'**
+  String get hammerPull;
+
+  /// No description provided for @slide.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide'**
+  String get slide;
+
+  /// No description provided for @bend.
+  ///
+  /// In en, this message translates to:
+  /// **'Bend'**
+  String get bend;
+
+  /// No description provided for @vibrato.
+  ///
+  /// In en, this message translates to:
+  /// **'Vibrato'**
+  String get vibrato;
+
+  /// No description provided for @palmMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Palm mute'**
+  String get palmMute;
+
+  /// No description provided for @letRing.
+  ///
+  /// In en, this message translates to:
+  /// **'Let ring'**
+  String get letRing;
+
+  /// No description provided for @deadNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Dead note'**
+  String get deadNote;
+
+  /// No description provided for @ghostNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Ghost note'**
+  String get ghostNote;
+
+  /// No description provided for @naturalHarmonic.
+  ///
+  /// In en, this message translates to:
+  /// **'Natural harmonic'**
+  String get naturalHarmonic;
+
+  /// No description provided for @artificialHarmonic.
+  ///
+  /// In en, this message translates to:
+  /// **'Artificial harmonic'**
+  String get artificialHarmonic;
+
+  /// No description provided for @tapping.
+  ///
+  /// In en, this message translates to:
+  /// **'Tapping'**
+  String get tapping;
+
+  /// No description provided for @pickUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick up'**
+  String get pickUp;
+
+  /// No description provided for @pickDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick down'**
+  String get pickDown;
+
+  /// No description provided for @tremoloPicking.
+  ///
+  /// In en, this message translates to:
+  /// **'Tremolo picking'**
+  String get tremoloPicking;
+
+  /// No description provided for @articulation.
+  ///
+  /// In en, this message translates to:
+  /// **'Articulation'**
+  String get articulation;
+
+  /// No description provided for @accent.
+  ///
+  /// In en, this message translates to:
+  /// **'Accent'**
+  String get accent;
+
+  /// No description provided for @marcato.
+  ///
+  /// In en, this message translates to:
+  /// **'Marcato'**
+  String get marcato;
+
+  /// No description provided for @staccato.
+  ///
+  /// In en, this message translates to:
+  /// **'Staccato'**
+  String get staccato;
+
+  /// No description provided for @tenuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Tenuto'**
+  String get tenuto;
+
+  /// No description provided for @fermata.
+  ///
+  /// In en, this message translates to:
+  /// **'Fermata'**
+  String get fermata;
+
   /// No description provided for @undo.
   ///
   /// In en, this message translates to:

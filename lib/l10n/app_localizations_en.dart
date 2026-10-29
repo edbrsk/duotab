@@ -227,6 +227,135 @@ class AppLocalizationsEn extends AppLocalizations {
   String get doubleDot => 'Double dot';
 
   @override
+  String get triplet => 'Triplet';
+
+  @override
+  String get quintuplet => 'Quintuplet';
+
+  @override
+  String get sextuplet => 'Sextuplet';
+
+  @override
+  String get tie => 'Tie';
+
+  @override
+  String get graceNote => 'Grace note';
+
+  @override
+  String get accidentals => 'Accidentals';
+
+  @override
+  String get doubleFlat => 'Double flat';
+
+  @override
+  String get flat => 'Flat';
+
+  @override
+  String get natural => 'Natural';
+
+  @override
+  String get sharp => 'Sharp';
+
+  @override
+  String get doubleSharp => 'Double sharp';
+
+  @override
+  String get dynamics => 'Dynamics';
+
+  @override
+  String get pianississimo => 'Pianississimo';
+
+  @override
+  String get pianissimo => 'Pianissimo';
+
+  @override
+  String get piano => 'Piano';
+
+  @override
+  String get mezzoPiano => 'Mezzo-piano';
+
+  @override
+  String get mezzoForte => 'Mezzo-forte';
+
+  @override
+  String get forte => 'Forte';
+
+  @override
+  String get fortissimo => 'Fortissimo';
+
+  @override
+  String get fortississimo => 'Fortississimo';
+
+  @override
+  String get crescendo => 'Crescendo';
+
+  @override
+  String get diminuendo => 'Diminuendo';
+
+  @override
+  String get guitarTechniques => 'Guitar techniques';
+
+  @override
+  String get hammerPull => 'Hammer-on or pull-off';
+
+  @override
+  String get slide => 'Slide';
+
+  @override
+  String get bend => 'Bend';
+
+  @override
+  String get vibrato => 'Vibrato';
+
+  @override
+  String get palmMute => 'Palm mute';
+
+  @override
+  String get letRing => 'Let ring';
+
+  @override
+  String get deadNote => 'Dead note';
+
+  @override
+  String get ghostNote => 'Ghost note';
+
+  @override
+  String get naturalHarmonic => 'Natural harmonic';
+
+  @override
+  String get artificialHarmonic => 'Artificial harmonic';
+
+  @override
+  String get tapping => 'Tapping';
+
+  @override
+  String get pickUp => 'Pick up';
+
+  @override
+  String get pickDown => 'Pick down';
+
+  @override
+  String get tremoloPicking => 'Tremolo picking';
+
+  @override
+  String get articulation => 'Articulation';
+
+  @override
+  String get accent => 'Accent';
+
+  @override
+  String get marcato => 'Marcato';
+
+  @override
+  String get staccato => 'Staccato';
+
+  @override
+  String get tenuto => 'Tenuto';
+
+  @override
+  String get fermata => 'Fermata';
+
+  @override
   String get undo => 'Undo';
 
   @override

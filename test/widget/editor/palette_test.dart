@@ -24,11 +24,15 @@ void main() {
     when(() => editor.chooseDots(any())).thenAnswer((_) async {});
     when(() => editor.undo()).thenAnswer((_) async {});
     when(() => editor.redo()).thenAnswer((_) async {});
+    when(() => editor.toggle(any())).thenAnswer((_) async {});
+    when(() => editor.setDynamic(any())).thenAnswer((_) async {});
+    when(() => editor.setTuplet(any())).thenAnswer((_) async {});
+    when(() => editor.addGrace()).thenAnswer((_) async {});
   });
 
   Future<void> pump(WidgetTester tester, EditorState state) async {
     tester.view
-      ..physicalSize = const Size(240, 900)
+      ..physicalSize = const Size(240, 3000)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     when(() => editor.state).thenReturn(state);
@@ -130,5 +134,87 @@ void main() {
     );
     expect(glyph.style?.fontFamily, 'Bravura');
     expect(glyph.data, '');
+  });
+
+  testWidgets('shows every technique group', (tester) async {
+    await pump(tester, const EditorState());
+    for (final heading in [
+      'ACCIDENTALS',
+      'DYNAMICS',
+      'GUITAR TECHNIQUES',
+      'ARTICULATION',
+    ]) {
+      expect(find.text(heading), findsOneWidget);
+    }
+  });
+
+  testWidgets('active techniques are selected', (tester) async {
+    await pump(
+      tester,
+      const EditorState(
+        position: _at,
+        hasNote: true,
+        techniques: {'palmMute', 'accent'},
+      ),
+    );
+    expect(chip(tester, 'Palm mute').selected, isTrue);
+    expect(chip(tester, 'Accent').selected, isTrue);
+    expect(chip(tester, 'Slide').selected, isFalse);
+  });
+
+  testWidgets('a technique chip toggles it', (tester) async {
+    await pump(tester, const EditorState(position: _at, hasNote: true));
+    await tester.tap(find.byTooltip('Slide'));
+    verify(() => editor.toggle('slide')).called(1);
+  });
+
+  testWidgets('note techniques need a note on the cursor string', (
+    tester,
+  ) async {
+    await pump(tester, const EditorState(position: _at));
+    expect(chip(tester, 'Palm mute').onSelected, isNull);
+    expect(chip(tester, 'Tie').onSelected, isNull);
+    expect(chip(tester, 'Tapping').onSelected, isNotNull);
+  });
+
+  testWidgets('technique chips need a cursor', (tester) async {
+    await pump(tester, const EditorState(hasNote: true));
+    for (final tooltip in ['Palm mute', 'Tapping', 'Forte', 'Triplet']) {
+      expect(chip(tester, tooltip).onSelected, isNull, reason: tooltip);
+    }
+  });
+
+  testWidgets('a dynamic chip sets it, and the current one is selected', (
+    tester,
+  ) async {
+    await pump(tester, const EditorState(position: _at, dynamicMark: 'mf'));
+    expect(chip(tester, 'Mezzo-forte').selected, isTrue);
+    expect(chip(tester, 'Forte').selected, isFalse);
+    await tester.tap(find.byTooltip('Fortissimo'));
+    verify(() => editor.setDynamic('ff')).called(1);
+  });
+
+  testWidgets('tuplets toggle', (tester) async {
+    await pump(tester, const EditorState(position: _at, tuplet: 3));
+    expect(chip(tester, 'Triplet').selected, isTrue);
+    await tester.tap(find.byTooltip('Triplet'));
+    verify(() => editor.setTuplet(1)).called(1);
+    await tester.tap(find.byTooltip('Quintuplet'));
+    verify(() => editor.setTuplet(5)).called(1);
+  });
+
+  testWidgets('grace note adds a grace beat', (tester) async {
+    await pump(tester, const EditorState(position: _at));
+    await tester.tap(find.byTooltip('Grace note'));
+    verify(() => editor.addGrace()).called(1);
+  });
+
+  testWidgets('symbols are Bravura glyphs', (tester) async {
+    await pump(tester, const EditorState());
+    final text = tester.widget<Text>(
+      find.descendant(of: find.byTooltip('Sharp'), matching: find.byType(Text)),
+    );
+    expect(text.data, '\u{E262}');
+    expect(text.style!.fontFamily, 'Bravura');
   });
 }
