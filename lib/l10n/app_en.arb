@@ -70,5 +70,8 @@
   "tuning": "Tuning",
   "tone": "Tone",
   "hideTrackPanel": "Hide track panel",
-  "showTrackPanel": "Show track panel"
+  "showTrackPanel": "Show track panel",
+  "notation": "Notation",
+  "standardNotation": "Standard notation",
+  "tab": "Tab"
 }

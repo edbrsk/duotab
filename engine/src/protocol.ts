@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -24,6 +24,10 @@ export type SeekBarPayload = { bar: number };
 export type TrackMix = { index: number; mute: boolean; solo: boolean; program: number };
 
 export type SetTracksPayload = { tracks: TrackMix[] };
+
+export type StaffView = { index: number; notation: boolean; tab: boolean };
+
+export type SetStavesPayload = { staves: StaffView[] };
 
 /** 0.25–1.5 of the written tempo. */
 export type SetSpeedPayload = { speed: number };

@@ -127,4 +127,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get showTrackPanel => 'Show track panel';
+
+  @override
+  String get notation => 'Notation';
+
+  @override
+  String get standardNotation => 'Standard notation';
+
+  @override
+  String get tab => 'Tab';
 }

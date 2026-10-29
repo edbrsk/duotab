@@ -11,10 +11,12 @@ import type {
   RangePayload,
   SeekBarPayload,
   SetLoopingPayload,
+  SetStavesPayload,
   SetSpeedPayload,
   SetTracksPayload,
 } from './protocol';
 import { type HighlightApi, keepRangeHighlighted } from './range_highlight';
+import { setStaves, showNotationAndTab } from './staves';
 import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
 import { LongPressSelection } from './touch_selection';
@@ -123,7 +125,9 @@ function whenPlayerReady(): Promise<void> {
   });
 }
 
+// Runs before alphaTab's first render of the song.
 api.scoreLoaded.on((score) => {
+  showNotationAndTab(score);
   pendingOpen?.resolve(score);
   pendingOpen = null;
 });
@@ -202,6 +206,12 @@ async function run(request: Request): Promise<unknown> {
       const { countIn, metronome } = request.payload as PlayerOptionsPayload;
       api.countInVolume = countIn ? 1 : 0;
       api.metronomeVolume = metronome ? 1 : 0;
+      return {};
+    }
+    case 'setStaves': {
+      if (!api.score) throw new Error('no song open');
+      setStaves(api.score, (request.payload as SetStavesPayload).staves);
+      api.render();
       return {};
     }
     case 'setSpeed':

@@ -47,6 +47,13 @@ void main() {
     score = _Score();
     playback = _Playback();
     when(() => playback.setTone(any(), any())).thenAnswer((_) async {});
+    when(
+      () => playback.setStaffView(
+        any(),
+        notation: any(named: 'notation'),
+        tab: any(named: 'tab'),
+      ),
+    ).thenAnswer((_) async {});
     when(() => playback.state).thenReturn(
       const PlaybackState(
         practice: PracticeSettings(
@@ -101,6 +108,38 @@ void main() {
     expect(group.groupValue, Tone.overdrive);
     await tester.tap(find.text('High gain'));
     verify(() => playback.setTone(1, Tone.highGain)).called(1);
+  });
+
+  testWidgets("notation toggles show the drawn track's staves", (tester) async {
+    await pump(tester, drawn);
+    for (final label in ['Standard notation', 'Tab']) {
+      final chip = tester.widget<FilterChip>(
+        find.widgetWithText(FilterChip, label),
+      );
+      expect(chip.selected, isTrue);
+    }
+  });
+
+  testWidgets('turning one off calls the cubit', (tester) async {
+    await pump(tester, drawn);
+    await tester.tap(find.widgetWithText(FilterChip, 'Standard notation'));
+    verify(() => playback.setStaffView(1, notation: false, tab: true))
+        .called(1);
+  });
+
+  testWidgets('the last staff on cannot be turned off', (tester) async {
+    when(() => playback.state).thenReturn(
+      const PlaybackState(
+        practice: PracticeSettings(
+          tracks: {1: TrackPractice(tone: Tone.overdrive, showTab: false)},
+        ),
+      ),
+    );
+    await pump(tester, drawn);
+    final chip = tester.widget<FilterChip>(
+      find.widgetWithText(FilterChip, 'Standard notation'),
+    );
+    expect(chip.onSelected, isNull);
   });
 
   testWidgets('is empty without a drawn track', (tester) async {

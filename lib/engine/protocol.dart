@@ -144,6 +144,24 @@ class TrackMix {
   };
 }
 
+class StaffView {
+  final int index;
+  final bool notation;
+  final bool tab;
+
+  const StaffView({
+    required this.index,
+    required this.notation,
+    required this.tab,
+  });
+
+  Map<String, Object> toJson() => {
+    'index': index,
+    'notation': notation,
+    'tab': tab,
+  };
+}
+
 class EngineEvent {
   /// `ready`, `rendered`, `error`, `playerState` or `position`.
   final String type;

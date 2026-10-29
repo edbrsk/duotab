@@ -7,25 +7,45 @@ class TrackPractice {
 
   /// Null for tracks that are not guitar.
   final Tone? tone;
+  final bool showNotation;
+  final bool showTab;
 
-  const TrackPractice({this.mute = false, this.solo = false, this.tone});
+  const TrackPractice({
+    this.mute = false,
+    this.solo = false,
+    this.tone,
+    this.showNotation = true,
+    this.showTab = true,
+  });
 
-  TrackPractice copyWith({bool? mute, bool? solo, Tone? tone}) => TrackPractice(
+  TrackPractice copyWith({
+    bool? mute,
+    bool? solo,
+    Tone? tone,
+    bool? showNotation,
+    bool? showTab,
+  }) => TrackPractice(
     mute: mute ?? this.mute,
     solo: solo ?? this.solo,
     tone: tone ?? this.tone,
+    showNotation: showNotation ?? this.showNotation,
+    showTab: showTab ?? this.showTab,
   );
 
   Map<String, Object?> toJson() => {
     'mute': mute,
     'solo': solo,
     'tone': tone?.name,
+    'showNotation': showNotation,
+    'showTab': showTab,
   };
 
   factory TrackPractice.fromJson(Map<String, dynamic> json) => TrackPractice(
     mute: json['mute'] == true,
     solo: json['solo'] == true,
     tone: Tone.values.where((t) => t.name == json['tone']).firstOrNull,
+    showNotation: json['showNotation'] != false,
+    showTab: json['showTab'] != false,
   );
 }
 

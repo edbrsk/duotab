@@ -92,6 +92,10 @@ class EngineBridge {
     'metronome': metronome,
   });
 
+  Future<void> setStaves(List<StaffView> staves) => _request('setStaves', {
+    'staves': [for (final s in staves) s.toJson()],
+  });
+
   Future<void> setTracks(List<TrackMix> tracks) => _request('setTracks', {
     'tracks': [for (final t in tracks) t.toJson()],
   });

@@ -38,6 +38,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(<TrackMix>[]);
+    registerFallbackValue(<StaffView>[]);
     registerFallbackValue(const PlaybackRange(startTick: 0, endTick: 0));
     registerFallbackValue(const PracticeSettings());
   });
@@ -56,6 +57,7 @@ void main() {
     when(() => engine.stop()).thenAnswer((_) async {});
     when(() => engine.seekBar(any())).thenAnswer((_) async {});
     when(() => engine.setTracks(any())).thenAnswer((_) async {});
+    when(() => engine.setStaves(any())).thenAnswer((_) async {});
     when(() => engine.setSpeed(any())).thenAnswer((_) async {});
     when(() => engine.setLooping(looping: any(named: 'looping')))
         .thenAnswer((_) async {});
@@ -251,6 +253,37 @@ void main() {
     await pumpEventQueue();
     verify(() => engine.setPlayerOptions(countIn: false, metronome: false))
         .called(1);
+  });
+
+  test(
+    'opening a song sends only staff views that differ from the default',
+    () async {
+      await openFixture();
+      verifyNever(() => engine.setStaves(any()));
+
+      await practice.save(
+        'fixture.gp',
+        const PracticeSettings(tracks: {1: TrackPractice(showNotation: false)}),
+      );
+      await openFixture();
+      final views =
+          verify(() => engine.setStaves(captureAny())).captured.single
+              as List<StaffView>;
+      expect(views.single.index, 1);
+      expect(views.single.notation, isFalse);
+      expect(views.single.tab, isTrue);
+    },
+  );
+
+  test('setStaffView updates, persists and sends', () async {
+    await openFixture();
+    await cubit.setStaffView(2, notation: true, tab: false);
+    expect(cubit.state.practice.tracks[2]!.showTab, isFalse);
+    expect((await practice.load('fixture.gp'))!.tracks[2]!.showTab, isFalse);
+    final views =
+        verify(() => engine.setStaves(captureAny())).captured.last
+            as List<StaffView>;
+    expect(views.single.tab, isFalse);
   });
 
   group('while a song settings load', () {

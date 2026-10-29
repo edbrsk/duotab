@@ -5,6 +5,7 @@ import '../../core/design/design_tokens.dart';
 import '../../l10n/app_localizations.dart';
 import '../library/song_list_entry.dart';
 import '../playback/playback_cubit.dart';
+import '../playback/practice_settings.dart';
 import '../playback/tone.dart';
 import '../playback/tone_label.dart';
 import 'score_cubit.dart';
@@ -21,9 +22,12 @@ class TrackInfoPanel extends StatelessWidget {
     final track = scoreState.song?.tracks
         .where((t) => t.index == scoreState.selectedTrackIndex)
         .firstOrNull;
-    final tone = context.select<PlaybackCubit, Tone?>(
-      (c) => track == null ? null : c.state.practice.tracks[track.index]?.tone,
+    final practice = context.select<PlaybackCubit, TrackPractice>(
+      (c) =>
+          (track == null ? null : c.state.practice.tracks[track.index]) ??
+          const TrackPractice(),
     );
+    final tone = practice.tone;
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.only(top: Spacing.md, bottom: Spacing.xs),
       child: Text(text.toUpperCase(), style: textTheme.labelSmall),
@@ -41,6 +45,35 @@ class TrackInfoPanel extends StatelessWidget {
               Text(tuningLabel(tuning)),
               Text(l10n.stringsCount(tuning.length)),
             ],
+            heading(l10n.notation),
+            Wrap(
+              spacing: Spacing.xs,
+              children: [
+                FilterChip(
+                  label: Text(l10n.standardNotation),
+                  selected: practice.showNotation,
+                  // At least one staff stays drawn.
+                  onSelected: practice.showNotation && !practice.showTab
+                      ? null
+                      : (on) => context.read<PlaybackCubit>().setStaffView(
+                          track.index,
+                          notation: on,
+                          tab: practice.showTab,
+                        ),
+                ),
+                FilterChip(
+                  label: Text(l10n.tab),
+                  selected: practice.showTab,
+                  onSelected: practice.showTab && !practice.showNotation
+                      ? null
+                      : (on) => context.read<PlaybackCubit>().setStaffView(
+                          track.index,
+                          notation: practice.showNotation,
+                          tab: on,
+                        ),
+                ),
+              ],
+            ),
             heading(l10n.tone),
             RadioGroup<Tone>(
               groupValue: tone,

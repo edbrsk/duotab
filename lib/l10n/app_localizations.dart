@@ -309,6 +309,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show track panel'**
   String get showTrackPanel;
+
+  /// No description provided for @notation.
+  ///
+  /// In en, this message translates to:
+  /// **'Notation'**
+  String get notation;
+
+  /// No description provided for @standardNotation.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard notation'**
+  String get standardNotation;
+
+  /// No description provided for @tab.
+  ///
+  /// In en, this message translates to:
+  /// **'Tab'**
+  String get tab;
 }
 
 class _AppLocalizationsDelegate

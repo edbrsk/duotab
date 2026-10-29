@@ -29,7 +29,12 @@ TrackPractice _resolveTrack(
 ) {
   final practice = saved ?? const TrackPractice();
   if (track.kind != TrackKind.guitar) {
-    return TrackPractice(mute: practice.mute, solo: practice.solo);
+    return TrackPractice(
+      mute: practice.mute,
+      solo: practice.solo,
+      showNotation: practice.showNotation,
+      showTab: practice.showTab,
+    );
   }
   return practice.copyWith(
     tone: practice.tone ?? Tone.fromProgram(track.midiProgram) ?? defaultTone,

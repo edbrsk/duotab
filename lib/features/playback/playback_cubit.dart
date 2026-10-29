@@ -102,8 +102,15 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     if (!identical(song, _song)) return;
     emit(state.copyWith(practice: resolved));
     _practiceReady = true;
+    final hidden = [
+      for (final t in song.tracks)
+        if (resolved.tracks[t.index] case final p?
+            when !p.showNotation || !p.showTab)
+          StaffView(index: t.index, notation: p.showNotation, tab: p.showTab),
+    ];
     for (final command in [
       () => engine.setTracks([for (final t in song.tracks) _mix(t)]),
+      if (hidden.isNotEmpty) () => engine.setStaves(hidden),
       () => engine.setSpeed(resolved.speed),
       () => engine.setLooping(looping: resolved.looping),
       () => engine.setRange(resolved.range),
@@ -155,6 +162,28 @@ class PlaybackCubit extends Cubit<PlaybackState> {
 
   Future<void> setTone(int track, Tone tone) =>
       _updateTrack(track, (p) => p.copyWith(tone: tone));
+
+  Future<void> setStaffView(
+    int track, {
+    required bool notation,
+    required bool tab,
+  }) async {
+    final song = _song;
+    if (!_practiceReady || song == null || track >= song.tracks.length) return;
+    final tracks = {...state.practice.tracks};
+    tracks[track] = (tracks[track] ?? const TrackPractice()).copyWith(
+      showNotation: notation,
+      showTab: tab,
+    );
+    await Future.wait([
+      _updatePractice(state.practice.copyWith(tracks: tracks)),
+      _send(
+        () => engine.setStaves([
+          StaffView(index: track, notation: notation, tab: tab),
+        ]),
+      ),
+    ]);
+  }
 
   Future<void> _updateTrack(
     int index,

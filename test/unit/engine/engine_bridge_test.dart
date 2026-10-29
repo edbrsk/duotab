@@ -1,4 +1,5 @@
 import 'package:duotab/engine/engine_bridge.dart';
+import 'package:duotab/engine/protocol.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_transport.dart';
@@ -39,6 +40,26 @@ void main() {
       });
       await done;
     }
+  });
+
+  test('setStaves sends the views', () async {
+    await engineReady();
+    final done = bridge.setStaves(const [
+      StaffView(index: 1, notation: false, tab: true),
+    ]);
+    await pumpEventQueue();
+    expect(transport.lastRequest['type'], 'setStaves');
+    expect(transport.lastRequest['payload'], {
+      'staves': [
+        {'index': 1, 'notation': false, 'tab': true},
+      ],
+    });
+    transport.deliver({
+      'id': transport.lastRequest['id'],
+      'ok': true,
+      'payload': <String, Object>{},
+    });
+    await done;
   });
 
   test('answers a request with the reply carrying the same id', () async {

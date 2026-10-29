@@ -24,7 +24,7 @@ void main() {
     looping: true,
     range: PlaybackRange(startTick: 960, endTick: 3840),
     tracks: {
-      1: TrackPractice(mute: true, tone: Tone.highGain),
+      1: TrackPractice(mute: true, tone: Tone.highGain, showNotation: false),
       2: TrackPractice(),
     },
   );
@@ -42,6 +42,14 @@ void main() {
     expect(loaded.tracks[1]!.solo, isFalse);
     expect(loaded.tracks[1]!.tone, Tone.highGain);
     expect(loaded.tracks[2]!.tone, isNull);
+    expect(loaded.tracks[1]!.showNotation, isFalse);
+    expect(loaded.tracks[1]!.showTab, isTrue);
+  });
+
+  test('settings saved before staff views read as both shown', () {
+    final track = TrackPractice.fromJson({'mute': false, 'solo': false});
+    expect(track.showNotation, isTrue);
+    expect(track.showTab, isTrue);
   });
 
   test('an unknown path loads null', () async {
