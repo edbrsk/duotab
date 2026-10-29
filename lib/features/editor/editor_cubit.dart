@@ -19,6 +19,12 @@ class EditorState {
   final int duration;
   final int dots;
 
+  /// At the cursor, as in [EditState].
+  final Set<String> techniques;
+  final String? dynamicMark;
+  final int tuplet;
+  final bool hasNote;
+
   const EditorState({
     this.position,
     this.issues = const [],
@@ -26,6 +32,10 @@ class EditorState {
     this.canRedo = false,
     this.duration = 4,
     this.dots = 0,
+    this.techniques = const {},
+    this.dynamicMark,
+    this.tuplet = 1,
+    this.hasNote = false,
   });
 
   EditorState copyWith({int? duration, int? dots}) => EditorState(
@@ -35,6 +45,10 @@ class EditorState {
     canRedo: canRedo,
     duration: duration ?? this.duration,
     dots: dots ?? this.dots,
+    techniques: techniques,
+    dynamicMark: dynamicMark,
+    tuplet: tuplet,
+    hasNote: hasNote,
   );
 }
 
@@ -89,6 +103,18 @@ class EditorCubit extends Cubit<EditorState> {
     }
   }
 
+  Future<void> toggle(String technique) => _atCursor(Toggle(technique));
+
+  Future<void> setDynamic(String mark) => _atCursor(SetDynamic(mark));
+
+  Future<void> setTuplet(int tuplet) => _atCursor(SetTuplet(tuplet));
+
+  Future<void> addGrace() => _atCursor(const AddGrace());
+
+  Future<void> _atCursor(EditCommand edit) async {
+    if (state.position != null) await command(edit);
+  }
+
   Future<void> _apply(Future<EditState> Function() request) async {
     final openId = _openId;
     final EditState reply;
@@ -108,6 +134,10 @@ class EditorCubit extends Cubit<EditorState> {
         canRedo: reply.canRedo,
         duration: reply.beatDuration ?? state.duration,
         dots: reply.beatDots ?? state.dots,
+        techniques: reply.techniques,
+        dynamicMark: reply.dynamicMark,
+        tuplet: reply.tuplet,
+        hasNote: reply.hasNote,
       ),
     );
     if (reply.edited) {

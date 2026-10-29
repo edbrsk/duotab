@@ -160,4 +160,46 @@ void main() {
     expect(editor.state.position, isNull);
     expect(score.state.song!.title, isNot('Old song'));
   });
+
+  test('the state follows the techniques at the cursor', () async {
+    when(() => engine.edit(any())).thenAnswer(
+      (_) async => EditState(
+        position: _at,
+        issues: const [],
+        canUndo: false,
+        canRedo: false,
+        song: drumsAndTwoGuitars,
+        edited: false,
+        techniques: const {'bend'},
+        dynamicMark: 'mf',
+        tuplet: 3,
+        hasNote: true,
+      ),
+    );
+    await editor.command(const Place(_at));
+    expect(editor.state.techniques, {'bend'});
+    expect(editor.state.dynamicMark, 'mf');
+    expect(editor.state.tuplet, 3);
+    expect(editor.state.hasNote, isTrue);
+  });
+
+  test('toggle sends the technique', () async {
+    await editor.command(const Place(_at));
+    await editor.toggle('slide');
+    verify(() => engine.edit(const Toggle('slide'))).called(1);
+    await editor.setDynamic('ff');
+    verify(() => engine.edit(const SetDynamic('ff'))).called(1);
+    await editor.setTuplet(5);
+    verify(() => engine.edit(const SetTuplet(5))).called(1);
+    await editor.addGrace();
+    verify(() => engine.edit(const AddGrace())).called(1);
+  });
+
+  test('technique commands wait for a cursor', () async {
+    await editor.toggle('slide');
+    await editor.setDynamic('ff');
+    await editor.setTuplet(3);
+    await editor.addGrace();
+    verifyNever(() => engine.edit(any()));
+  });
 }
