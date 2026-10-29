@@ -1,6 +1,15 @@
 import * as alphaTab from '@coderline/alphatab';
 
-import type { EngineEvent, PathPayload, RenderTrackPayload, Reply, Request, SeekBarPayload } from './protocol';
+import { Mixer } from './mixer';
+import type {
+  EngineEvent,
+  PathPayload,
+  RenderTrackPayload,
+  Reply,
+  Request,
+  SeekBarPayload,
+  SetTracksPayload,
+} from './protocol';
 import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
 
@@ -36,6 +45,8 @@ let pendingOpen: { resolve: (score: alphaTab.model.Score) => void; reject: (e: u
 api.playerStateChanged.on((e) =>
   post({ event: 'playerState', payload: { playing: e.state === alphaTab.synth.PlayerState.Playing } }),
 );
+
+const mixer = new Mixer(api);
 
 let postedBar = -1;
 const postBar = (bar: number) => {
@@ -92,6 +103,7 @@ async function run(request: Request): Promise<unknown> {
       });
       // An empty track list keeps alphaTab from drawing before a track is chosen.
       postedBar = -1;
+      mixer.reset();
       api.load(bytes, []);
       return describeOpened(await loaded, fileName(path));
     }
@@ -120,6 +132,12 @@ async function run(request: Request): Promise<unknown> {
       api.tickPosition = api.tickCache.getMasterBarStart(masterBar);
       api.scrollToCursor();
       postBar(bar);
+      return {};
+    }
+    case 'setTracks': {
+      const { tracks } = request.payload as SetTracksPayload;
+      await whenPlayerReady();
+      await mixer.apply(tracks);
       return {};
     }
   }

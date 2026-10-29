@@ -121,6 +121,29 @@ class PlaybackRange {
   Map<String, Object> toJson() => {'startTick': startTick, 'endTick': endTick};
 }
 
+class TrackMix {
+  final int index;
+  final bool mute;
+  final bool solo;
+
+  /// 0-based General MIDI program.
+  final int program;
+
+  const TrackMix({
+    required this.index,
+    required this.mute,
+    required this.solo,
+    required this.program,
+  });
+
+  Map<String, Object> toJson() => {
+    'index': index,
+    'mute': mute,
+    'solo': solo,
+    'program': program,
+  };
+}
+
 class EngineEvent {
   /// `ready`, `rendered`, `error`, `playerState` or `position`.
   final String type;

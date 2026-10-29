@@ -1,16 +1,26 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:duotab/core/duo/hinge_status_provider.dart';
+import 'package:duotab/core/storage/json_file.dart';
 import 'package:duotab/engine/engine_bridge.dart';
 import 'package:duotab/engine/protocol.dart';
 import 'package:duotab/features/playback/playback_cubit.dart';
+import 'package:duotab/features/playback/practice_store.dart';
+import 'package:duotab/features/playback/tone.dart';
 import 'package:duotab/features/score/score_cubit.dart';
+import 'package:duotab/features/settings/settings_cubit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:path/path.dart' as p;
 
 import '../score/score_test_data.dart';
 
 class _Engine extends Mock implements EngineBridge {}
+
+List<TrackMix> _sentMixes(_Engine engine) =>
+    verify(() => engine.setTracks(captureAny())).captured.last
+        as List<TrackMix>;
 
 void main() {
   late _Engine engine;
@@ -18,9 +28,17 @@ void main() {
   late StreamController<dynamic> hingeEvents;
   late HingeStatusProvider hinge;
   late ScoreCubit score;
+  late Directory dir;
+  late PracticeStore practice;
+  late SettingsCubit settings;
   late PlaybackCubit cubit;
 
-  setUp(() {
+  setUpAll(() => registerFallbackValue(<TrackMix>[]));
+
+  setUp(() async {
+    dir = await Directory.systemTemp.createTemp('playback_cubit_test');
+    practice = PracticeStore(JsonFile(File(p.join(dir.path, 'practice.json'))));
+    settings = SettingsCubit(JsonFile(File(p.join(dir.path, 'settings.json'))));
     engine = _Engine();
     events = StreamController<EngineEvent>.broadcast();
     hingeEvents = StreamController<dynamic>();
@@ -30,18 +48,33 @@ void main() {
     when(() => engine.pause()).thenAnswer((_) async {});
     when(() => engine.stop()).thenAnswer((_) async {});
     when(() => engine.seekBar(any())).thenAnswer((_) async {});
+    when(() => engine.setTracks(any())).thenAnswer((_) async {});
     when(() => engine.renderTrack(any())).thenAnswer((_) async {});
-    when(() => engine.open(any())).thenAnswer((_) async => drumsAndTwoGuitars);
+    // A new object per open, as the bridge parses a fresh summary each time.
+    when(() => engine.open(any())).thenAnswer(
+      (_) async => SongSummary(
+        title: drumsAndTwoGuitars.title,
+        tracks: drumsAndTwoGuitars.tracks,
+      ),
+    );
     score = ScoreCubit(engine: engine);
-    cubit = PlaybackCubit(engine: engine, hinge: hinge, score: score);
+    cubit = PlaybackCubit(
+      engine: engine,
+      hinge: hinge,
+      score: score,
+      practice: practice,
+      settings: settings,
+    );
   });
 
   tearDown(() async {
     await cubit.close();
     await score.close();
+    await settings.close();
     hinge.dispose();
     await hingeEvents.close();
     await events.close();
+    await dir.delete(recursive: true);
   });
 
   Future<void> playing({required bool on}) async {
@@ -99,5 +132,46 @@ void main() {
     await pumpEventQueue();
     expect(cubit.state.bar, 0);
     expect(cubit.state.playing, isFalse);
+  });
+
+  Future<void> openFixture() async {
+    await score.open('fixture.gp');
+    await pumpEventQueue();
+  }
+
+  test('opening a song sends its resolved mix', () async {
+    await openFixture();
+    final mixes = _sentMixes(engine);
+    expect(mixes.map((m) => m.index), [0, 1, 2]);
+    expect(mixes.map((m) => m.program), [29, 29, 29]);
+    expect(mixes.any((m) => m.mute || m.solo), isFalse);
+  });
+
+  test('setMute updates, persists and sends', () async {
+    await openFixture();
+    await cubit.setMute(1, on: true);
+    expect(cubit.state.practice.tracks[1]!.mute, isTrue);
+    expect((await practice.load('fixture.gp'))!.tracks[1]!.mute, isTrue);
+    final mixes = _sentMixes(engine);
+    expect(mixes.single.index, 1);
+    expect(mixes.single.mute, isTrue);
+  });
+
+  test('setTone sends the tone program', () async {
+    await openFixture();
+    await cubit.setTone(2, Tone.highGain);
+    expect(_sentMixes(engine).single.program, 30);
+    expect(cubit.state.practice.tracks[2]!.tone, Tone.highGain);
+  });
+
+  test('reapplies practice after the engine reopens the song', () async {
+    await openFixture();
+    await cubit.setMute(1, on: true);
+    events.add(const EngineEvent('ready', {}));
+    await pumpEventQueue();
+    await pumpEventQueue();
+    final mixes = _sentMixes(engine);
+    expect(mixes, hasLength(3));
+    expect(mixes[1].mute, isTrue);
   });
 }

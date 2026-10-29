@@ -7,23 +7,42 @@ import '../../core/duo/hinge_status_provider.dart';
 import '../../engine/engine_bridge.dart';
 import '../../engine/protocol.dart';
 import '../score/score_cubit.dart';
+import '../settings/settings_cubit.dart';
+import 'practice_settings.dart';
+import 'practice_store.dart';
+import 'resolve_practice.dart';
+import 'tone.dart';
 
 class PlaybackState {
   final bool playing;
 
   /// The bar under the playback position.
   final int bar;
+  final PracticeSettings practice;
 
-  const PlaybackState({this.playing = false, this.bar = 0});
+  const PlaybackState({
+    this.playing = false,
+    this.bar = 0,
+    this.practice = const PracticeSettings(),
+  });
 
-  PlaybackState copyWith({bool? playing, int? bar}) =>
-      PlaybackState(playing: playing ?? this.playing, bar: bar ?? this.bar);
+  PlaybackState copyWith({
+    bool? playing,
+    int? bar,
+    PracticeSettings? practice,
+  }) => PlaybackState(
+    playing: playing ?? this.playing,
+    bar: bar ?? this.bar,
+    practice: practice ?? this.practice,
+  );
 }
 
 class PlaybackCubit extends Cubit<PlaybackState> {
   final EngineBridge engine;
   final HingeStatusProvider hinge;
   final ScoreCubit score;
+  final PracticeStore practice;
+  final SettingsCubit settings;
 
   late final StreamSubscription<EngineEvent> _events;
   late final StreamSubscription<ScoreState> _songs;
@@ -33,6 +52,8 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     required this.engine,
     required this.hinge,
     required this.score,
+    required this.practice,
+    required this.settings,
   }) : super(const PlaybackState()) {
     _events = engine.events.listen(_onEngineEvent);
     _songs = score.stream.listen(_onScoreChanged);
@@ -46,6 +67,53 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     if (song == null || identical(song, _song)) return;
     _song = song;
     emit(state.copyWith(playing: false, bar: 0));
+    unawaited(_applyPractice(song, scoreState.path!));
+  }
+
+  Future<void> _applyPractice(SongSummary song, String path) async {
+    final resolved = resolvePractice(
+      song,
+      await practice.load(path),
+      settings.state.defaultTone,
+    );
+    if (!identical(song, _song)) return;
+    emit(state.copyWith(practice: resolved));
+    await _send(() => engine.setTracks([for (final t in song.tracks) _mix(t)]));
+  }
+
+  TrackMix _mix(TrackSummary track) {
+    final p = state.practice.tracks[track.index] ?? const TrackPractice();
+    return TrackMix(
+      index: track.index,
+      mute: p.mute,
+      solo: p.solo,
+      program: p.tone?.program ?? track.midiProgram,
+    );
+  }
+
+  Future<void> setMute(int track, {required bool on}) =>
+      _updateTrack(track, (p) => p.copyWith(mute: on));
+
+  Future<void> setSolo(int track, {required bool on}) =>
+      _updateTrack(track, (p) => p.copyWith(solo: on));
+
+  Future<void> setTone(int track, Tone tone) =>
+      _updateTrack(track, (p) => p.copyWith(tone: tone));
+
+  Future<void> _updateTrack(
+    int index,
+    TrackPractice Function(TrackPractice) change,
+  ) async {
+    final song = _song;
+    final path = score.state.path;
+    if (song == null || path == null || index >= song.tracks.length) return;
+    final tracks = {...state.practice.tracks};
+    tracks[index] = change(tracks[index] ?? const TrackPractice());
+    emit(state.copyWith(practice: state.practice.copyWith(tracks: tracks)));
+    await Future.wait([
+      practice.save(path, state.practice),
+      _send(() => engine.setTracks([_mix(song.tracks[index])])),
+    ]);
   }
 
   void _onEngineEvent(EngineEvent event) {

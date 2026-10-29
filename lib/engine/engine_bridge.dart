@@ -76,6 +76,10 @@ class EngineBridge {
 
   Future<void> seekBar(int bar) => _request('seekBar', {'bar': bar});
 
+  Future<void> setTracks(List<TrackMix> tracks) => _request('setTracks', {
+    'tracks': [for (final t in tracks) t.toJson()],
+  });
+
   /// Waits for the engine page to load, so the timeout also covers an engine
   /// that never starts.
   Future<Object?> _request(String type, Map<String, Object?> payload) async {

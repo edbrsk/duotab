@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -20,6 +20,10 @@ export type RenderTrackPayload = { index: number };
 export type PlayerStatePayload = { playing: boolean };
 
 export type SeekBarPayload = { bar: number };
+
+export type TrackMix = { index: number; mute: boolean; solo: boolean; program: number };
+
+export type SetTracksPayload = { tracks: TrackMix[] };
 
 /** Posted when the bar under the playback position changes, and after every seek. */
 export type PositionPayload = { bar: number };
