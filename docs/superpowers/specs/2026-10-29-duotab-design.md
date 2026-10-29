@@ -12,7 +12,7 @@ It is a personal side project. Success is the owner using it to practise and to 
 ## Goals (v1)
 
 1. **Open** Guitar Pro files (`.gp3`, `.gp4`, `.gp5`, `.gpx`, `.gp`) and MusicXML (`.musicxml`, `.xml`, `.mxl`).
-2. **Read** one guitar track at a time, drawn as standard notation above tab, chosen from the track panel (as on Songsterr). Other tracks are not drawn.
+2. **Read** one guitar track at a time, drawn as standard notation above tab, chosen from the [track drawer](#track-drawer) (as on Songsterr). Other tracks are not drawn.
 3. **Play** all tracks of the file over MIDI, with mute and solo per track, a tone per guitar track (clean, overdrive, high gain), speed control, A–B looping and a cursor that follows playback.
 4. **Write** new songs and edit opened ones, Guitar Pro style (see [Editor](#editor)).
 5. **Retune** a guitar track to another tuning while keeping how it sounds (see [Retuning](#retuning)).
@@ -64,12 +64,21 @@ These count as failures even if every feature works:
 
 Mockups: `.superpowers/brainstorm/75036-1793277125/content/editor-layout-v2.html` (layout) and `palette-v3.html` (palette), both approved.
 
-- **Three columns**: tool palette on the left, score in the middle, track panel on the right.
+- **Three columns**: tool palette on the left, score in the middle, track information on the right (name, tuning, string count, tone; notation options later), with the [track drawer](#track-drawer) along the bottom of the score column.
 - **The score is centred on the whole screen**: the two side panels have the same total width, counting the part of a panel that sits under the vertical bar.
 - **The panel on the vertical bar's side runs to the screen edge.** The bar's area keeps the panel's own colour; only the system clock and the app's glass tab capsule are drawn there. The panel's controls are inset by the bar's safe-area padding. When the bar is on the leading edge, the arrangement mirrors.
 - **Tab capsule** in the vertical bar: Library, Editor, Settings.
-- **Transport** under the score: play/pause, tempo, speed, loop, tone of the selected track.
+- **Transport** under the score, above the track drawer: play/pause, tempo, speed, loop.
 - The fold runs through the middle of the score. Notes on the crease stay tappable; no layout change is made for it in v1.
+
+### Track drawer
+
+Modelled on Guitar Pro's track list.
+
+- **A collapsible drawer** along the bottom of the score column. Expanded, it lists every track of the song, drums and bass included, and takes up to about 40% of the screen height (about five rows, then it scrolls). Collapsed, it shrinks to one strip with the selected track's row.
+- **Each row**: track name, mute, solo.
+- **Bar overview grid** beside the rows: one cell per bar, filled where that track has notes, with the file's section markers (A, B, C… and their start times) under the grid. A marker shows the current bar and follows playback.
+- **Tapping a cell** selects that track and moves the cursor to the start of that bar, scrolling the score there. For a non-guitar track the cursor moves and the drawn track stays.
 
 ### Music engine
 
@@ -99,7 +108,7 @@ Chosen by the [engine spike](../spikes/2026-10-29-engine-spike.md): on the owner
 
 - **Where it runs**: editing, the bar check, undo/redo and retuning are engine operations on alphaTab's model, followed by a re-render. Flutter draws the palette, the fret pad and the panels, and sends commands. Taps on the score are resolved to bar, voice, beat and string by the engine from alphaTab's layout information.
 - **New song**: title, guitar with 6, 7 or 8 strings, tuning, tempo, starting time signature.
-- **Guitar tracks**: a song can have several. The track panel adds, removes, renames and reorders them, and each has its own string count, tuning and tone. Non-guitar tracks from opened files are kept and played but cannot be edited.
+- **Guitar tracks**: a song can have several. The track drawer adds, removes and reorders them, the track information panel renames them, and each has its own string count, tuning and tone. Non-guitar tracks from opened files are kept and played but cannot be edited.
 - **Tuning presets** include at least the standard tunings for each string count (6: E, E♭, D, C♯, C, B; 7: B, A; 8: F♯, E), the common drop tunings, and a custom tuning per string.
 - **Entering notes**: tap a position on a tab string to place the cursor (track, bar, voice, beat, string); type the fret on the pad (two digits in quick succession make 10–24); choose note value and techniques from the palette. Notation is derived from the tab and updates as you type.
 - **Palette groups** (as in `palette-v3.html`), drawn with Bravura glyphs:
