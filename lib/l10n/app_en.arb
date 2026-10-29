@@ -1,5 +1,9 @@
 {
   "@@locale": "en",
   "appTitle": "DuoTab",
-  "foldedMessage": "Open your iPhone Duo to continue"
+  "foldedMessage": "Open your iPhone Duo to continue",
+  "tabLibrary": "Library",
+  "tabEditor": "Editor",
+  "tabSettings": "Settings",
+  "navigationLabel": "Main navigation"
 }

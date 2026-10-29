@@ -105,6 +105,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open your iPhone Duo to continue'**
   String get foldedMessage;
+
+  /// No description provided for @tabLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get tabLibrary;
+
+  /// No description provided for @tabEditor.
+  ///
+  /// In en, this message translates to:
+  /// **'Editor'**
+  String get tabEditor;
+
+  /// No description provided for @tabSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get tabSettings;
+
+  /// No description provided for @navigationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Main navigation'**
+  String get navigationLabel;
 }
 
 class _AppLocalizationsDelegate

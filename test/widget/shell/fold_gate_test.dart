@@ -20,9 +20,9 @@ class _CounterState extends State<_Counter> {
 
   @override
   Widget build(BuildContext context) => TextButton(
-        onPressed: () => setState(() => _count++),
-        child: Text('count: $_count'),
-      );
+    onPressed: () => setState(() => _count++),
+    child: Text('count: $_count'),
+  );
 }
 
 void main() {
@@ -47,13 +47,13 @@ void main() {
   }
 
   Widget gate(Widget child) => ChangeNotifierProvider.value(
-        value: hinge,
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: FoldGate(child: child)),
-        ),
-      );
+    value: hinge,
+    child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(body: FoldGate(child: child)),
+    ),
+  );
 
   testWidgets('shows the folded screen only while closed', (tester) async {
     await tester.pumpWidget(gate(const Text('app')));

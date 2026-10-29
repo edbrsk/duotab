@@ -14,4 +14,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get foldedMessage => 'Open your iPhone Duo to continue';
+
+  @override
+  String get tabLibrary => 'Library';
+
+  @override
+  String get tabEditor => 'Editor';
+
+  @override
+  String get tabSettings => 'Settings';
+
+  @override
+  String get navigationLabel => 'Main navigation';
 }

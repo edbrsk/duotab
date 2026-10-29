@@ -5,14 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
-
 /// Mirrors UIKit's `UITraitCollection.verticalBarEdge` (iOS 27.1, iPhone Duo).
 enum VerticalBarEdge { unspecified, leading, trailing }
 
 class VerticalBarEdgeProvider extends ChangeNotifier {
-  static const _channel = EventChannel(
-    'me.withedgar.duotab/vertical_bar_edge',
-  );
+  static const _channel = EventChannel('me.withedgar.duotab/vertical_bar_edge');
 
   StreamSubscription<dynamic>? _subscription;
   VerticalBarEdge _edge = VerticalBarEdge.unspecified;
