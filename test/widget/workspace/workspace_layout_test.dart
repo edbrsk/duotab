@@ -63,6 +63,14 @@ void main() {
     await tester.pump();
   }
 
+  // The whole touch target; the drawn circle inside it is smaller.
+  Rect buttonRect(WidgetTester tester, String tooltip) => tester.getRect(
+    find.ancestor(
+      of: find.byTooltip(tooltip),
+      matching: find.byType(IconButton),
+    ),
+  );
+
   testWidgets('centres the score on the full screen with a trailing bar', (
     tester,
   ) async {
@@ -156,8 +164,18 @@ void main() {
     final score = tester.getRect(find.byKey(const Key('score')));
     expect(score.right, 890 - 46 - kCollapsedPanelWidth);
     expect(find.text('track content'), findsNothing);
-    final expand = tester.getRect(find.byTooltip('Show track panel'));
-    expect(expand.right, lessThanOrEqualTo(890 - 46));
+    final expand = buttonRect(tester, 'Show track panel');
+    expect(expand.right, 890 - 46);
+    expect(expand.left - score.right, Spacing.xs);
+  });
+
+  testWidgets('the collapse button sits beside the vertical bar', (
+    tester,
+  ) async {
+    await pumpLayout(tester, width: 890, barEdge: 'trailing', right: 46);
+
+    final collapse = buttonRect(tester, 'Hide track panel');
+    expect(collapse.right, 890 - 46 - Spacing.sm);
   });
 
   testWidgets('the panel button toggles the track panel', (tester) async {

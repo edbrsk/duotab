@@ -7,7 +7,7 @@ const kSidePanelWidth = 220.0;
 const kThreeColumnMinWidth = 720.0;
 
 /// A collapsed panel's strip, not counting the vertical bar under it.
-const kCollapsedPanelWidth = AccessibleSizes.minTouchTarget + 2 * Spacing.sm;
+const kCollapsedPanelWidth = AccessibleSizes.minTouchTarget + Spacing.xs;
 
 /// Palette | score | track panel, with the score centred on the whole screen.
 /// Side panels run to the screen edge so the iPhone Duo's vertical bar sits
@@ -149,16 +149,25 @@ class _SidePanel extends StatelessWidget {
       child: ColoredBox(
         color: AppColors.panel,
         child: Padding(
-          padding: insets.add(const EdgeInsets.all(Spacing.sm)),
+          // A collapsed strip is only its button, kept against the bar.
+          padding: insets.add(
+            collapsed && toggle != null
+                ? const EdgeInsets.only(left: Spacing.xs, top: Spacing.sm)
+                : const EdgeInsets.all(Spacing.sm),
+          ),
           child: collapsed && toggle != null
               ? Align(
-                  alignment: Alignment.topCenter,
+                  alignment: Alignment.topRight,
                   child: toggle.button(collapsed: true),
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ?toggle?.button(collapsed: false),
+                    if (toggle != null)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: toggle.button(collapsed: false),
+                      ),
                     Expanded(
                       // The insets are applied here; without this, ListTile
                       // and other safe-area-aware children would apply them a
