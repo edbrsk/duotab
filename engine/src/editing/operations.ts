@@ -1,6 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import type { EditPosition } from '../protocol';
+import { type IdSource, idSource } from './ids';
 import { barOf, beatOf, type Direction, staffOf, voiceOf } from './position';
 
 const { Beat, Duration, Note, Voice } = alphaTab.model;
@@ -17,6 +18,7 @@ export function setFret(score: Score, at: EditPosition, fret: number, settings =
     existing.fret = fret;
   } else {
     const note = new Note();
+    note.id = idSource(score).note();
     note.string = at.string;
     note.fret = fret;
     beat.addNote(note);
@@ -55,7 +57,7 @@ export function deleteNote(score: Score, at: EditPosition, settings = defaultSet
     const ticks = barOf(score, at).masterBar.calculateDuration();
     if (beat.playbackDuration === ticks) return at;
     voice.beats.length = 0;
-    for (const rest of restsFilling(ticks)) voice.addBeat(rest);
+    for (const rest of restsFilling(ticks, idSource(score))) voice.addBeat(rest);
   } else {
     beat.isEmpty = true;
   }
@@ -117,6 +119,7 @@ export function move(score: Score, at: EditPosition, direction: Direction, setti
       if (current.isEmpty) current.isEmpty = false;
       if (voiceTicks(voice) < barOf(score, at).masterBar.calculateDuration()) {
         const rest = new Beat();
+        rest.id = idSource(score).beat();
         rest.duration = beatOf(score, at).duration;
         voice.addBeat(rest);
         score.finish(settings);
@@ -133,9 +136,11 @@ export function move(score: Score, at: EditPosition, direction: Direction, setti
 
 const voiceTicks = (voice: alphaTab.model.Voice) => voice.beats.reduce((t, b) => t + b.playbackDuration, 0);
 
-function emptyVoice(): alphaTab.model.Voice {
+function emptyVoice(ids: IdSource): alphaTab.model.Voice {
   const voice = new Voice();
+  voice.id = ids.voice();
   const empty = new Beat();
+  empty.id = ids.beat();
   empty.isEmpty = true;
   voice.addBeat(empty);
   return voice;
@@ -147,8 +152,9 @@ function emptyVoice(): alphaTab.model.Voice {
  * beat, which is neither drawn nor checked.
  */
 function ensureVoice(score: Score, at: EditPosition): void {
+  const ids = idSource(score);
   for (const bar of staffOf(score, at).bars) {
-    while (bar.voices.length <= at.voice) bar.addVoice(emptyVoice());
+    while (bar.voices.length <= at.voice) bar.addVoice(emptyVoice(ids));
   }
 }
 
@@ -167,13 +173,14 @@ const REST_VALUES: [alphaTab.model.Duration, number, number][] = [
   [Duration.SixtyFourth, 0, QUARTER / 16],
 ];
 
-/** Rests that add up to `ticks`, longest first. */
-export function restsFilling(ticks: number): alphaTab.model.Beat[] {
+/** Rests that add up to `ticks`, longest first; `ids` when they join a song. */
+export function restsFilling(ticks: number, ids?: IdSource): alphaTab.model.Beat[] {
   const rests: alphaTab.model.Beat[] = [];
   let left = ticks;
   for (const [duration, dots, value] of REST_VALUES) {
     while (left >= value) {
       const rest = new Beat();
+      if (ids) rest.id = ids.beat();
       rest.duration = duration;
       rest.dots = dots;
       rests.push(rest);
@@ -192,19 +199,22 @@ export function appendBar(score: Score, settings = defaultSettings): void {
   masterBar.timeSignatureCommon = previous.timeSignatureCommon;
   score.addMasterBar(masterBar);
   const ticks = masterBar.calculateDuration();
+  const ids = idSource(score);
   for (const track of score.tracks) {
     for (const staff of track.staves) {
       const last = staff.bars[staff.bars.length - 1];
       const bar = new alphaTab.model.Bar();
+      bar.id = ids.bar();
       bar.clef = last.clef;
       bar.clefOttava = last.clefOttava;
       bar.keySignature = last.keySignature;
       bar.keySignatureType = last.keySignatureType;
       staff.addBar(bar);
       const voice = new Voice();
-      for (const rest of restsFilling(ticks)) voice.addBeat(rest);
+      voice.id = ids.voice();
+      for (const rest of restsFilling(ticks, ids)) voice.addBeat(rest);
       bar.addVoice(voice);
-      while (bar.voices.length < last.voices.length) bar.addVoice(emptyVoice());
+      while (bar.voices.length < last.voices.length) bar.addVoice(emptyVoice(ids));
     }
   }
   score.finish(settings);

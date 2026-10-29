@@ -155,3 +155,21 @@ test('deleting on a beat whose notes are on other strings changes nothing', () =
   expect(beat(0, 0).notes.map((n) => [n.string, n.fret])).toEqual([[1, 0]]);
   expect(voice(0).beats).toHaveLength(4);
 });
+
+test('new beats, notes, voices and bars get ids no other object in the song has', () => {
+  // Another import resets alphaTab's id counters, as the library's summaries do.
+  score(sixEight);
+  setDuration(s, at(0, 3), alphaTab.model.Duration.Eighth, 0);
+  move(s, at(0, 3), 'right');
+  setFret(s, at(0, 4, 2), 3);
+  selectVoice(s, at(0, 0), 1);
+  move(s, at(1, 0), 'right');
+  const staff = s.tracks[0].staves[0];
+  const unique = (ids: number[]) => expect(new Set(ids).size).toBe(ids.length);
+  const voices = staff.bars.flatMap((b) => b.voices);
+  const beats = voices.flatMap((v) => v.beats);
+  unique(staff.bars.map((b) => b.id));
+  unique(voices.map((v) => v.id));
+  unique(beats.map((b) => b.id));
+  unique(beats.flatMap((b) => b.notes.map((n) => n.id)));
+});
