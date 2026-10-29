@@ -40,5 +40,12 @@
         "type": "int"
       }
     }
-  }
+  },
+  "countIn": "Count-in",
+  "metronome": "Metronome",
+  "defaultTone": "Default tone",
+  "toneClean": "Clean",
+  "toneOverdrive": "Overdrive",
+  "toneHighGain": "High gain",
+  "licences": "Licences"
 }

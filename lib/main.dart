@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
 
@@ -11,6 +12,7 @@ import 'features/library/library_page.dart';
 import 'features/playback/playback_cubit.dart';
 import 'features/score/score_cubit.dart';
 import 'features/score/score_page.dart';
+import 'features/settings/licences.dart';
 import 'features/settings/settings_cubit.dart';
 import 'features/settings/settings_page.dart';
 import 'presentation/shell/app_destinations.dart';
@@ -21,6 +23,7 @@ import 'presentation/shell/navigation_cubit.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await setupDependencies();
+  registerBundledLicences(rootBundle);
   runApp(
     MultiProvider(
       providers: [

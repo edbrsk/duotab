@@ -84,6 +84,14 @@ class EngineBridge {
   Future<void> setRange(PlaybackRange? range) =>
       _request('setRange', {'range': range?.toJson()});
 
+  Future<void> setPlayerOptions({
+    required bool countIn,
+    required bool metronome,
+  }) => _request('setPlayerOptions', {
+    'countIn': countIn,
+    'metronome': metronome,
+  });
+
   Future<void> setTracks(List<TrackMix> tracks) => _request('setTracks', {
     'tracks': [for (final t in tracks) t.toJson()],
   });

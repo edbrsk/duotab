@@ -46,6 +46,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
 
   late final StreamSubscription<EngineEvent> _events;
   late final StreamSubscription<ScoreState> _songs;
+  late final StreamSubscription<AppSettings> _settings;
   SongSummary? _song;
 
   PlaybackCubit({
@@ -57,8 +58,17 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   }) : super(const PlaybackState()) {
     _events = engine.events.listen(_onEngineEvent);
     _songs = score.stream.listen(_onScoreChanged);
+    _settings = settings.stream.listen((_) => unawaited(_sendPlayerOptions()));
     hinge.addListener(_onHingeChanged);
+    unawaited(_sendPlayerOptions());
   }
+
+  Future<void> _sendPlayerOptions() => _send(
+    () => engine.setPlayerOptions(
+      countIn: settings.state.countIn,
+      metronome: settings.state.metronome,
+    ),
+  );
 
   // A new song object means the engine loaded a song, even the same file
   // again after a restart; the engine's player starts over at bar 0.
@@ -154,6 +164,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
       // A ready after start-up means the page reloaded, and its player with it.
       case 'ready':
         emit(state.copyWith(playing: false));
+        unawaited(_sendPlayerOptions());
     }
   }
 
@@ -182,6 +193,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   @override
   Future<void> close() async {
     hinge.removeListener(_onHingeChanged);
+    await _settings.cancel();
     await _songs.cancel();
     await _events.cancel();
     return super.close();

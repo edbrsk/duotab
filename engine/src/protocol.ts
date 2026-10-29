@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -29,6 +29,8 @@ export type SetTracksPayload = { tracks: TrackMix[] };
 export type SetSpeedPayload = { speed: number };
 
 export type SetLoopingPayload = { looping: boolean };
+
+export type PlayerOptionsPayload = { countIn: boolean; metronome: boolean };
 
 export type Range = { startTick: number; endTick: number };
 

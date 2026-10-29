@@ -4,6 +4,7 @@ import { Mixer } from './mixer';
 import type {
   EngineEvent,
   PathPayload,
+  PlayerOptionsPayload,
   RenderTrackPayload,
   Reply,
   Request,
@@ -172,6 +173,12 @@ async function run(request: Request): Promise<unknown> {
       const { tracks } = request.payload as SetTracksPayload;
       await whenPlayerReady();
       await mixer.apply(tracks);
+      return {};
+    }
+    case 'setPlayerOptions': {
+      const { countIn, metronome } = request.payload as PlayerOptionsPayload;
+      api.countInVolume = countIn ? 1 : 0;
+      api.metronomeVolume = metronome ? 1 : 0;
       return {};
     }
     case 'setSpeed':

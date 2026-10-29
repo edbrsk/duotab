@@ -57,6 +57,12 @@ void main() {
     when(() => engine.setLooping(looping: any(named: 'looping')))
         .thenAnswer((_) async {});
     when(() => engine.setRange(any())).thenAnswer((_) async {});
+    when(
+      () => engine.setPlayerOptions(
+        countIn: any(named: 'countIn'),
+        metronome: any(named: 'metronome'),
+      ),
+    ).thenAnswer((_) async {});
     when(() => engine.renderTrack(any())).thenAnswer((_) async {});
     // A new object per open, as the bridge parses a fresh summary each time.
     when(() => engine.open(any())).thenAnswer(
@@ -223,5 +229,24 @@ void main() {
         verify(() => engine.setRange(captureAny())).captured.last
             as PlaybackRange;
     expect(range.endTick, 1920);
+  });
+
+  test('sends player options on start and on change', () async {
+    await pumpEventQueue();
+    verify(() => engine.setPlayerOptions(countIn: false, metronome: false))
+        .called(1);
+    await settings.setCountIn(on: true);
+    await pumpEventQueue();
+    verify(() => engine.setPlayerOptions(countIn: true, metronome: false))
+        .called(1);
+  });
+
+  test('resends player options after the engine restarts', () async {
+    await pumpEventQueue();
+    clearInteractions(engine);
+    events.add(const EngineEvent('ready', {}));
+    await pumpEventQueue();
+    verify(() => engine.setPlayerOptions(countIn: false, metronome: false))
+        .called(1);
   });
 }

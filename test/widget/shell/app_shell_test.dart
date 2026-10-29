@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:duotab/core/duo/vertical_bar_edge_provider.dart';
-import 'package:duotab/features/settings/settings_page.dart';
 import 'package:duotab/l10n/app_localizations.dart';
 import 'package:duotab/presentation/shell/app_destinations.dart';
 import 'package:duotab/presentation/shell/app_shell.dart';
@@ -74,7 +73,7 @@ void main() {
               pageFor: (tab) => switch (tab) {
                 AppTab.library => const _Counter(),
                 AppTab.editor => const Text('editor page'),
-                AppTab.settings => const SettingsPage(),
+                AppTab.settings => const Text('settings page'),
               },
             ),
           ),
@@ -122,7 +121,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Settings'));
     await tester.pump();
-    expect(find.byType(SettingsPage), findsOneWidget);
+    expect(find.text('settings page'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Library'));
     await tester.pump();

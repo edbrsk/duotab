@@ -75,4 +75,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String tempoMarking(int bpm) {
     return '♩ = $bpm';
   }
+
+  @override
+  String get countIn => 'Count-in';
+
+  @override
+  String get metronome => 'Metronome';
+
+  @override
+  String get defaultTone => 'Default tone';
+
+  @override
+  String get toneClean => 'Clean';
+
+  @override
+  String get toneOverdrive => 'Overdrive';
+
+  @override
+  String get toneHighGain => 'High gain';
+
+  @override
+  String get licences => 'Licences';
 }

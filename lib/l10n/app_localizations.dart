@@ -213,6 +213,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'♩ = {bpm}'**
   String tempoMarking(int bpm);
+
+  /// No description provided for @countIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Count-in'**
+  String get countIn;
+
+  /// No description provided for @metronome.
+  ///
+  /// In en, this message translates to:
+  /// **'Metronome'**
+  String get metronome;
+
+  /// No description provided for @defaultTone.
+  ///
+  /// In en, this message translates to:
+  /// **'Default tone'**
+  String get defaultTone;
+
+  /// No description provided for @toneClean.
+  ///
+  /// In en, this message translates to:
+  /// **'Clean'**
+  String get toneClean;
+
+  /// No description provided for @toneOverdrive.
+  ///
+  /// In en, this message translates to:
+  /// **'Overdrive'**
+  String get toneOverdrive;
+
+  /// No description provided for @toneHighGain.
+  ///
+  /// In en, this message translates to:
+  /// **'High gain'**
+  String get toneHighGain;
+
+  /// No description provided for @licences.
+  ///
+  /// In en, this message translates to:
+  /// **'Licences'**
+  String get licences;
 }
 
 class _AppLocalizationsDelegate
