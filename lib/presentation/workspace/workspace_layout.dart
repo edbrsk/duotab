@@ -15,11 +15,15 @@ class WorkspaceLayout extends StatelessWidget {
   final Widget trackPanel;
   final Widget? transport;
 
+  /// Under [transport], in the score column.
+  final Widget? drawer;
+
   const WorkspaceLayout({
     required this.palette,
     required this.score,
     required this.trackPanel,
     this.transport,
+    this.drawer,
     super.key,
   });
 
@@ -39,6 +43,7 @@ class WorkspaceLayout extends StatelessWidget {
           ),
         ),
         ?transport,
+        ?drawer,
       ],
     );
 

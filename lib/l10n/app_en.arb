@@ -47,5 +47,23 @@
   "toneClean": "Clean",
   "toneOverdrive": "Overdrive",
   "toneHighGain": "High gain",
-  "licences": "Licences"
+  "licences": "Licences",
+  "muteTrack": "Mute {name}",
+  "@muteTrack": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "soloTrack": "Solo {name}",
+  "@soloTrack": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "showTracks": "Show tracks",
+  "hideTracks": "Hide tracks"
 }

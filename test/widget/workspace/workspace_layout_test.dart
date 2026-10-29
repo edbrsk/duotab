@@ -28,6 +28,8 @@ void main() {
     double left = 0,
     double right = 0,
     Widget trackPanel = const Text('track content'),
+    Widget? transport,
+    Widget? drawer,
   }) async {
     tester.view
       ..physicalSize = Size(width, 626)
@@ -44,6 +46,8 @@ void main() {
             palette: const Text('palette content'),
             score: const Text('score content'),
             trackPanel: trackPanel,
+            transport: transport,
+            drawer: drawer,
           ),
         ),
       ),
@@ -103,5 +107,32 @@ void main() {
     expect(find.byKey(const Key('palette')), findsNothing);
     expect(find.text('Make DuoTab wider to edit'), findsOneWidget);
     expect(find.text('score content'), findsOneWidget);
+  });
+
+  testWidgets('draws the drawer under the transport', (tester) async {
+    for (final width in [890.0, 600.0]) {
+      await pumpLayout(
+        tester,
+        width: width,
+        barEdge: 'trailing',
+        transport: const SizedBox(
+          key: Key('transport'),
+          width: double.infinity,
+          height: 40,
+        ),
+        drawer: const SizedBox(
+          key: Key('drawer'),
+          width: double.infinity,
+          height: 120,
+        ),
+      );
+      final score = tester.getRect(find.byKey(const Key('score')));
+      final transport = tester.getRect(find.byKey(const Key('transport')));
+      final drawer = tester.getRect(find.byKey(const Key('drawer')));
+      expect(drawer.top, transport.bottom);
+      expect(transport.top, score.bottom);
+      expect(drawer.left, score.left);
+      expect(drawer.right, score.right);
+    }
   });
 }

@@ -62,9 +62,13 @@ void main() {
     await cubit.open('fixture.gp');
     await pumpPage(tester);
 
-    expect(find.text('Guitar 1'), findsOneWidget);
-    expect(find.text('Drums'), findsNothing);
-    await tester.tap(find.text('Guitar 2'));
+    Finder inPanel(String text) => find.descendant(
+      of: find.byKey(const Key('trackPanel')),
+      matching: find.text(text),
+    );
+    expect(inPanel('Guitar 1'), findsOneWidget);
+    expect(inPanel('Drums'), findsNothing);
+    await tester.tap(inPanel('Guitar 2'));
     await tester.pump();
 
     verify(() => engine.renderTrack(2)).called(1);

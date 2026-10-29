@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../../presentation/workspace/workspace_layout.dart';
 import '../playback/transport_bar.dart';
 import 'score_cubit.dart';
+import 'track_drawer.dart';
 import 'track_panel.dart';
 
 class ScorePage extends StatelessWidget {
@@ -32,6 +33,7 @@ class ScorePage extends StatelessWidget {
       palette: const SizedBox.shrink(),
       trackPanel: const TrackPanel(),
       transport: const TransportBar(),
+      drawer: state.song != null ? const TrackDrawer() : null,
       score: Column(
         children: [
           if (state.song case final song?)

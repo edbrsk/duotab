@@ -96,4 +96,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get licences => 'Licences';
+
+  @override
+  String muteTrack(String name) {
+    return 'Mute $name';
+  }
+
+  @override
+  String soloTrack(String name) {
+    return 'Solo $name';
+  }
+
+  @override
+  String get showTracks => 'Show tracks';
+
+  @override
+  String get hideTracks => 'Hide tracks';
 }

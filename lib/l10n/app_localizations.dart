@@ -255,6 +255,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Licences'**
   String get licences;
+
+  /// No description provided for @muteTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute {name}'**
+  String muteTrack(String name);
+
+  /// No description provided for @soloTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Solo {name}'**
+  String soloTrack(String name);
+
+  /// No description provided for @showTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Show tracks'**
+  String get showTracks;
+
+  /// No description provided for @hideTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide tracks'**
+  String get hideTracks;
 }
 
 class _AppLocalizationsDelegate
