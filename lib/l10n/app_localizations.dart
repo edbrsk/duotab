@@ -129,6 +129,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Main navigation'**
   String get navigationLabel;
+
+  /// No description provided for @widerToEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Make DuoTab wider to edit'**
+  String get widerToEdit;
 }
 
 class _AppLocalizationsDelegate

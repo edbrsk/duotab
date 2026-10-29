@@ -26,4 +26,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get navigationLabel => 'Main navigation';
+
+  @override
+  String get widerToEdit => 'Make DuoTab wider to edit';
 }

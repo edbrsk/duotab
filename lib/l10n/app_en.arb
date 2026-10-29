@@ -5,5 +5,6 @@
   "tabLibrary": "Library",
   "tabEditor": "Editor",
   "tabSettings": "Settings",
-  "navigationLabel": "Main navigation"
+  "navigationLabel": "Main navigation",
+  "widerToEdit": "Make DuoTab wider to edit"
 }
