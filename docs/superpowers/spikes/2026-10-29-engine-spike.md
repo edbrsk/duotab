@@ -113,3 +113,17 @@ On top of that, alphaTab wraps lines, follows playback with a cursor, and plays 
 **Not taken here: it goes to the owner.** The choice decides the language of the editor and the size of Plans 2–4, so Tasks 8 and 11 wait for it.
 
 Recommendation: **alphaTab**. On the owner's own songs it reads everything crisp drops, and its `.gp` export survives a round trip; crisp's `.gp` files do not open in Guitar Pro 8. Keeping crisp means rebuilding import, export and line wrapping before any app feature works.
+
+## Step 0b: alphaTab in a web view on the iPhone Duo simulator
+
+Probe: `spike/webview_probe/` on the spike branch. `webview_flutter` `WebViewWidget`, alphaTab 1.6.1's `dist/` served by a `dart:io` `HttpServer` on `127.0.0.1:0`, Collateral Damage `.gp`, one track rendered with `StaveProfile.ScoreTab`, `PlayerMode.EnabledSynthesizer` with `sonivox.sf2`.
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Notation over tab, wrapped into lines | rendered without errors; visual check by the owner pending |
+| 2 | Plays in time, cursor follows | player ready; listening check by the owner pending |
+| 3 | `file://` or loopback server | **loopback server needed**: from `loadFlutterAsset`, the module import fails with `TypeError: Cross-origin script load denied by Cross-Origin Resource Sharing policy.` |
+| 4 | Load and render time | page boot 197 ms; song loaded (7 tracks) 346 ms; SoundFont 534 ms; player ready 538 ms; first render 578 ms |
+| 5 | Bridge round trip (Dart `runJavaScript` → page → `JavaScriptChannel`) | median 0.64 ms, max 116 ms over 20 pings |
+
+Settings that worked, relative to the page URL: `import('./alphatab/alphaTab.mjs')`; `core.fontDirectory = <page>/alphatab/font/`; `player.soundFont = <page>/alphatab/soundfont/sonivox.sf2`; `player.enableCursor = true`; `player.scrollElement = document.scrollingElement`; song loaded with `api.load(<page>/song.gp)`. The server must send `text/javascript` for `.mjs`. Worker and worklet were found by alphaTab next to `alphaTab.mjs` without extra settings.
