@@ -17,7 +17,7 @@ This is the first of four plans; each later one is written after the previous la
 | Plan | Delivers |
 |---|---|
 | 1 Foundation (this) | engine spikes, app shell, fold gate, vertical-bar navigation, workspace layout, engine package and bridge, library, Open In, read-only score view |
-| 2 Playback | engine player commands, transport, tones, practice settings store, cursor, A–B loop, count-in, metronome, pause on close, the track drawer (mute/solo, bar overview grid) replacing Plan 1's right-hand track list, the track information panel |
+| 2 Playback | engine player commands, transport, tones, practice settings store, cursor, A–B loop, count-in, metronome, pause on close, the track drawer (mute/solo, bar overview grid) replacing Plan 1's right-hand track list, the track information panel, the licence screen (alphaTab, Bravura, Sonivox) in Settings |
 | 3 Editor | new song, tap-to-cursor and fret pad, palette, voices, bar check, bar editing, tempo and time signatures, guitar track management, undo/redo, autosave and the "(DuoTab)" copy |
 | 4 Retune and export | retuning, automatic fingering for parts without string/fret data, `.gp` and PDF export, share sheet |
 
