@@ -5,6 +5,7 @@ import 'package:duotab/features/playback/playback_cubit.dart';
 import 'package:duotab/features/playback/transport_bar.dart';
 import 'package:duotab/features/score/score_cubit.dart';
 import 'package:duotab/features/score/score_page.dart';
+import 'package:duotab/features/settings/settings_cubit.dart';
 import 'package:duotab/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -17,10 +18,13 @@ class _Engine extends Mock implements EngineBridge {}
 
 class _Playback extends MockCubit<PlaybackState> implements PlaybackCubit {}
 
+class _Settings extends MockCubit<AppSettings> implements SettingsCubit {}
+
 void main() {
   late _Engine engine;
   late ScoreCubit cubit;
   late _Playback playback;
+  late _Settings settings;
 
   setUp(() {
     engine = _Engine();
@@ -33,6 +37,11 @@ void main() {
     cubit = ScoreCubit(engine: engine);
     playback = _Playback();
     when(() => playback.state).thenReturn(const PlaybackState());
+    settings = _Settings();
+    when(() => settings.state).thenReturn(const AppSettings());
+    when(
+      () => settings.setTrackPanelCollapsed(collapsed: any(named: 'collapsed')),
+    ).thenAnswer((_) async {});
   });
 
   tearDown(() => cubit.close());
@@ -50,6 +59,7 @@ void main() {
           providers: [
             BlocProvider.value(value: cubit),
             BlocProvider<PlaybackCubit>.value(value: playback),
+            BlocProvider<SettingsCubit>.value(value: settings),
           ],
           child: const ScorePage(engineView: Text('engine view')),
         ),
@@ -75,6 +85,12 @@ void main() {
     await pumpPage(tester);
 
     expect(find.text('This song has no guitar track'), findsOneWidget);
+  });
+
+  testWidgets('collapsing the track panel saves the choice', (tester) async {
+    await pumpPage(tester);
+    await tester.tap(find.byTooltip('Hide track panel'));
+    verify(() => settings.setTrackPanelCollapsed(collapsed: true)).called(1);
   });
 
   testWidgets('hides the transport when no song is open', (tester) async {

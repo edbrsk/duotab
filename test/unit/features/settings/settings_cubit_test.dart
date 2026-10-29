@@ -23,6 +23,7 @@ void main() {
     expect(cubit.state.countIn, isFalse);
     expect(cubit.state.metronome, isFalse);
     expect(cubit.state.defaultTone, Tone.clean);
+    expect(cubit.state.trackPanelCollapsed, isFalse);
     await cubit.close();
   });
 
@@ -32,6 +33,7 @@ void main() {
     await cubit.setCountIn(on: true);
     await cubit.setMetronome(on: true);
     await cubit.setDefaultTone(Tone.overdrive);
+    await cubit.setTrackPanelCollapsed(collapsed: true);
     await cubit.close();
 
     final fresh = SettingsCubit(JsonFile(file));
@@ -39,6 +41,7 @@ void main() {
     expect(fresh.state.countIn, isTrue);
     expect(fresh.state.metronome, isTrue);
     expect(fresh.state.defaultTone, Tone.overdrive);
+    expect(fresh.state.trackPanelCollapsed, isTrue);
     await fresh.close();
   });
 }

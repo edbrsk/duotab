@@ -6,6 +6,7 @@ import '../../engine/engine_host.dart';
 import '../../l10n/app_localizations.dart';
 import '../../presentation/workspace/workspace_layout.dart';
 import '../playback/transport_bar.dart';
+import '../settings/settings_cubit.dart';
 import 'score_cubit.dart';
 import 'track_drawer.dart';
 import 'track_info_panel.dart';
@@ -28,10 +29,16 @@ class ScorePage extends StatelessWidget {
       _ => null,
     };
     final textTheme = Theme.of(context).textTheme;
+    final collapsed = context.select<SettingsCubit, bool>(
+      (c) => c.state.trackPanelCollapsed,
+    );
 
     return WorkspaceLayout(
-      palette: const SizedBox.shrink(),
       trackPanel: const TrackInfoPanel(),
+      trackPanelCollapsed: collapsed,
+      onToggleTrackPanel: () => context
+          .read<SettingsCubit>()
+          .setTrackPanelCollapsed(collapsed: !collapsed),
       transport: state.song != null ? const TransportBar() : null,
       drawer: state.song != null ? const TrackDrawer() : null,
       score: Column(

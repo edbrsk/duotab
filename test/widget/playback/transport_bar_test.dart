@@ -103,6 +103,13 @@ void main() {
     }
   });
 
+  testWidgets('tapping the tempo opens the speed menu', (tester) async {
+    await pump(tester, const PlaybackState());
+    await tester.tap(find.text('♩ = 120'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(MenuItemButton, '50%'), findsOneWidget);
+  });
+
   testWidgets('loop toggle sets looping', (tester) async {
     await pump(tester, const PlaybackState());
     await tester.tap(find.byTooltip('Loop'));

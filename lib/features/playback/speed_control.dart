@@ -5,7 +5,10 @@ import '../../core/design/design_tokens.dart';
 import 'playback_cubit.dart';
 
 class SpeedControl extends StatelessWidget {
-  const SpeedControl({super.key});
+  /// Shared with the tempo marking, which opens the same menu.
+  final MenuController controller;
+
+  const SpeedControl({required this.controller, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +18,7 @@ class SpeedControl extends StatelessWidget {
     );
     String percent(double s) => '${(s * 100).round()}%';
     return MenuAnchor(
+      controller: controller,
       menuChildren: [
         for (final shortcut in const [0.5, 0.75, 1.0])
           MenuItemButton(

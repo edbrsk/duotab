@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:duotab/core/design/design_tokens.dart';
 import 'package:duotab/core/duo/vertical_bar_edge_provider.dart';
 import 'package:duotab/l10n/app_localizations.dart';
 import 'package:duotab/presentation/workspace/workspace_layout.dart';
@@ -30,6 +31,9 @@ void main() {
     Widget trackPanel = const Text('track content'),
     Widget? transport,
     Widget? drawer,
+    bool withPalette = true,
+    bool trackPanelCollapsed = false,
+    VoidCallback? onToggleTrackPanel,
   }) async {
     tester.view
       ..physicalSize = Size(width, 626)
@@ -43,7 +47,9 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: WorkspaceLayout(
-            palette: const Text('palette content'),
+            palette: withPalette ? const Text('palette content') : null,
+            trackPanelCollapsed: trackPanelCollapsed,
+            onToggleTrackPanel: onToggleTrackPanel ?? () {},
             score: const Text('score content'),
             trackPanel: trackPanel,
             transport: transport,
@@ -134,5 +140,67 @@ void main() {
       expect(drawer.left, score.left);
       expect(drawer.right, score.right);
     }
+  });
+
+  testWidgets('a collapsed track panel gives its width to the score', (
+    tester,
+  ) async {
+    await pumpLayout(
+      tester,
+      width: 890,
+      barEdge: 'trailing',
+      right: 46,
+      trackPanelCollapsed: true,
+    );
+
+    final score = tester.getRect(find.byKey(const Key('score')));
+    expect(score.right, 890 - 46 - kCollapsedPanelWidth);
+    expect(find.text('track content'), findsNothing);
+    final expand = tester.getRect(find.byTooltip('Show track panel'));
+    expect(expand.right, lessThanOrEqualTo(890 - 46));
+  });
+
+  testWidgets('the panel button toggles the track panel', (tester) async {
+    var toggles = 0;
+    await pumpLayout(
+      tester,
+      width: 890,
+      barEdge: 'trailing',
+      right: 46,
+      onToggleTrackPanel: () => toggles++,
+    );
+
+    await tester.tap(find.byTooltip('Hide track panel'));
+    expect(toggles, 1);
+  });
+
+  testWidgets('without a palette the score starts at the left edge', (
+    tester,
+  ) async {
+    await pumpLayout(
+      tester,
+      width: 890,
+      barEdge: 'trailing',
+      right: 46,
+      withPalette: false,
+    );
+
+    expect(tester.getRect(find.byKey(const Key('score'))).left, 0);
+  });
+
+  testWidgets('without a palette a leading bar sits on the panel colour', (
+    tester,
+  ) async {
+    await pumpLayout(
+      tester,
+      width: 890,
+      barEdge: 'leading',
+      left: 46,
+      withPalette: false,
+    );
+
+    expect(tester.getRect(find.byKey(const Key('score'))).left, 46);
+    final strip = tester.widget<ColoredBox>(find.byKey(const Key('barStrip')));
+    expect(strip.color, AppColors.panel);
   });
 }

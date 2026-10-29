@@ -6,22 +6,30 @@ import '../../l10n/app_localizations.dart';
 const kSidePanelWidth = 220.0;
 const kThreeColumnMinWidth = 720.0;
 
+/// A collapsed panel's strip, not counting the vertical bar under it.
+const kCollapsedPanelWidth = AccessibleSizes.minTouchTarget + 2 * Spacing.sm;
+
 /// Palette | score | track panel, with the score centred on the whole screen.
 /// Side panels run to the screen edge so the iPhone Duo's vertical bar sits
 /// on the panel's own colour; their content stays clear of it.
 class WorkspaceLayout extends StatelessWidget {
-  final Widget palette;
+  /// Null until the editor gives the palette its tools.
+  final Widget? palette;
   final Widget score;
   final Widget trackPanel;
+  final bool trackPanelCollapsed;
+  final VoidCallback? onToggleTrackPanel;
   final Widget? transport;
 
   /// Under [transport], in the score column.
   final Widget? drawer;
 
   const WorkspaceLayout({
-    required this.palette,
     required this.score,
     required this.trackPanel,
+    this.palette,
+    this.trackPanelCollapsed = false,
+    this.onToggleTrackPanel,
     this.transport,
     this.drawer,
     super.key,
@@ -49,17 +57,26 @@ class WorkspaceLayout extends StatelessWidget {
 
     if (isCollapsed(context)) return scoreColumn;
 
+    final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
-        _SidePanel(
-          contentKey: const Key('palette'),
-          insets: EdgeInsets.only(
-            left: padding.left,
-            top: padding.top,
-            bottom: padding.bottom,
+        if (palette case final palette?)
+          _SidePanel(
+            contentKey: const Key('palette'),
+            insets: EdgeInsets.only(
+              left: padding.left,
+              top: padding.top,
+              bottom: padding.bottom,
+            ),
+            child: palette,
+          )
+        else if (padding.left > 0)
+          // The vertical bar keeps a panel colour under it, never the sheet's.
+          ColoredBox(
+            key: const Key('barStrip'),
+            color: AppColors.panel,
+            child: SizedBox(width: padding.left, height: double.infinity),
           ),
-          child: palette,
-        ),
         Expanded(child: scoreColumn),
         _SidePanel(
           contentKey: const Key('trackPanel'),
@@ -68,6 +85,16 @@ class WorkspaceLayout extends StatelessWidget {
             top: padding.top,
             bottom: padding.bottom,
           ),
+          collapsed: trackPanelCollapsed,
+          toggle: onToggleTrackPanel == null
+              ? null
+              : _PanelToggle(
+                  collapseTooltip: l10n.hideTrackPanel,
+                  expandTooltip: l10n.showTrackPanel,
+                  collapseIcon: Icons.keyboard_double_arrow_right,
+                  expandIcon: Icons.keyboard_double_arrow_left,
+                  onPressed: onToggleTrackPanel!,
+                ),
           child: trackPanel,
         ),
       ],
@@ -75,35 +102,78 @@ class WorkspaceLayout extends StatelessWidget {
   }
 }
 
+class _PanelToggle {
+  final String collapseTooltip;
+  final String expandTooltip;
+  final IconData collapseIcon;
+  final IconData expandIcon;
+  final VoidCallback onPressed;
+
+  const _PanelToggle({
+    required this.collapseTooltip,
+    required this.expandTooltip,
+    required this.collapseIcon,
+    required this.expandIcon,
+    required this.onPressed,
+  });
+
+  Widget button({required bool collapsed}) => IconButton(
+    tooltip: collapsed ? expandTooltip : collapseTooltip,
+    icon: Icon(collapsed ? expandIcon : collapseIcon),
+    onPressed: onPressed,
+  );
+}
+
 class _SidePanel extends StatelessWidget {
   final Key contentKey;
   final EdgeInsets insets;
+  final bool collapsed;
+  final _PanelToggle? toggle;
   final Widget child;
 
   const _SidePanel({
     required this.contentKey,
     required this.insets,
     required this.child,
+    this.collapsed = false,
+    this.toggle,
   });
 
   @override
   Widget build(BuildContext context) {
+    final toggle = this.toggle;
     return SizedBox(
-      width: kSidePanelWidth,
+      width: collapsed
+          ? kCollapsedPanelWidth + insets.horizontal
+          : kSidePanelWidth,
       child: ColoredBox(
         color: AppColors.panel,
         child: Padding(
           padding: insets.add(const EdgeInsets.all(Spacing.sm)),
-          // The insets are applied here; without this, ListTile and other
-          // safe-area-aware children would apply them a second time.
-          child: MediaQuery.removePadding(
-            context: context,
-            removeLeft: true,
-            removeTop: true,
-            removeRight: true,
-            removeBottom: true,
-            child: SizedBox.expand(key: contentKey, child: child),
-          ),
+          child: collapsed && toggle != null
+              ? Align(
+                  alignment: Alignment.topCenter,
+                  child: toggle.button(collapsed: true),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ?toggle?.button(collapsed: false),
+                    Expanded(
+                      // The insets are applied here; without this, ListTile
+                      // and other safe-area-aware children would apply them a
+                      // second time.
+                      child: MediaQuery.removePadding(
+                        context: context,
+                        removeLeft: true,
+                        removeTop: true,
+                        removeRight: true,
+                        removeBottom: true,
+                        child: SizedBox.expand(key: contentKey, child: child),
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

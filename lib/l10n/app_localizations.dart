@@ -297,6 +297,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tone'**
   String get tone;
+
+  /// No description provided for @hideTrackPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide track panel'**
+  String get hideTrackPanel;
+
+  /// No description provided for @showTrackPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show track panel'**
+  String get showTrackPanel;
 }
 
 class _AppLocalizationsDelegate

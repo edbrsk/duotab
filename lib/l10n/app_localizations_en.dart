@@ -121,4 +121,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tone => 'Tone';
+
+  @override
+  String get hideTrackPanel => 'Hide track panel';
+
+  @override
+  String get showTrackPanel => 'Show track panel';
 }

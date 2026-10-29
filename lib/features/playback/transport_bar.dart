@@ -7,8 +7,15 @@ import '../score/score_cubit.dart';
 import 'playback_cubit.dart';
 import 'speed_control.dart';
 
-class TransportBar extends StatelessWidget {
+class TransportBar extends StatefulWidget {
   const TransportBar({super.key});
+
+  @override
+  State<TransportBar> createState() => _TransportBarState();
+}
+
+class _TransportBarState extends State<TransportBar> {
+  final _speedMenu = MenuController();
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +44,13 @@ class TransportBar extends StatelessWidget {
               onPressed: playback.playPause,
             ),
             const SizedBox(width: Spacing.sm),
-            if (tempo != null) Text(l10n.tempoMarking(tempo.round())),
+            if (tempo != null)
+              TextButton(
+                onPressed: _speedMenu.open,
+                child: Text(l10n.tempoMarking(tempo.round())),
+              ),
             const Spacer(),
-            const SpeedControl(),
+            SpeedControl(controller: _speedMenu),
             IconButton(
               tooltip: l10n.loop,
               isSelected: looping,

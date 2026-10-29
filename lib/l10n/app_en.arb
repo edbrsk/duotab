@@ -68,5 +68,7 @@
   "hideTracks": "Hide tracks",
   "trackHeading": "Track",
   "tuning": "Tuning",
-  "tone": "Tone"
+  "tone": "Tone",
+  "hideTrackPanel": "Hide track panel",
+  "showTrackPanel": "Show track panel"
 }
