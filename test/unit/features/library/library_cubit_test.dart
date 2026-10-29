@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:bloc_test/bloc_test.dart';
@@ -81,6 +82,52 @@ void main() {
 
     verify(() => engine.summarize('a.gp5')).called(1);
     verify(() => engine.summarize('b.gp')).called(2);
+  });
+
+  test('retries a file whose summary timed out', () async {
+    when(() => engine.summarize('a.gp5'))
+        .thenThrow(const EngineTimeout('summarize'));
+    final cubit = LibraryCubit(documents: documents, engine: engine);
+    addTearDown(cubit.close);
+    await cubit.refresh();
+
+    when(() => engine.summarize('a.gp5')).thenAnswer((_) async => _song('A'));
+    await cubit.refresh();
+
+    expect(cubit.state.songs.map((e) => e.title), ['A', 'B']);
+    verify(() => engine.summarize('a.gp5')).called(2);
+  });
+
+  test('asks the engine about every changed file at once', () async {
+    final a = Completer<SongSummary>();
+    final b = Completer<SongSummary>();
+    when(() => engine.summarize('a.gp5')).thenAnswer((_) => a.future);
+    when(() => engine.summarize('b.gp')).thenAnswer((_) => b.future);
+    final cubit = LibraryCubit(documents: documents, engine: engine);
+    addTearDown(cubit.close);
+
+    final refresh = cubit.refresh();
+    await pumpEventQueue();
+    verify(() => engine.summarize('a.gp5')).called(1);
+    verify(() => engine.summarize('b.gp')).called(1);
+
+    a.complete(_song('A'));
+    b.complete(_song('B'));
+    await refresh;
+  });
+
+  test('an unexpected error for one file does not stop the list', () async {
+    when(() => engine.summarize('a.gp5')).thenThrow(StateError('bad reply'));
+    final cubit = LibraryCubit(documents: documents, engine: engine);
+    addTearDown(cubit.close);
+
+    await cubit.refresh();
+
+    expect(cubit.state.loading, isFalse);
+    expect(
+      cubit.state.songs.singleWhere((e) => e.path == 'a.gp5').readable,
+      isFalse,
+    );
   });
 
   test('labels the tuning low to high with flats', () {

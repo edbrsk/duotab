@@ -38,31 +38,35 @@ class LibraryCubit extends Cubit<LibraryState> {
       (f) =>
           supportedSongExtensions.contains(p.extension(f.path).toLowerCase()),
     );
-    final entries = <SongListEntry>[];
-    for (final file in files) {
-      final path = p.relative(file.path, from: documents.path);
-      final modified = file.lastModifiedSync();
-      final cached = _cache[path];
-      if (cached != null && cached.modified == modified) {
-        entries.add(cached.entry);
-        continue;
-      }
-      final entry = await _summarize(path);
-      _cache[path] = (modified: modified, entry: entry);
-      entries.add(entry);
-    }
-    _cache.removeWhere((path, _) => !entries.any((e) => e.path == path));
+    // All at once, so a stalled engine costs one timeout, not one per file.
+    final entries = await Future.wait([
+      for (final file in files) _entryFor(file),
+    ]);
+    final paths = entries.map((e) => e.path).toSet();
+    _cache.removeWhere((path, _) => !paths.contains(path));
     entries.sort(
       (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
     );
     if (!isClosed) emit(LibraryState(loading: false, songs: entries));
   }
 
-  Future<SongListEntry> _summarize(String path) async {
+  Future<SongListEntry> _entryFor(File file) async {
+    final path = p.relative(file.path, from: documents.path);
+    final modified = file.lastModifiedSync();
+    final cached = _cache[path];
+    if (cached != null && cached.modified == modified) return cached.entry;
+    final (entry, cacheable) = await _summarize(path);
+    if (cacheable) _cache[path] = (modified: modified, entry: entry);
+    return entry;
+  }
+
+  /// The entry, and whether it may be cached: a timeout says nothing about
+  /// the file, so it is asked about again on the next refresh.
+  Future<(SongListEntry, bool)> _summarize(String path) async {
     try {
       final song = await engine.summarize(path);
       final guitar = song.guitarTracks.firstOrNull;
-      return SongListEntry(
+      final entry = SongListEntry(
         path: path,
         title: song.title,
         tuningLabel: guitar?.tuning == null
@@ -71,14 +75,16 @@ class LibraryCubit extends Cubit<LibraryState> {
         stringCount: guitar?.stringCount,
         readable: true,
       );
-    } on Exception {
-      return SongListEntry(
+      return (entry, true);
+    } on Object catch (e) {
+      final entry = SongListEntry(
         path: path,
         title: p.basename(path),
         tuningLabel: null,
         stringCount: null,
         readable: false,
       );
+      return (entry, e is! EngineTimeout);
     }
   }
 }
