@@ -15,6 +15,9 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "VerticalBarEdge") {
       VerticalBarEdgeStreamHandler.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "HingeStatus") {
+      HingeStatusStreamHandler.register(with: registrar)
+    }
   }
 }
 
@@ -66,6 +69,59 @@ final class VerticalBarEdgeStreamHandler: NSObject, @preconcurrency FlutterStrea
     case .leading: eventSink?("leading")
     case .trailing: eventSink?("trailing")
     default: eventSink?("unspecified")
+    }
+  }
+}
+
+/// Streams the iPhone Duo hinge status (`UIHingeInteraction`, iOS 27.1) to
+/// Dart, which shows a folded screen while the device is closed.
+@MainActor  // Flutter invokes stream handlers on the platform (main) thread.
+final class HingeStatusStreamHandler: NSObject, @preconcurrency FlutterStreamHandler {
+  private weak var registrar: FlutterPluginRegistrar?
+  private var eventSink: FlutterEventSink?
+  private var interaction: UIHingeInteraction?
+
+  static func register(with registrar: FlutterPluginRegistrar) {
+    let handler = HingeStatusStreamHandler()
+    handler.registrar = registrar
+    FlutterEventChannel(
+      name: "me.withedgar.duotab/hinge_status",
+      binaryMessenger: registrar.messenger()
+    ).setStreamHandler(handler)
+  }
+
+  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
+    -> FlutterError?
+  {
+    eventSink = events
+    guard let view = registrar?.viewController?.view else {
+      events("unavailable")
+      return nil
+    }
+    let interaction = UIHingeInteraction { [weak self] _, update in
+      self?.send(update.hinge?.status)
+    }
+    view.addInteraction(interaction)
+    self.interaction = interaction
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    if let interaction {
+      interaction.view?.removeInteraction(interaction)
+    }
+    interaction = nil
+    eventSink = nil
+    return nil
+  }
+
+  private func send(_ status: UIHinge.Status?) {
+    switch status {
+    case .none: eventSink?("unavailable")
+    case .closed: eventSink?("closed")
+    case .partiallyOpen: eventSink?("partiallyOpen")
+    case .fullyOpen: eventSink?("fullyOpen")
+    default: eventSink?("unknown")
     }
   }
 }
