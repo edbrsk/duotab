@@ -22,6 +22,16 @@ export const repeated = String.raw`\title "Repeat"
 \track "G" \tuning E4 B3 G3 D3 A2 E2
 \ro 0.6.4*4 | \rc 2 2.6.4*4 | 3.5.1`;
 
+export const fourQuarters = String.raw`\title "Edit"
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+\ts 4 4 0.6.4 2.5.4 3.4.4 r.4 | r.1`;
+
+export const sixEight = String.raw`\title "Six"
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+\ts 6 8 0.6.4{d} 2.5.4{d}`;
+
 export function score(alphaTex: string): alphaTab.model.Score {
   const importer = new alphaTab.importer.AlphaTexImporter();
   importer.initFromString(alphaTex, new alphaTab.Settings());

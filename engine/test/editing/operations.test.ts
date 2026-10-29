@@ -1,0 +1,115 @@
+import * as alphaTab from '@coderline/alphatab';
+import { beforeEach, expect, test } from 'vitest';
+
+import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from '../../src/editing/operations';
+import type { EditPosition } from '../../src/protocol';
+import { fourQuarters, score, sixEight } from '../fixtures';
+
+const at = (bar: number, beat: number, string = 1, voice = 0): EditPosition => ({ track: 0, bar, voice, beat, string });
+let s: alphaTab.model.Score;
+const voice = (bar: number, v = 0) => s.tracks[0].staves[0].bars[bar].voices[v];
+const beat = (bar: number, b: number, v = 0) => voice(bar, v).beats[b];
+
+beforeEach(() => {
+  s = score(fourQuarters);
+});
+
+test('setFret puts a note on a rest', () => {
+  setFret(s, at(0, 3, 2), 5);
+  expect(beat(0, 3).isRest).toBe(false);
+  expect(beat(0, 3).notes.map((n) => [n.string, n.fret])).toEqual([[2, 5]]);
+});
+
+test('setFret replaces the fret on a string that has a note', () => {
+  setFret(s, at(0, 0, 1), 3);
+  expect(beat(0, 0).notes.map((n) => [n.string, n.fret])).toEqual([[1, 3]]);
+});
+
+test('setFret adds a note on another string of the same beat', () => {
+  setFret(s, at(0, 0, 3), 2);
+  expect(beat(0, 0).notes.map((n) => [n.string, n.fret]).sort()).toEqual([
+    [1, 0],
+    [3, 2],
+  ]);
+});
+
+test('deleting the only note leaves a rest', () => {
+  deleteNote(s, at(0, 0, 1));
+  expect(beat(0, 0).isRest).toBe(true);
+});
+
+test('setDuration changes the beat', () => {
+  setDuration(s, at(0, 0), alphaTab.model.Duration.Eighth, 1);
+  expect(beat(0, 0).duration).toBe(alphaTab.model.Duration.Eighth);
+  expect(beat(0, 0).dots).toBe(1);
+});
+
+test("setRest clears the beat's notes", () => {
+  setRest(s, at(0, 1));
+  expect(beat(0, 1).isRest).toBe(true);
+  expect(beat(0, 1).duration).toBe(alphaTab.model.Duration.Quarter);
+});
+
+test('moving right goes to the next beat, then the next bar', () => {
+  expect(move(s, at(0, 2), 'right')).toEqual(at(0, 3));
+  expect(move(s, at(0, 3), 'right')).toEqual(at(1, 0));
+});
+
+test('moving right from a bar that is not full adds a beat', () => {
+  setDuration(s, at(0, 3), alphaTab.model.Duration.Eighth, 0);
+  expect(move(s, at(0, 3), 'right')).toEqual(at(0, 4));
+  expect(beat(0, 4).isRest).toBe(true);
+  expect(beat(0, 4).duration).toBe(alphaTab.model.Duration.Eighth);
+});
+
+test('moving right from the last beat appends a bar', () => {
+  expect(move(s, at(1, 0), 'right')).toEqual(at(2, 0));
+  expect(s.masterBars).toHaveLength(3);
+  expect([s.masterBars[2].timeSignatureNumerator, s.masterBars[2].timeSignatureDenominator]).toEqual([4, 4]);
+  expect(voice(2).beats.map((b) => [b.isRest, b.duration])).toEqual([[true, alphaTab.model.Duration.Whole]]);
+});
+
+test('an appended bar is filled with rests that fit its time signature', () => {
+  s = score(sixEight);
+  move(s, at(0, 1), 'right');
+  const rests = voice(1).beats;
+  expect(rests.every((b) => b.isRest)).toBe(true);
+  expect(rests.reduce((t, b) => t + b.playbackDuration, 0)).toBe(s.masterBars[1].calculateDuration());
+});
+
+test('moving up and down changes string within the track', () => {
+  expect(move(s, at(0, 0, 1), 'up')).toEqual(at(0, 0, 2));
+  expect(move(s, at(0, 0, 6), 'up')).toEqual(at(0, 0, 6));
+  expect(move(s, at(0, 0, 2), 'down')).toEqual(at(0, 0, 1));
+  expect(move(s, at(0, 0, 1), 'down')).toEqual(at(0, 0, 1));
+});
+
+test("moving left from the first beat goes to the previous bar's last beat", () => {
+  expect(move(s, at(1, 0), 'left')).toEqual(at(0, 3));
+  expect(move(s, at(0, 0), 'left')).toEqual(at(0, 0));
+});
+
+test('selectVoice creates an unused voice', () => {
+  expect(selectVoice(s, at(0, 2), 1)).toEqual(at(0, 0, 1, 1));
+  expect(s.tracks[0].staves[0].bars[0].voices).toHaveLength(2);
+  expect(voice(0, 1).beats).toHaveLength(1);
+  expect(voice(0, 1).beats[0].isEmpty).toBe(true);
+});
+
+test('a fret on an unused voice starts using it', () => {
+  selectVoice(s, at(0, 0), 1);
+  setFret(s, at(0, 0, 4, 1), 7);
+  expect(beat(0, 0, 1).isEmpty).toBe(false);
+  expect(beat(0, 0, 1).notes.map((n) => n.fret)).toEqual([7]);
+});
+
+test('frets outside 0-24 are refused', () => {
+  expect(() => setFret(s, at(0, 0), 25)).toThrow('fret 25 out of range');
+  expect(() => setFret(s, at(0, 0), -1)).toThrow('fret -1 out of range');
+});
+
+test('an appended bar has as many voices as the song uses', () => {
+  selectVoice(s, at(0, 0), 1);
+  move(s, at(1, 0), 'right');
+  expect(s.tracks[0].staves[0].bars[2].voices).toHaveLength(2);
+});

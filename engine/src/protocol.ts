@@ -70,3 +70,6 @@ export type SongSummary = {
   /** Filled by `open`, empty from `summarize`. */
   bars: BarInfo[];
 };
+
+/** alphaTab numbers strings from the lowest: string 1 is the lowest-pitched. */
+export type EditPosition = { track: number; bar: number; voice: number; beat: number; string: number };
