@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script type="importmap">
+  { "imports": { "@coderline/alphatab": "./alphatab/alphaTab.mjs" } }
+</script>
+<style>
+  html, body { margin: 0; background: #FBFBF8; }
+  #score { position: relative; }
+  /* alphaTab draws its playback cursor only when these are styled. */
+  .at-cursor-bar { background: rgba(255, 242, 0, 0.25); }
+  .at-selection div { background: rgba(61, 124, 255, 0.1); }
+  .at-cursor-beat { background: rgba(61, 124, 255, 0.85); width: 3px; }
+  .at-highlight * { fill: #3D7CFF; stroke: #3D7CFF; }
+</style>
+</head>
+<body>
+<div id="score"></div>
+<script type="module" src="./engine.js"></script>
+</body>
+</html>
