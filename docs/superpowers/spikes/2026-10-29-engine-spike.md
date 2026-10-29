@@ -120,8 +120,8 @@ Probe: `spike/webview_probe/` on the spike branch. `webview_flutter` `WebViewWid
 
 | # | Check | Result |
 |---|---|---|
-| 1 | Notation over tab, wrapped into lines | rendered without errors; visual check by the owner pending |
-| 2 | Plays in time, cursor follows | player ready; listening check by the owner pending |
+| 1 | Notation over tab, wrapped into lines | **pass**: the owner reports it looks the same as Guitar Pro |
+| 2 | Plays in time, cursor follows | **pass**: sounds the same as Guitar Pro (owner); the cursor shows only once the page styles `.at-cursor-bar`, `.at-cursor-beat` and `.at-highlight`, with the render container `position: relative` |
 | 3 | `file://` or loopback server | **loopback server needed**: from `loadFlutterAsset`, the module import fails with `TypeError: Cross-origin script load denied by Cross-Origin Resource Sharing policy.` |
 | 4 | Load and render time | page boot 197 ms; song loaded (7 tracks) 346 ms; SoundFont 534 ms; player ready 538 ms; first render 578 ms |
 | 5 | Bridge round trip (Dart `runJavaScript` → page → `JavaScriptChannel`) | median 0.64 ms, max 116 ms over 20 pings |
