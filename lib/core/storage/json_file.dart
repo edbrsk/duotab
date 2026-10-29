@@ -20,13 +20,15 @@ class JsonFile {
     }
   }
 
-  /// Atomic, and in call order.
+  /// Atomic, and in call order. A failed write fails only its own caller.
   Future<void> write(Map<String, dynamic> data) {
     final text = jsonEncode(data);
-    return _writes = _writes.then((_) async {
+    final write = _writes.then((_) async {
       final temp = File('${file.path}.tmp');
       await temp.writeAsString(text, flush: true);
       await temp.rename(file.path);
     });
+    _writes = write.then<void>((_) {}, onError: (Object _) {});
+    return write;
   }
 }

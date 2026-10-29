@@ -34,6 +34,8 @@ void main() {
     bool withPalette = true,
     bool trackPanelCollapsed = false,
     VoidCallback? onToggleTrackPanel,
+    bool paletteCollapsed = false,
+    VoidCallback? onTogglePalette,
   }) async {
     tester.view
       ..physicalSize = Size(width, 626)
@@ -50,6 +52,8 @@ void main() {
             palette: withPalette ? const Text('palette content') : null,
             trackPanelCollapsed: trackPanelCollapsed,
             onToggleTrackPanel: onToggleTrackPanel ?? () {},
+            paletteCollapsed: paletteCollapsed,
+            onTogglePalette: onTogglePalette ?? () {},
             score: const Text('score content'),
             trackPanel: trackPanel,
             transport: transport,
@@ -221,5 +225,40 @@ void main() {
     expect(tester.getRect(find.byKey(const Key('score'))).left, 46);
     final strip = tester.widget<ColoredBox>(find.byKey(const Key('barStrip')));
     expect(strip.color, AppColors.panel);
+  });
+
+  testWidgets('a collapsed palette gives its width to the score', (
+    tester,
+  ) async {
+    await pumpLayout(
+      tester,
+      width: 890,
+      barEdge: 'leading',
+      left: 46,
+      paletteCollapsed: true,
+    );
+
+    final score = tester.getRect(find.byKey(const Key('score')));
+    expect(score.left, 46 + kCollapsedPanelWidth);
+    expect(find.text('palette content'), findsNothing);
+    final expand = buttonRect(tester, 'Show palette');
+    expect(expand.left, 46);
+    expect(score.left - expand.right, Spacing.xs);
+  });
+
+  testWidgets('the palette button toggles the palette', (tester) async {
+    var toggles = 0;
+    await pumpLayout(
+      tester,
+      width: 890,
+      barEdge: 'trailing',
+      right: 46,
+      onTogglePalette: () => toggles++,
+    );
+
+    final collapse = buttonRect(tester, 'Hide palette');
+    expect(collapse.left, Spacing.sm);
+    await tester.tap(find.byTooltip('Hide palette'));
+    expect(toggles, 1);
   });
 }

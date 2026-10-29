@@ -16,6 +16,8 @@ const kCollapsedPanelWidth = AccessibleSizes.minTouchTarget + Spacing.xs;
 class WorkspaceLayout extends StatelessWidget {
   /// Null until the editor gives the palette its tools.
   final Widget? palette;
+  final bool paletteCollapsed;
+  final VoidCallback? onTogglePalette;
   final Widget score;
   final Widget trackPanel;
   final bool trackPanelCollapsed;
@@ -29,6 +31,8 @@ class WorkspaceLayout extends StatelessWidget {
     required this.score,
     required this.trackPanel,
     this.palette,
+    this.paletteCollapsed = false,
+    this.onTogglePalette,
     this.trackPanelCollapsed = false,
     this.onToggleTrackPanel,
     this.transport,
@@ -69,6 +73,17 @@ class WorkspaceLayout extends StatelessWidget {
               top: padding.top,
               bottom: padding.bottom,
             ),
+            leading: true,
+            collapsed: paletteCollapsed,
+            toggle: onTogglePalette == null
+                ? null
+                : _PanelToggle(
+                    collapseTooltip: l10n.hidePalette,
+                    expandTooltip: l10n.showPalette,
+                    collapseIcon: Icons.keyboard_double_arrow_left,
+                    expandIcon: Icons.keyboard_double_arrow_right,
+                    onPressed: onTogglePalette!,
+                  ),
             child: palette,
           )
         else if (padding.left > 0)
@@ -132,12 +147,16 @@ class _SidePanel extends StatelessWidget {
   final _PanelToggle? toggle;
   final Widget child;
 
+  /// The palette's side; its toggle sits at the outer, leading edge.
+  final bool leading;
+
   const _SidePanel({
     required this.contentKey,
     required this.insets,
     required this.child,
     this.collapsed = false,
     this.toggle,
+    this.leading = false,
   });
 
   @override
@@ -153,12 +172,16 @@ class _SidePanel extends StatelessWidget {
           // A collapsed strip is only its button, kept against the bar.
           padding: insets.add(
             collapsed && toggle != null
-                ? const EdgeInsets.only(left: Spacing.xs, top: Spacing.sm)
+                ? EdgeInsets.only(
+                    left: leading ? 0 : Spacing.xs,
+                    right: leading ? Spacing.xs : 0,
+                    top: Spacing.sm,
+                  )
                 : const EdgeInsets.all(Spacing.sm),
           ),
           child: collapsed && toggle != null
               ? Align(
-                  alignment: Alignment.topRight,
+                  alignment: leading ? Alignment.topLeft : Alignment.topRight,
                   child: toggle.button(collapsed: true),
                 )
               : Column(
@@ -166,7 +189,9 @@ class _SidePanel extends StatelessWidget {
                   children: [
                     if (toggle != null)
                       Align(
-                        alignment: Alignment.centerRight,
+                        alignment: leading
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
                         child: toggle.button(collapsed: false),
                       ),
                     Expanded(

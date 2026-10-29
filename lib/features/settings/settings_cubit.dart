@@ -10,12 +10,14 @@ class AppSettings {
   /// For guitar tracks whose file program is not one of the tones.
   final Tone defaultTone;
   final bool trackPanelCollapsed;
+  final bool paletteCollapsed;
 
   const AppSettings({
     this.countIn = false,
     this.metronome = false,
     this.defaultTone = Tone.clean,
     this.trackPanelCollapsed = false,
+    this.paletteCollapsed = false,
   });
 
   AppSettings copyWith({
@@ -23,11 +25,13 @@ class AppSettings {
     bool? metronome,
     Tone? defaultTone,
     bool? trackPanelCollapsed,
+    bool? paletteCollapsed,
   }) => AppSettings(
     countIn: countIn ?? this.countIn,
     metronome: metronome ?? this.metronome,
     defaultTone: defaultTone ?? this.defaultTone,
     trackPanelCollapsed: trackPanelCollapsed ?? this.trackPanelCollapsed,
+    paletteCollapsed: paletteCollapsed ?? this.paletteCollapsed,
   );
 }
 
@@ -48,6 +52,7 @@ class SettingsCubit extends Cubit<AppSettings> {
                 .firstOrNull ??
             Tone.clean,
         trackPanelCollapsed: json['trackPanelCollapsed'] == true,
+        paletteCollapsed: json['paletteCollapsed'] == true,
       ),
     );
   }
@@ -64,6 +69,9 @@ class SettingsCubit extends Cubit<AppSettings> {
   Future<void> setTrackPanelCollapsed({required bool collapsed}) =>
       _update(state.copyWith(trackPanelCollapsed: collapsed));
 
+  Future<void> setPaletteCollapsed({required bool collapsed}) =>
+      _update(state.copyWith(paletteCollapsed: collapsed));
+
   Future<void> _update(AppSettings settings) async {
     emit(settings);
     await file.write({
@@ -71,6 +79,7 @@ class SettingsCubit extends Cubit<AppSettings> {
       'metronome': settings.metronome,
       'defaultTone': settings.defaultTone.name,
       'trackPanelCollapsed': settings.trackPanelCollapsed,
+      'paletteCollapsed': settings.paletteCollapsed,
     });
   }
 }

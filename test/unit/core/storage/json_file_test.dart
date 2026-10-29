@@ -36,4 +36,16 @@ void main() {
     await first;
     expect(await json.read(), {'n': 2});
   });
+
+  test('a failed write does not stop later writes', () async {
+    final missing = Directory(p.join(dir.path, 'missing'));
+    final json = JsonFile(File(p.join(missing.path, 'data.json')));
+    await expectLater(
+      json.write({'n': 1}),
+      throwsA(isA<FileSystemException>()),
+    );
+    missing.createSync();
+    await json.write({'n': 2});
+    expect(await json.read(), {'n': 2});
+  });
 }

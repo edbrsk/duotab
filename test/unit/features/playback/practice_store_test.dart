@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:duotab/core/storage/json_file.dart';
@@ -70,6 +71,25 @@ void main() {
     ]);
     expect(await store.load('a.gp'), isNotNull);
     expect(await store.load('b.gp'), isNotNull);
+  });
+
+  test('a load waits for saves in progress', () async {
+    unawaited(store.save('a.gp', settings));
+    expect((await store.load('a.gp'))?.speed, 0.75);
+  });
+
+  test('a failed save does not stop later saves', () async {
+    final missing = Directory(p.join(dir.path, 'missing'));
+    final failing = PracticeStore(
+      JsonFile(File(p.join(missing.path, 'practice.json'))),
+    );
+    await expectLater(
+      failing.save('a.gp', settings),
+      throwsA(isA<FileSystemException>()),
+    );
+    missing.createSync();
+    await failing.save('a.gp', settings);
+    expect((await failing.load('a.gp'))?.speed, 0.75);
   });
 
   group('Tone', () {

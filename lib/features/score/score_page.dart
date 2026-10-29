@@ -5,6 +5,7 @@ import '../../core/design/design_tokens.dart';
 import '../../engine/engine_host.dart';
 import '../../l10n/app_localizations.dart';
 import '../../presentation/workspace/workspace_layout.dart';
+import '../editor/palette.dart';
 import '../playback/transport_bar.dart';
 import '../settings/settings_cubit.dart';
 import 'score_cubit.dart';
@@ -32,8 +33,16 @@ class ScorePage extends StatelessWidget {
     final collapsed = context.select<SettingsCubit, bool>(
       (c) => c.state.trackPanelCollapsed,
     );
+    final paletteCollapsed = context.select<SettingsCubit, bool>(
+      (c) => c.state.paletteCollapsed,
+    );
 
     return WorkspaceLayout(
+      palette: state.song != null ? const Palette() : null,
+      paletteCollapsed: paletteCollapsed,
+      onTogglePalette: () => context.read<SettingsCubit>().setPaletteCollapsed(
+        collapsed: !paletteCollapsed,
+      ),
       trackPanel: const TrackInfoPanel(),
       trackPanelCollapsed: collapsed,
       onToggleTrackPanel: () => context

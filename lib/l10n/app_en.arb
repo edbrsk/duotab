@@ -79,5 +79,37 @@
   "previousBeat": "Previous beat",
   "nextBeat": "Next beat",
   "stringUp": "String up",
-  "stringDown": "String down"
+  "stringDown": "String down",
+  "hidePalette": "Hide palette",
+  "showPalette": "Show palette",
+  "voice": "Voice",
+  "noteValue": "Note value",
+  "rests": "Rests",
+  "dots": "Dots",
+  "voiceN": "Voice {number}",
+  "@voiceN": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "wholeNote": "Whole note",
+  "halfNote": "Half note",
+  "quarterNote": "Quarter note",
+  "eighthNote": "Eighth note",
+  "sixteenthNote": "Sixteenth note",
+  "thirtySecondNote": "Thirty-second note",
+  "sixtyFourthNote": "Sixty-fourth note",
+  "wholeRest": "Whole rest",
+  "halfRest": "Half rest",
+  "quarterRest": "Quarter rest",
+  "eighthRest": "Eighth rest",
+  "sixteenthRest": "Sixteenth rest",
+  "thirtySecondRest": "Thirty-second rest",
+  "sixtyFourthRest": "Sixty-fourth rest",
+  "dot": "Dot",
+  "doubleDot": "Double dot",
+  "undo": "Undo",
+  "redo": "Redo"
 }

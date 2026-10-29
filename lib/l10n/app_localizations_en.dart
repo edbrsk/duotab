@@ -154,4 +154,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stringDown => 'String down';
+
+  @override
+  String get hidePalette => 'Hide palette';
+
+  @override
+  String get showPalette => 'Show palette';
+
+  @override
+  String get voice => 'Voice';
+
+  @override
+  String get noteValue => 'Note value';
+
+  @override
+  String get rests => 'Rests';
+
+  @override
+  String get dots => 'Dots';
+
+  @override
+  String voiceN(int number) {
+    return 'Voice $number';
+  }
+
+  @override
+  String get wholeNote => 'Whole note';
+
+  @override
+  String get halfNote => 'Half note';
+
+  @override
+  String get quarterNote => 'Quarter note';
+
+  @override
+  String get eighthNote => 'Eighth note';
+
+  @override
+  String get sixteenthNote => 'Sixteenth note';
+
+  @override
+  String get thirtySecondNote => 'Thirty-second note';
+
+  @override
+  String get sixtyFourthNote => 'Sixty-fourth note';
+
+  @override
+  String get wholeRest => 'Whole rest';
+
+  @override
+  String get halfRest => 'Half rest';
+
+  @override
+  String get quarterRest => 'Quarter rest';
+
+  @override
+  String get eighthRest => 'Eighth rest';
+
+  @override
+  String get sixteenthRest => 'Sixteenth rest';
+
+  @override
+  String get thirtySecondRest => 'Thirty-second rest';
+
+  @override
+  String get sixtyFourthRest => 'Sixty-fourth rest';
+
+  @override
+  String get dot => 'Dot';
+
+  @override
+  String get doubleDot => 'Double dot';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String get redo => 'Redo';
 }

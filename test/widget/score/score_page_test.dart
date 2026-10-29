@@ -2,6 +2,8 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:duotab/engine/engine_bridge.dart';
 import 'package:duotab/engine/protocol.dart';
 import 'package:duotab/features/editor/editor_cubit.dart';
+import 'package:duotab/features/editor/fret_pad.dart';
+import 'package:duotab/features/editor/palette.dart';
 import 'package:duotab/features/playback/playback_cubit.dart';
 import 'package:duotab/features/playback/transport_bar.dart';
 import 'package:duotab/features/score/score_cubit.dart';
@@ -52,9 +54,9 @@ void main() {
 
   tearDown(() => cubit.close());
 
-  Future<void> pumpPage(WidgetTester tester) async {
+  Future<void> pumpPage(WidgetTester tester, {double width = 890}) async {
     tester.view
-      ..physicalSize = const Size(890, 626)
+      ..physicalSize = Size(width, 626)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -98,6 +100,20 @@ void main() {
     await pumpPage(tester);
     await tester.tap(find.byTooltip('Hide track panel'));
     verify(() => settings.setTrackPanelCollapsed(collapsed: true)).called(1);
+  });
+
+  testWidgets('editing is off when the window is narrow', (tester) async {
+    await cubit.open('fixture.gp');
+    await pumpPage(tester, width: 600);
+    expect(find.byType(Palette), findsNothing);
+    expect(find.byType(FretPad), findsNothing);
+    expect(find.text('Make DuoTab wider to edit'), findsOneWidget);
+  });
+
+  testWidgets('shows the palette when a song is open', (tester) async {
+    await cubit.open('fixture.gp');
+    await pumpPage(tester);
+    expect(find.byType(Palette), findsOneWidget);
   });
 
   testWidgets('hides the transport when no song is open', (tester) async {

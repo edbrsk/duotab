@@ -60,6 +60,11 @@ flutter:
     - assets/engine/alphatab/
     - assets/engine/alphatab/font/
     - assets/engine/alphatab/soundfont/
+  # Bravura (SIL OFL), from the engine build: the palette draws real notation symbols.
+  fonts:
+    - family: Bravura
+      fonts:
+        - asset: assets/engine/alphatab/font/Bravura.otf
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

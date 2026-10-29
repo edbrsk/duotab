@@ -363,6 +363,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'String down'**
   String get stringDown;
+
+  /// No description provided for @hidePalette.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide palette'**
+  String get hidePalette;
+
+  /// No description provided for @showPalette.
+  ///
+  /// In en, this message translates to:
+  /// **'Show palette'**
+  String get showPalette;
+
+  /// No description provided for @voice.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice'**
+  String get voice;
+
+  /// No description provided for @noteValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Note value'**
+  String get noteValue;
+
+  /// No description provided for @rests.
+  ///
+  /// In en, this message translates to:
+  /// **'Rests'**
+  String get rests;
+
+  /// No description provided for @dots.
+  ///
+  /// In en, this message translates to:
+  /// **'Dots'**
+  String get dots;
+
+  /// No description provided for @voiceN.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice {number}'**
+  String voiceN(int number);
+
+  /// No description provided for @wholeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole note'**
+  String get wholeNote;
+
+  /// No description provided for @halfNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Half note'**
+  String get halfNote;
+
+  /// No description provided for @quarterNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarter note'**
+  String get quarterNote;
+
+  /// No description provided for @eighthNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Eighth note'**
+  String get eighthNote;
+
+  /// No description provided for @sixteenthNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sixteenth note'**
+  String get sixteenthNote;
+
+  /// No description provided for @thirtySecondNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Thirty-second note'**
+  String get thirtySecondNote;
+
+  /// No description provided for @sixtyFourthNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Sixty-fourth note'**
+  String get sixtyFourthNote;
+
+  /// No description provided for @wholeRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole rest'**
+  String get wholeRest;
+
+  /// No description provided for @halfRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Half rest'**
+  String get halfRest;
+
+  /// No description provided for @quarterRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarter rest'**
+  String get quarterRest;
+
+  /// No description provided for @eighthRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Eighth rest'**
+  String get eighthRest;
+
+  /// No description provided for @sixteenthRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Sixteenth rest'**
+  String get sixteenthRest;
+
+  /// No description provided for @thirtySecondRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Thirty-second rest'**
+  String get thirtySecondRest;
+
+  /// No description provided for @sixtyFourthRest.
+  ///
+  /// In en, this message translates to:
+  /// **'Sixty-fourth rest'**
+  String get sixtyFourthRest;
+
+  /// No description provided for @dot.
+  ///
+  /// In en, this message translates to:
+  /// **'Dot'**
+  String get dot;
+
+  /// No description provided for @doubleDot.
+  ///
+  /// In en, this message translates to:
+  /// **'Double dot'**
+  String get doubleDot;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @redo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get redo;
 }
 
 class _AppLocalizationsDelegate
