@@ -54,7 +54,7 @@ These count as failures even if every feature works:
 
 ### iPhone Duo behaviour
 
-- **Hinge bridge**: a second `EventChannel`, built like the vertical-bar one, streams the hinge status `closed`, `partiallyOpen` or `fullyOpen`. Secondary sources name the API `onHingeChange` / `HingeReading.status` (SwiftUI) and `UIHingeInteraction` (UIKit). Confirm the names in the iOS 27.1 SDK headers before building on them.
+- **Hinge bridge**: a second `EventChannel`, built like the vertical-bar one, streams the hinge status from UIKit's `UIHingeInteraction` (iOS 27.1 SDK, `UIHinge.h`/`UIHingeInteraction.h`). Its update carries `hinge.status` (`.unknown`, `.closed`, `.partiallyOpen`, `.fullyOpen`), or a nil `hinge` when the view is in a hierarchy without one.
 - **Closed**: the app shows only the folded screen (placeholder logo and message). Playback pauses; the open song and editor state are kept.
 - **Partially or fully open**: the app works normally, including tent and laptop poses.
 - **Split View**: when the window becomes too narrow for three columns, the side panels collapse, the score takes the width, and the app works as a player only. Editing shows "Make DuoTab wider to edit" until the window is wide enough again.
@@ -81,7 +81,7 @@ Mockups: `.superpowers/brainstorm/75036-1793277125/content/editor-layout-v2.html
 
 ### Playback
 
-- **Engine**: the song is converted to a standard MIDI file by `crisp_notation_core` and played natively by `AVAudioSequencer`, one `AVAudioUnitSampler` per track loaded from a bundled General MIDI SoundFont. A method channel exposes load, play, pause, seek, rate, loop range, mute/solo, program change, and an immediate single-note preview for editing. Dart polls the sequencer's position in beats to drive the cursor.
+- **Engine**: DuoTab writes a format-1 Standard MIDI File from `crisp_notation_core`'s `playbackTimeline`: one MIDI track per song track, the tempo map, velocities from dynamics, pitch bends for techniques. (`scoreToMidi` in `crisp_notation_core` writes format 0 with one tempo and velocity 80, which cannot carry these.) `AVAudioSequencer` plays it natively, with one `AVAudioUnitSampler` per track loaded from a bundled General MIDI SoundFont. A method channel exposes load, play, pause, seek, rate, loop range, mute/solo, program change, and an immediate single-note preview for editing. Dart polls the sequencer's position in beats to drive the cursor.
 - **SoundFont**: a General MIDI `.sf2` with a licence that allows bundling (FluidR3_GM is the first candidate; the builder records the licence next to the file).
 - **Tones** map to General MIDI programs (1-based): Clean = 28 Electric Guitar (clean), Overdrive = 30 Overdriven Guitar, High gain = 31 Distortion Guitar. A guitar track starts with its file's program when that is one of these three, otherwise Clean.
 - **Practice settings** (tone, mute/solo, speed, loop) are kept by the app per file, outside the song file, so practising never modifies or copies a file. When the song is saved, each guitar track's tone is written as its MIDI program.
@@ -140,9 +140,10 @@ A list of the songs in Documents showing title, tuning and string count, and a *
 A throwaway build, run before the plan's first real task, decides the music-engine and playback choices. It checks:
 
 1. Guitar tracks of the [test files](#test-assets) render as notation over tab, with techniques visible.
-2. A song created in code with 7 and 8 strings, mixed time signatures, a tempo change and two voices renders correctly.
-3. That song saved as `.gp` opens in Guitar Pro 8 with nothing lost. The owner runs this check on their copy of Guitar Pro 8.
-4. The MIDI produced by `crisp_notation_core` plays through `AVAudioSequencer` with a SoundFont, in time, with a cursor that keeps up.
+2. A song created in code with 7 and 8 strings, mixed time signatures, a tempo change and four voices renders correctly.
+3. That song saved as `.gp` opens in Guitar Pro 8 with nothing lost, voices 3 and 4 and the tunings included. The owner runs this check on their copy of Guitar Pro 8. `scoreToGpif` drops notes the tuning cannot reach, so the result also decides how retuning's unplayable notes are saved.
+4. A MIDI file built from `playbackTimeline` plays through `AVAudioSequencer` with a SoundFont, in time, with a cursor that keeps up.
+5. The spike report records the `crisp_notation_core` calls that give each imported track's name, tuning, string count, MIDI program and string/fret pins, which the import code depends on.
 
 If 1 or 2 fails, rendering moves to a custom `CustomPainter` tab and notation renderer over the same model, or, as a last resort, alphaTab in a `WKWebView` (mature; renders and plays GP3–GP8 and MusicXML). If 3 fails, songs save in a DuoTab JSON format, MusicXML stays the interchange export, and `.gp` export waits until it works. If 4 fails, playback uses `dart_melty_soundfont` (pure Dart SoundFont synth) rendering PCM with sample-accurate event timing. MusicXML reading can fall back to `music_xml` 2.10.x (BSD).
 
@@ -156,7 +157,7 @@ If 1 or 2 fails, rendering moves to a custom `CustomPainter` tab and notation re
 
 ## Left to the builder
 
-- The fallback for fold detection if the hinge API is not available as expected (e.g. inferring open/closed from the window's size class).
+- What the app does when the hinge status is unknown or the hierarchy has no hinge.
 - The Split View width at which the side panels collapse.
 - Exact panel widths, colours and typography, staying within the approved mockups.
 - How each remaining technique is rendered in MIDI beyond the minimum list.
