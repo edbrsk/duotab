@@ -26,12 +26,41 @@ export function setFret(score: Score, at: EditPosition, fret: number, settings =
   return at;
 }
 
+/**
+ * As in Guitar Pro: on a note, removes the note and leaves a rest; on a rest,
+ * removes the beat so the bar shrinks. A bar's last beat is not removed: the
+ * first voice is refilled with rests that fit the bar, and another voice
+ * becomes unused again.
+ */
 export function deleteNote(score: Score, at: EditPosition, settings = defaultSettings): EditPosition {
   const beat = beatOf(score, at);
   const note = beat.notes.find((n) => n.string === at.string);
-  if (note) beat.removeNote(note);
+  if (note) {
+    beat.removeNote(note);
+    score.finish(settings);
+    return at;
+  }
+  if (!beat.isRest || beat.isEmpty) return at;
+
+  const voice = voiceOf(score, at);
+  if (voice.beats.length > 1) {
+    voice.beats.splice(at.beat, 1);
+    // Voice.finish relinks beats, but not a last beat that now has none after it.
+    if (beat.previousBeat) beat.previousBeat.nextBeat = beat.nextBeat;
+    if (beat.nextBeat) beat.nextBeat.previousBeat = beat.previousBeat;
+    score.finish(settings);
+    return { ...at, beat: Math.min(at.beat, voice.beats.length - 1) };
+  }
+  if (at.voice === 0) {
+    const ticks = barOf(score, at).masterBar.calculateDuration();
+    if (beat.playbackDuration === ticks) return at;
+    voice.beats.length = 0;
+    for (const rest of restsFilling(ticks)) voice.addBeat(rest);
+  } else {
+    beat.isEmpty = true;
+  }
   score.finish(settings);
-  return at;
+  return { ...at, beat: 0 };
 }
 
 export function setDuration(

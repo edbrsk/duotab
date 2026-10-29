@@ -122,3 +122,36 @@ test('moving right in an unused voice turns its empty beat into a rest', () => {
     [false, true],
   ]);
 });
+
+test('deleting on a rest removes the beat', () => {
+  expect(deleteNote(s, at(0, 3, 1))).toEqual(at(0, 2, 1));
+  expect(voice(0).beats).toHaveLength(3);
+  expect(voice(0).beats.map((b) => b.index)).toEqual([0, 1, 2]);
+  expect(voice(0).beats[2].nextBeat).toBe(voice(1).beats[0]);
+});
+
+test('deleting the first beat keeps the cursor on the beat that moves in', () => {
+  setRest(s, at(0, 0));
+  expect(deleteNote(s, at(0, 0, 1))).toEqual(at(0, 0, 1));
+  expect(beat(0, 0).notes.map((n) => [n.string, n.fret])).toEqual([[2, 2]]);
+});
+
+test("deleting a bar's last rest refills it with rests that fit", () => {
+  setDuration(s, at(1, 0), alphaTab.model.Duration.Eighth, 0);
+  expect(deleteNote(s, at(1, 0, 1))).toEqual(at(1, 0, 1));
+  expect(voice(1).beats.map((b) => [b.isRest, b.duration])).toEqual([[true, alphaTab.model.Duration.Whole]]);
+});
+
+test("deleting a second voice's last rest makes the voice unused again", () => {
+  selectVoice(s, at(0, 0), 1);
+  move(s, at(0, 0, 1, 1), 'right');
+  deleteNote(s, at(0, 1, 1, 1));
+  deleteNote(s, at(0, 0, 1, 1));
+  expect(voice(0, 1).beats.map((b) => b.isEmpty)).toEqual([true]);
+});
+
+test('deleting on a beat whose notes are on other strings changes nothing', () => {
+  deleteNote(s, at(0, 0, 4));
+  expect(beat(0, 0).notes.map((n) => [n.string, n.fret])).toEqual([[1, 0]]);
+  expect(voice(0).beats).toHaveLength(4);
+});

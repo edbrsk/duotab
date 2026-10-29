@@ -52,8 +52,10 @@ test('a command that changes nothing is not an edit', () => {
   const s = score(fourQuarters);
   const history = new History();
   const rest = { ...start, beat: 3, string: 2 };
+  const fullBarRest = { ...start, bar: 1 };
   for (const [at, command] of [
-    [rest, { op: 'deleteNote' }],
+    [{ ...start, string: 4 }, { op: 'deleteNote' }],
+    [fullBarRest, { op: 'deleteNote' }],
     [rest, { op: 'setRest' }],
     [start, { op: 'setFret', fret: 0 }],
     [start, { op: 'setDuration', duration: 4, dots: 0 }],
