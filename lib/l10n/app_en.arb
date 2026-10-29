@@ -28,5 +28,8 @@
         "type": "String"
       }
     }
-  }
+  },
+  "play": "Play",
+  "pause": "Pause",
+  "stop": "Stop"
 }

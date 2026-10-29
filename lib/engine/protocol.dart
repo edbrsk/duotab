@@ -52,7 +52,7 @@ class SongSummary {
 }
 
 class EngineEvent {
-  /// `ready`, `rendered` or `error`.
+  /// `ready`, `rendered`, `error` or `playerState`.
   final String type;
   final Map<String, dynamic> payload;
 

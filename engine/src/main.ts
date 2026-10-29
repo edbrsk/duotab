@@ -32,6 +32,20 @@ api.error.on((e) => post({ event: 'error', payload: { message: String(e?.message
 
 let pendingOpen: { resolve: (score: alphaTab.model.Score) => void; reject: (e: unknown) => void } | null =
   null;
+api.playerStateChanged.on((e) =>
+  post({ event: 'playerState', payload: { playing: e.state === alphaTab.synth.PlayerState.Playing } }),
+);
+
+function whenPlayerReady(): Promise<void> {
+  if (api.isReadyForPlayback) return Promise.resolve();
+  return new Promise((resolve) => {
+    const off = api.playerReady.on(() => {
+      off();
+      resolve();
+    });
+  });
+}
+
 api.scoreLoaded.on((score) => {
   pendingOpen?.resolve(score);
   pendingOpen = null;
@@ -74,6 +88,16 @@ async function run(request: Request): Promise<unknown> {
       api.renderTracks([track]);
       return {};
     }
+    case 'play':
+      await whenPlayerReady();
+      api.play();
+      return {};
+    case 'pause':
+      api.pause();
+      return {};
+    case 'stop':
+      api.stop();
+      return {};
   }
 }
 

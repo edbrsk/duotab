@@ -22,6 +22,25 @@ void main() {
     await transport.close();
   });
 
+  test('play, pause and stop send their requests', () async {
+    await engineReady();
+    for (final (call, type) in [
+      (bridge.play, 'play'),
+      (bridge.pause, 'pause'),
+      (bridge.stop, 'stop'),
+    ]) {
+      final done = call();
+      await pumpEventQueue();
+      expect(transport.lastRequest['type'], type);
+      transport.deliver({
+        'id': transport.lastRequest['id'],
+        'ok': true,
+        'payload': <String, Object>{},
+      });
+      await done;
+    }
+  });
+
   test('answers a request with the reply carrying the same id', () async {
     await engineReady();
     final summary = bridge.summarize('a.gp');

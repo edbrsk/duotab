@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 import '../core/dependency_injection.dart';
 import '../core/design/design_tokens.dart';
@@ -36,7 +37,14 @@ class EngineHost {
 
   factory EngineHost(Uri engineUri) {
     final transport = WebViewTransport();
-    final controller = WebViewController();
+    // Lets audio start from Flutter's play button, which is outside the page
+    // and so never counts as a user gesture for WebKit.
+    final controller = WebViewController.fromPlatformCreationParams(
+      WebKitWebViewControllerCreationParams(
+        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+        allowsInlineMediaPlayback: true,
+      ),
+    );
     final host = EngineHost._(controller, transport);
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)

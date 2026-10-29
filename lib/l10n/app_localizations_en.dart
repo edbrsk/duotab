@@ -58,4 +58,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String scoreError(String message) {
     return 'Couldn\'t show this song: $message';
   }
+
+  @override
+  String get play => 'Play';
+
+  @override
+  String get pause => 'Pause';
+
+  @override
+  String get stop => 'Stop';
 }

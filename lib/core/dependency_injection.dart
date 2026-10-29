@@ -10,6 +10,7 @@ import '../engine/engine_bridge.dart';
 import '../engine/engine_host.dart';
 import '../features/import/incoming_files_provider.dart';
 import '../features/library/library_cubit.dart';
+import '../features/playback/playback_cubit.dart';
 import '../features/score/score_cubit.dart';
 import '../presentation/shell/app_destinations.dart';
 import '../presentation/shell/navigation_cubit.dart';
@@ -40,6 +41,8 @@ Future<void> setupDependencies() async {
   final library = LibraryCubit(documents: documents, engine: engine);
   final navigation = NavigationCubit();
   final score = ScoreCubit(engine: engine);
+  final hinge = HingeStatusProvider();
+  final playback = PlaybackCubit(engine: engine, hinge: hinge);
 
   getIt
     ..registerSingleton<AppDirectories>(AppDirectories(documents: documents))
@@ -48,6 +51,7 @@ Future<void> setupDependencies() async {
     ..registerSingleton<EngineBridge>(engine)
     ..registerSingleton<LibraryCubit>(library)
     ..registerSingleton<ScoreCubit>(score)
+    ..registerSingleton<PlaybackCubit>(playback)
     ..registerSingleton<IncomingFilesProvider>(
       IncomingFilesProvider(
         documents: documents,
@@ -58,6 +62,6 @@ Future<void> setupDependencies() async {
       ),
     )
     ..registerSingleton<VerticalBarEdgeProvider>(VerticalBarEdgeProvider())
-    ..registerSingleton<HingeStatusProvider>(HingeStatusProvider())
+    ..registerSingleton<HingeStatusProvider>(hinge)
     ..registerSingleton<NavigationCubit>(navigation);
 }

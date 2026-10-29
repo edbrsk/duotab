@@ -68,6 +68,12 @@ class EngineBridge {
   Future<void> renderTrack(int index) =>
       _request('renderTrack', {'index': index});
 
+  Future<void> play() => _request('play', const {});
+
+  Future<void> pause() => _request('pause', const {});
+
+  Future<void> stop() => _request('stop', const {});
+
   /// Waits for the engine page to load, so the timeout also covers an engine
   /// that never starts.
   Future<Object?> _request(String type, Map<String, Object?> payload) async {

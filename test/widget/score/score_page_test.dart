@@ -1,5 +1,7 @@
+import 'package:bloc_test/bloc_test.dart';
 import 'package:duotab/engine/engine_bridge.dart';
 import 'package:duotab/engine/protocol.dart';
+import 'package:duotab/features/playback/playback_cubit.dart';
 import 'package:duotab/features/score/score_cubit.dart';
 import 'package:duotab/features/score/score_page.dart';
 import 'package:duotab/l10n/app_localizations.dart';
@@ -12,9 +14,12 @@ import '../../unit/features/score/score_test_data.dart';
 
 class _Engine extends Mock implements EngineBridge {}
 
+class _Playback extends MockCubit<PlaybackState> implements PlaybackCubit {}
+
 void main() {
   late _Engine engine;
   late ScoreCubit cubit;
+  late _Playback playback;
 
   setUp(() {
     engine = _Engine();
@@ -25,6 +30,8 @@ void main() {
         .thenAnswer((_) async => drumsAndTwoGuitars);
     when(() => engine.open('beat.gp')).thenAnswer((_) async => drumsOnly);
     cubit = ScoreCubit(engine: engine);
+    playback = _Playback();
+    when(() => playback.state).thenReturn(const PlaybackState());
   });
 
   tearDown(() => cubit.close());
@@ -38,8 +45,11 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: BlocProvider.value(
-          value: cubit,
+        home: MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: cubit),
+            BlocProvider<PlaybackCubit>.value(value: playback),
+          ],
           child: const ScorePage(engineView: Text('engine view')),
         ),
       ),
