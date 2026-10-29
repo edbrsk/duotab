@@ -96,6 +96,29 @@ class EngineBridge {
     'staves': [for (final s in staves) s.toJson()],
   });
 
+  Future<EditState> edit(EditCommand command) async => EditState.fromJson(
+    (await _request('edit', {'command': command.toJson()}))!
+        as Map<String, dynamic>,
+  );
+
+  Future<EditState> undo() async => EditState.fromJson(
+    (await _request('undo', const {}))! as Map<String, dynamic>,
+  );
+
+  Future<EditState> redo() async => EditState.fromJson(
+    (await _request('redo', const {}))! as Map<String, dynamic>,
+  );
+
+  Future<SongSummary> newSong(NewSongOptions options) async =>
+      SongSummary.fromJson(
+        (await _request('newSong', options.toJson()))! as Map<String, dynamic>,
+      );
+
+  Future<Uint8List> exportGp() async => base64Decode(
+    ((await _request('exportGp', const {}))! as Map<String, dynamic>)['base64']
+        as String,
+  );
+
   Future<void> setTracks(List<TrackMix> tracks) => _request('setTracks', {
     'tracks': [for (final t in tracks) t.toJson()],
   });

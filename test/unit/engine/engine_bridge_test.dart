@@ -62,6 +62,73 @@ void main() {
     await done;
   });
 
+  test('edit sends the command and parses the edit state', () async {
+    await engineReady();
+    final state = bridge.edit(const SetFret(5));
+    await pumpEventQueue();
+    expect(transport.lastRequest['type'], 'edit');
+    expect(transport.lastRequest['payload'], {
+      'command': {'op': 'setFret', 'fret': 5},
+    });
+    transport.deliver({
+      'id': transport.lastRequest['id'],
+      'ok': true,
+      'payload': {
+        'position': {'track': 0, 'bar': 2, 'voice': 0, 'beat': 1, 'string': 3},
+        'issues': [
+          {'bar': 2, 'voice': 0, 'ticksOff': -480},
+        ],
+        'canUndo': true,
+        'canRedo': false,
+        'edited': true,
+        'song': {'title': 'T', 'tracks': <Object>[]},
+      },
+    });
+    final s = await state;
+    expect(s.position.bar, 2);
+    expect(s.position.string, 3);
+    expect(s.issues.single.ticksOff, -480);
+    expect(s.canUndo, isTrue);
+    expect(s.edited, isTrue);
+    expect(s.song.title, 'T');
+  });
+
+  test('exportGp decodes base64', () async {
+    await engineReady();
+    final bytes = bridge.exportGp();
+    await pumpEventQueue();
+    expect(transport.lastRequest['type'], 'exportGp');
+    transport.deliver({
+      'id': transport.lastRequest['id'],
+      'ok': true,
+      'payload': {'base64': 'AQID'},
+    });
+    expect(await bytes, [1, 2, 3]);
+  });
+
+  test('every edit command serialises its op', () {
+    const position = EditPosition(
+      track: 0,
+      bar: 1,
+      voice: 0,
+      beat: 2,
+      string: 4,
+    );
+    expect(const DeleteNote().toJson(), {'op': 'deleteNote'});
+    expect(const SetDuration(8, 1).toJson(), {
+      'op': 'setDuration',
+      'duration': 8,
+      'dots': 1,
+    });
+    expect(const SetRest().toJson(), {'op': 'setRest'});
+    expect(const SelectVoice(2).toJson(), {'op': 'selectVoice', 'voice': 2});
+    expect(const Move('right').toJson(), {'op': 'move', 'direction': 'right'});
+    expect(const Place(position).toJson(), {
+      'op': 'place',
+      'position': {'track': 0, 'bar': 1, 'voice': 0, 'beat': 2, 'string': 4},
+    });
+  });
+
   test('answers a request with the reply carrying the same id', () async {
     await engineReady();
     final summary = bridge.summarize('a.gp');

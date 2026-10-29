@@ -56,11 +56,15 @@ export class Mixer {
       this.mixes.set(mix.index, mix);
     }
     // A new program needs new MIDI, which resets the player's position and channels.
-    if (programChanged) await this.reloadMidi(tracks);
-    this.send(tracks, mixes);
+    if (programChanged) await this.regenerate();
+    this.send(this.api.score?.tracks ?? tracks, mixes);
   }
 
-  private async reloadMidi(tracks: MixerTrack[]): Promise<void> {
+  /**
+   * New MIDI for the song, keeping position, playing state, loop and mix.
+   * `load` must lead to one `midiLoaded`; replacing the score (undo) loads its own.
+   */
+  async regenerate(load: () => void = () => this.api.loadMidiForScore()): Promise<void> {
     const api = this.api;
     const tick = api.tickPosition;
     const wasPlaying = api.playerState === alphaTab.synth.PlayerState.Playing;
@@ -73,13 +77,13 @@ export class Mixer {
         resolve();
       });
     });
-    api.loadMidiForScore();
+    load();
     await loaded;
     // Setting a range seeks to its start, so the position goes back last.
     api.playbackRange = range;
     api.isLooping = looping;
     api.tickPosition = tick;
-    this.send(tracks, [...this.mixes.values()]);
+    this.send(api.score?.tracks ?? [], [...this.mixes.values()]);
     if (wasPlaying) api.play();
   }
 

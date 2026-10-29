@@ -1,5 +1,9 @@
 // Mirrors engine/src/protocol.ts: change both together.
 
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+
 enum TrackKind { guitar, drums, other }
 
 class TrackSummary {
@@ -163,9 +167,220 @@ class StaffView {
 }
 
 class EngineEvent {
-  /// `ready`, `rendered`, `error`, `playerState` or `position`.
+  /// `ready`, `rendered`, `error`, `playerState`, `position`,
+  /// `rangeChanged` or `tapped`.
   final String type;
   final Map<String, dynamic> payload;
 
   const EngineEvent(this.type, this.payload);
+}
+
+/// alphaTab numbers strings from the lowest: string 1 is the lowest-pitched.
+@immutable
+class EditPosition {
+  final int track;
+  final int bar;
+  final int voice;
+  final int beat;
+  final int string;
+
+  const EditPosition({
+    required this.track,
+    required this.bar,
+    required this.voice,
+    required this.beat,
+    required this.string,
+  });
+
+  factory EditPosition.fromJson(Map<String, dynamic> json) => EditPosition(
+    track: json['track'] as int,
+    bar: json['bar'] as int,
+    voice: json['voice'] as int,
+    beat: json['beat'] as int,
+    string: json['string'] as int,
+  );
+
+  Map<String, Object> toJson() => {
+    'track': track,
+    'bar': bar,
+    'voice': voice,
+    'beat': beat,
+    'string': string,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is EditPosition &&
+      other.track == track &&
+      other.bar == bar &&
+      other.voice == voice &&
+      other.beat == beat &&
+      other.string == string;
+
+  @override
+  int get hashCode => Object.hash(track, bar, voice, beat, string);
+}
+
+/// A voice whose notes and rests don't add up to its bar; negative
+/// [ticksOff] means short.
+class BarIssue {
+  final int bar;
+  final int voice;
+  final int ticksOff;
+
+  const BarIssue({
+    required this.bar,
+    required this.voice,
+    required this.ticksOff,
+  });
+
+  factory BarIssue.fromJson(Map<String, dynamic> json) => BarIssue(
+    bar: json['bar'] as int,
+    voice: json['voice'] as int,
+    ticksOff: json['ticksOff'] as int,
+  );
+}
+
+class EditState {
+  final EditPosition position;
+  final List<BarIssue> issues;
+  final bool canUndo;
+  final bool canRedo;
+  final SongSummary song;
+
+  /// True when the song changed, so it needs saving.
+  final bool edited;
+
+  const EditState({
+    required this.position,
+    required this.issues,
+    required this.canUndo,
+    required this.canRedo,
+    required this.song,
+    required this.edited,
+  });
+
+  factory EditState.fromJson(Map<String, dynamic> json) => EditState(
+    position: EditPosition.fromJson(json['position'] as Map<String, dynamic>),
+    issues: [
+      for (final i in json['issues'] as List<dynamic>)
+        BarIssue.fromJson(i as Map<String, dynamic>),
+    ],
+    canUndo: json['canUndo'] as bool,
+    canRedo: json['canRedo'] as bool,
+    song: SongSummary.fromJson(json['song'] as Map<String, dynamic>),
+    edited: json['edited'] as bool,
+  );
+}
+
+@immutable
+sealed class EditCommand {
+  const EditCommand();
+
+  Map<String, Object> toJson();
+
+  // Value equality, so a command can be matched in mocks and tests.
+  @override
+  bool operator ==(Object other) =>
+      other is EditCommand &&
+      jsonEncode(other.toJson()) == jsonEncode(toJson());
+
+  @override
+  int get hashCode => jsonEncode(toJson()).hashCode;
+}
+
+class SetFret extends EditCommand {
+  final int fret;
+
+  const SetFret(this.fret);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'setFret', 'fret': fret};
+}
+
+class DeleteNote extends EditCommand {
+  const DeleteNote();
+
+  @override
+  Map<String, Object> toJson() => {'op': 'deleteNote'};
+}
+
+class SetDuration extends EditCommand {
+  /// alphaTab's `Duration`: 1 whole, 2 half, 4 quarter … 64.
+  final int duration;
+  final int dots;
+
+  const SetDuration(this.duration, this.dots);
+
+  @override
+  Map<String, Object> toJson() => {
+    'op': 'setDuration',
+    'duration': duration,
+    'dots': dots,
+  };
+}
+
+class SetRest extends EditCommand {
+  const SetRest();
+
+  @override
+  Map<String, Object> toJson() => {'op': 'setRest'};
+}
+
+class SelectVoice extends EditCommand {
+  /// 0-based.
+  final int voice;
+
+  const SelectVoice(this.voice);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'selectVoice', 'voice': voice};
+}
+
+class Move extends EditCommand {
+  /// `left`, `right`, `up` or `down`.
+  final String direction;
+
+  const Move(this.direction);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'move', 'direction': direction};
+}
+
+class Place extends EditCommand {
+  final EditPosition position;
+
+  const Place(this.position);
+
+  @override
+  Map<String, Object> toJson() => {
+    'op': 'place',
+    'position': position.toJson(),
+  };
+}
+
+class NewSongOptions {
+  final String title;
+
+  /// MIDI note numbers of the open strings, top string first.
+  final List<int> tuning;
+  final int tempo;
+  final int numerator;
+  final int denominator;
+
+  const NewSongOptions({
+    required this.title,
+    required this.tuning,
+    required this.tempo,
+    required this.numerator,
+    required this.denominator,
+  });
+
+  Map<String, Object> toJson() => {
+    'title': title,
+    'tuning': tuning,
+    'tempo': tempo,
+    'numerator': numerator,
+    'denominator': denominator,
+  };
 }

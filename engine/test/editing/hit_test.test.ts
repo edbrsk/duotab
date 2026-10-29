@@ -2,9 +2,11 @@ import * as alphaTab from '@coderline/alphatab';
 import { beforeAll, expect, test } from 'vitest';
 
 import { hitTest } from '../../src/editing/hit_test';
+import { cursorRect, issueRect } from '../../src/editing/overlay';
 import { fourQuarters, score } from '../fixtures';
 
 let renderer: alphaTab.rendering.ScoreRenderer;
+let song: alphaTab.model.Score;
 
 beforeAll(async () => {
   const settings = new alphaTab.Settings();
@@ -15,7 +17,8 @@ beforeAll(async () => {
   renderer.width = 800;
   await new Promise<void>((resolve) => {
     renderer.renderFinished.on(() => resolve());
-    renderer.renderScore(score(fourQuarters), [0]);
+    song = score(fourQuarters);
+    renderer.renderScore(song, [0]);
   });
 });
 
@@ -58,4 +61,16 @@ test('a tap on the notation staff gives the beat with no string', () => {
 
 test('a tap outside the score gives null', () => {
   expect(hitTest(renderer, 0, 0, 5, 5)).toBeNull();
+});
+
+test('the cursor sits on its string at its beat', () => {
+  const tab = staffLines('TabBarRenderer');
+  const rect = cursorRect(renderer, song, { track: 0, bar: 0, voice: 0, beat: 1, string: 6 })!;
+  expect(rect.y + rect.h / 2).toBeCloseTo(tab.y(0));
+  expect(rect.x + rect.w / 2).toBeCloseTo(beatX(1));
+});
+
+test("an issue covers its bar", () => {
+  const bar = renderer.boundsLookup!.findMasterBarByIndex(1)!.visualBounds;
+  expect(issueRect(renderer, 1)).toEqual({ x: bar.x, y: bar.y, w: bar.w, h: bar.h });
 });

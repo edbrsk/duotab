@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -8,7 +8,7 @@ export type Reply =
   | { id: number; ok: true; payload: unknown }
   | { id: number; ok: false; error: string };
 
-export type EventType = 'ready' | 'rendered' | 'error' | 'playerState' | 'position' | 'rangeChanged';
+export type EventType = 'ready' | 'rendered' | 'error' | 'playerState' | 'position' | 'rangeChanged' | 'tapped';
 
 export type EngineEvent = { event: EventType; payload: unknown };
 
@@ -85,3 +85,29 @@ export type NewSongOptions = {
   numerator: number;
   denominator: number;
 };
+
+export type EditCommand =
+  | { op: 'setFret'; fret: number }
+  | { op: 'deleteNote' }
+  | { op: 'setDuration'; duration: number; dots: number }
+  | { op: 'setRest' }
+  | { op: 'selectVoice'; voice: number }
+  | { op: 'move'; direction: 'left' | 'right' | 'up' | 'down' }
+  | { op: 'place'; position: EditPosition };
+
+export type EditPayload = { command: EditCommand };
+
+/** The reply to `edit`, `undo` and `redo`; `edited` is true when the song changed. */
+export type EditState = {
+  position: EditPosition;
+  issues: BarIssue[];
+  canUndo: boolean;
+  canRedo: boolean;
+  song: SongSummary;
+  edited: boolean;
+};
+
+/** Posted for a tap on the drawn track. */
+export type TappedPayload = { position: EditPosition };
+
+export type ExportGpReply = { base64: string };

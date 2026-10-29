@@ -1,8 +1,19 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import { Mixer } from './mixer';
+import { checkBars } from './editing/bar_check';
+import { runCommand } from './editing/commands';
+import { hitTest } from './editing/hit_test';
+import { History } from './editing/history';
+import { newSong } from './editing/new_song';
+import { drawOverlay } from './editing/overlay';
+import { clampPosition } from './editing/position';
 import type {
+  EditPayload,
+  EditPosition,
+  EditState,
   EngineEvent,
+  NewSongOptions,
   PathPayload,
   PlayerOptionsPayload,
   RenderTrackPayload,
@@ -43,6 +54,9 @@ settings.player.playerMode = alphaTab.PlayerMode.EnabledSynthesizer;
 settings.player.soundFont = pageUrl('./alphatab/soundfont/sonivox.sf2');
 settings.player.enableCursor = true;
 settings.player.scrollElement = document.scrollingElement as HTMLElement;
+// Taps are resolved to strings from the layout, which only exists on the page
+// when alphaTab renders here rather than in a worker.
+settings.core.useWorkers = false;
 
 const api = new alphaTab.AlphaTabApi(document.getElementById('score')!, settings);
 api.renderFinished.on(() => post({ event: 'rendered', payload: {} }));
@@ -90,6 +104,61 @@ scoreElement.addEventListener('touchmove', (e) => touchSelection.touchMove(e), {
 scoreElement.addEventListener('touchend', (e) => touchSelection.touchEnd(e), { passive: false });
 scoreElement.addEventListener('touchcancel', (e) => touchSelection.touchEnd(e), { passive: false });
 
+const history = new History(100, settings);
+const startOf = (track: number): EditPosition => ({ track, bar: 0, voice: 0, beat: 0, string: 1 });
+let position: EditPosition = startOf(0);
+let issues = checkBarsOfDrawnTrack();
+
+function drawnTrack(): number {
+  return api.tracks[0]?.index ?? 0;
+}
+
+function checkBarsOfDrawnTrack() {
+  return api?.score ? checkBars(api.score, drawnTrack()) : [];
+}
+
+function redrawOverlay() {
+  if (api.score) drawOverlay(scoreElement, api.renderer, api.score, position, issues);
+}
+api.postRenderFinished.on(redrawOverlay);
+
+function editState(edited: boolean): EditState {
+  issues = checkBarsOfDrawnTrack();
+  redrawOverlay();
+  return {
+    position,
+    issues,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
+    song: describeOpened(api.score!, api.score!.title),
+    edited,
+  };
+}
+
+// alphaTab's own click handling still seeks playback to the tapped beat.
+scoreElement.addEventListener('click', (e) => {
+  if (!api.score) return;
+  const rect = scoreElement.getBoundingClientRect();
+  const hit = hitTest(api.renderer, drawnTrack(), position.voice, e.clientX - rect.left, e.clientY - rect.top);
+  if (!hit) return;
+  post({ event: 'tapped', payload: { position: { ...hit, string: hit.string ?? position.string } } });
+});
+
+function base64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
+
+/** Shows a new score object and waits until alphaTab has taken it in. */
+function showScore(score: alphaTab.model.Score, tracks: number[]): Promise<alphaTab.model.Score> {
+  const loaded = new Promise<alphaTab.model.Score>((resolve, reject) => {
+    pendingOpen = { resolve, reject };
+  });
+  api.renderScore(score, tracks);
+  return loaded;
+}
+
 let postedBar = -1;
 const postBar = (bar: number) => {
   postedBar = bar;
@@ -125,9 +194,12 @@ function whenPlayerReady(): Promise<void> {
   });
 }
 
-// Runs before alphaTab's first render of the song.
+// Set by `open`: only a file's own staff flags are replaced, before alphaTab's
+// first render of it; a score restored by undo keeps the owner's choice.
+let fromFile = false;
 api.scoreLoaded.on((score) => {
-  showNotationAndTab(score);
+  if (fromFile) showNotationAndTab(score);
+  fromFile = false;
   pendingOpen?.resolve(score);
   pendingOpen = null;
 });
@@ -144,6 +216,25 @@ async function fetchBytes(path: string): Promise<Uint8Array> {
 
 const fileName = (path: string) => path.split('/').pop() ?? path;
 
+/** Once a new song is in: a failed open leaves the old one as it was. */
+function startSong() {
+  postedBar = -1;
+  mixer.newSong();
+  api.playbackSpeed = 1;
+  api.isLooping = false;
+  api.playbackRange = null;
+  history.clear();
+  position = startOf(0);
+}
+
+async function restore(score: alphaTab.model.Score | null): Promise<EditState> {
+  if (!score) return editState(false);
+  const track = drawnTrack();
+  await mixer.regenerate(() => api.renderScore(score, [track]));
+  position = clampPosition(score, position);
+  return editState(true);
+}
+
 async function run(request: Request): Promise<unknown> {
   switch (request.type) {
     case 'ping':
@@ -159,14 +250,10 @@ async function run(request: Request): Promise<unknown> {
         pendingOpen = { resolve, reject };
       });
       openCount++;
+      fromFile = true;
       api.load(bytes, []);
       const score = await loaded;
-      // Only once the new song is in: a failed open leaves the old one as it was.
-      postedBar = -1;
-      mixer.newSong();
-      api.playbackSpeed = 1;
-      api.isLooping = false;
-      api.playbackRange = null;
+      startSong();
       return describeOpened(score, fileName(path));
     }
     case 'renderTrack': {
@@ -174,6 +261,7 @@ async function run(request: Request): Promise<unknown> {
       const track = api.score?.tracks[index];
       if (!track) throw new Error(`no track ${index}`);
       api.renderTracks([track]);
+      position = clampPosition(api.score!, { ...position, track: index });
       return {};
     }
     case 'play':
@@ -207,6 +295,34 @@ async function run(request: Request): Promise<unknown> {
       api.countInVolume = countIn ? 1 : 0;
       api.metronomeVolume = metronome ? 1 : 0;
       return {};
+    }
+    case 'edit': {
+      if (!api.score) throw new Error('no song open');
+      const { command } = request.payload as EditPayload;
+      const result = runCommand(api.score, position, command, history, settings);
+      position = result.position;
+      if (result.edited) {
+        api.render();
+        await mixer.regenerate();
+      }
+      return editState(result.edited);
+    }
+    case 'undo':
+      if (!api.score) throw new Error('no song open');
+      return restore(history.undo(api.score));
+    case 'redo':
+      if (!api.score) throw new Error('no song open');
+      return restore(history.redo(api.score));
+    case 'newSong': {
+      const options = request.payload as NewSongOptions;
+      openCount++;
+      const score = await showScore(newSong(options, settings), [0]);
+      startSong();
+      return describeOpened(score, options.title);
+    }
+    case 'exportGp': {
+      if (!api.score) throw new Error('no song open');
+      return { base64: base64(new alphaTab.exporter.Gp7Exporter().export(api.score, settings)) };
     }
     case 'setStaves': {
       if (!api.score) throw new Error('no song open');

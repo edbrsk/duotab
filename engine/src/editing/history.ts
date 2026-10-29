@@ -20,9 +20,18 @@ export class History {
     return this.redoStack.length > 0;
   }
 
+  static snapshot(score: Score): unknown {
+    return alphaTab.model.JsonConverter.scoreToJsObject(score);
+  }
+
   /** The song as it is before an edit. */
   record(score: Score): void {
-    this.undoStack.push(alphaTab.model.JsonConverter.scoreToJsObject(score));
+    this.push(History.snapshot(score));
+  }
+
+  /** A snapshot taken before a change that turned out to change the song. */
+  push(snapshot: unknown): void {
+    this.undoStack.push(snapshot);
     if (this.undoStack.length > this.limit) this.undoStack.shift();
     this.redoStack.length = 0;
   }
@@ -43,7 +52,7 @@ export class History {
   private step(from: unknown[], to: unknown[], current: Score): Score | null {
     const snapshot = from.pop();
     if (snapshot === undefined) return null;
-    to.push(alphaTab.model.JsonConverter.scoreToJsObject(current));
+    to.push(History.snapshot(current));
     return alphaTab.model.JsonConverter.jsObjectToScore(snapshot, this.settings);
   }
 }

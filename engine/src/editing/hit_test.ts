@@ -35,7 +35,8 @@ export function hitTest(renderer: Renderer, track: number, voice: number, x: num
   return { track, bar: bar.index, voice, beat, string: stringAt(layout, bar, y) };
 }
 
-function stringAt(layout: unknown, bar: alphaTab.model.Bar, y: number): number | null {
+/** The tab staff drawing `bar`, with its line positions in layout coordinates. */
+function tabStaff(layout: unknown, bar: alphaTab.model.Bar) {
   const systems = (layout as { _systems?: StaffSystem[] })._systems ?? [];
   for (const system of systems) {
     for (const group of system.staves) {
@@ -44,14 +45,27 @@ function stringAt(layout: unknown, bar: alphaTab.model.Bar, y: number): number |
         const renderer = staff.barRenderers.find((r) => r.bar === bar);
         if (!renderer) continue;
         const lineY = (line: number) => system.y + staff.y + renderer.y + renderer.getLineY(line);
-        const lines = renderer.drawnLineCount;
-        const spacing = lineY(1) - lineY(0);
-        if (y < lineY(0) - spacing / 2 || y > lineY(lines - 1) + spacing / 2) return null;
-        const line = Math.min(lines - 1, Math.max(0, Math.round((y - lineY(0)) / spacing)));
-        // The top line is the highest string, which alphaTab numbers last.
-        return lines - line;
+        return { lineY, lines: renderer.drawnLineCount, spacing: lineY(1) - lineY(0) };
       }
     }
   }
   return null;
+}
+
+// The top line is the highest string, which alphaTab numbers last.
+const lineOf = (lines: number, string: number) => lines - string;
+
+/** The y of `string`'s line in the tab staff drawing `bar`. */
+export function tabLineY(layout: unknown, bar: alphaTab.model.Bar, string: number): { y: number; spacing: number } | null {
+  const tab = tabStaff(layout, bar);
+  return tab ? { y: tab.lineY(lineOf(tab.lines, string)), spacing: tab.spacing } : null;
+}
+
+function stringAt(layout: unknown, bar: alphaTab.model.Bar, y: number): number | null {
+  const tab = tabStaff(layout, bar);
+  if (!tab) return null;
+  const { lineY, lines, spacing } = tab;
+  if (y < lineY(0) - spacing / 2 || y > lineY(lines - 1) + spacing / 2) return null;
+  const line = Math.min(lines - 1, Math.max(0, Math.round((y - lineY(0)) / spacing)));
+  return lineOf(lines, line);
 }

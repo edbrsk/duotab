@@ -108,3 +108,36 @@ test('a new song starts with no channel muted or soloed', async () => {
     'channel solo 3 false',
   ]);
 });
+
+test('regenerate keeps position, mixer and loop', async () => {
+  const { api, mixerApi, calls } = fakeApi([29, 29]);
+  const mixer = new Mixer(mixerApi);
+  await mixer.apply([{ index: 1, mute: true, solo: false, program: 29 }]);
+  api.play();
+  api.playbackRange = { startTick: 960, endTick: 3840 };
+  api.tickPosition = 5000;
+  api.isLooping = true;
+  calls.length = 0;
+
+  await mixer.regenerate();
+
+  expect(calls.filter((c) => c === 'loadMidi')).toHaveLength(1);
+  expect(api.tickPosition).toBe(5000);
+  expect(api.playbackRange).toEqual({ startTick: 960, endTick: 3840 });
+  expect(api.isLooping).toBe(true);
+  expect(calls.slice(calls.indexOf('loadMidi'))).toContain('mute 1 true');
+  expect(calls.filter((c) => c === 'play')).toHaveLength(1);
+});
+
+test('regenerate runs the load it is given', async () => {
+  const { api, mixerApi, calls } = fakeApi([29]);
+  api.tickPosition = 1234;
+  let loads = 0;
+  await new Mixer(mixerApi).regenerate(() => {
+    loads++;
+    api.loadMidiForScore();
+  });
+  expect(loads).toBe(1);
+  expect(calls.filter((c) => c === 'loadMidi')).toHaveLength(1);
+  expect(api.tickPosition).toBe(1234);
+});
