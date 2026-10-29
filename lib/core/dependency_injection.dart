@@ -10,6 +10,7 @@ import '../engine/engine_bridge.dart';
 import '../engine/engine_host.dart';
 import '../features/import/incoming_files_provider.dart';
 import '../features/library/library_cubit.dart';
+import '../features/score/score_cubit.dart';
 import '../presentation/shell/app_destinations.dart';
 import '../presentation/shell/navigation_cubit.dart';
 import 'duo/hinge_status_provider.dart';
@@ -37,6 +38,7 @@ Future<void> setupDependencies() async {
   final engine = EngineBridge(host.transport);
   final library = LibraryCubit(documents: documents, engine: engine);
   final navigation = NavigationCubit();
+  final score = ScoreCubit(engine: engine);
 
   getIt
     ..registerSingleton<AppDirectories>(AppDirectories(documents: documents))
@@ -44,12 +46,13 @@ Future<void> setupDependencies() async {
     ..registerSingleton<EngineHost>(host)
     ..registerSingleton<EngineBridge>(engine)
     ..registerSingleton<LibraryCubit>(library)
+    ..registerSingleton<ScoreCubit>(score)
     ..registerSingleton<IncomingFilesProvider>(
       IncomingFilesProvider(
         documents: documents,
         onImported: (path) async {
-          await library.refresh();
           navigation.select(AppTab.editor);
+          await Future.wait([library.refresh(), score.open(path)]);
         },
       ),
     )

@@ -159,6 +159,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} strings'**
   String stringsCount(int count);
+
+  /// No description provided for @noGuitarTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'This song has no guitar track'**
+  String get noGuitarTrack;
+
+  /// No description provided for @noSongOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a song from the library'**
+  String get noSongOpen;
+
+  /// No description provided for @tracksHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracks'**
+  String get tracksHeading;
 }
 
 class _AppLocalizationsDelegate

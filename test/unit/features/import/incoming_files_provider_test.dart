@@ -21,6 +21,19 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  // The provider does real file I/O, so wait for its callback rather than a
+  // fixed number of event-loop turns.
+  ({IncomingFilesProvider provider, Future<String> imported}) listen() {
+    final imported = Completer<String>();
+    final provider = IncomingFilesProvider(
+      events: events.stream,
+      documents: documents,
+      onImported: (path) async => imported.complete(path),
+    );
+    addTearDown(provider.dispose);
+    return (provider: provider, imported: imported.future);
+  }
+
   File stage(String name, List<int> bytes) {
     final staging = Directory(p.join(root.path, 'incoming', 'x'))
       ..createSync(recursive: true);
@@ -40,25 +53,22 @@ void main() {
     events.add(staged.path);
     await pumpEventQueue();
 
-    expect(File(p.join(documents.path, 'song.gp')).readAsBytesSync(), [1, 2, 3]);
+    expect(File(p.join(documents.path, 'song.gp')).readAsBytesSync(), [
+      1,
+      2,
+      3,
+    ]);
     expect(staged.parent.existsSync(), isFalse);
     expect(imported, ['song.gp']);
   });
 
   test('keeps both when a song with the same name exists', () async {
     File(p.join(documents.path, 'song.gp')).writeAsBytesSync([9]);
-    final imported = <String>[];
-    final provider = IncomingFilesProvider(
-      events: events.stream,
-      documents: documents,
-      onImported: (path) async => imported.add(path),
-    );
-    addTearDown(provider.dispose);
+    final (:provider, :imported) = listen();
 
     events.add(stage('song.gp', [1]).path);
-    await pumpEventQueue();
 
+    expect(await imported, 'song (2).gp');
     expect(File(p.join(documents.path, 'song.gp')).readAsBytesSync(), [9]);
-    expect(imported, ['song (2).gp']);
   });
 }

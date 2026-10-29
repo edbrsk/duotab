@@ -44,4 +44,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String stringsCount(int count) {
     return '$count strings';
   }
+
+  @override
+  String get noGuitarTrack => 'This song has no guitar track';
+
+  @override
+  String get noSongOpen => 'Open a song from the library';
+
+  @override
+  String get tracksHeading => 'Tracks';
 }

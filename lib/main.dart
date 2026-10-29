@@ -6,9 +6,10 @@ import 'app.dart';
 import 'core/dependency_injection.dart';
 import 'core/duo/hinge_status_provider.dart';
 import 'core/duo/vertical_bar_edge_provider.dart';
-import 'engine/engine_host.dart';
 import 'features/library/library_cubit.dart';
 import 'features/library/library_page.dart';
+import 'features/score/score_cubit.dart';
+import 'features/score/score_page.dart';
 import 'features/settings/settings_page.dart';
 import 'presentation/shell/app_destinations.dart';
 import 'presentation/shell/app_shell.dart';
@@ -25,15 +26,19 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: getIt<HingeStatusProvider>()),
         BlocProvider.value(value: getIt<NavigationCubit>()),
         BlocProvider.value(value: getIt<LibraryCubit>()),
+        BlocProvider.value(value: getIt<ScoreCubit>()),
       ],
       child: DuoTabApp(
         home: FoldGate(
           child: AppShell(
             pageFor: (tab) => switch (tab) {
               AppTab.library => LibraryPage(
-                onOpen: (_) => getIt<NavigationCubit>().select(AppTab.editor),
+                onOpen: (path) {
+                  getIt<NavigationCubit>().select(AppTab.editor);
+                  getIt<ScoreCubit>().open(path);
+                },
               ),
-              AppTab.editor => const EngineView(),
+              AppTab.editor => const ScorePage(),
               AppTab.settings => const SettingsPage(),
             },
           ),
