@@ -89,7 +89,16 @@ class _SidePanel extends StatelessWidget {
         color: AppColors.panel,
         child: Padding(
           padding: insets.add(const EdgeInsets.all(Spacing.sm)),
-          child: SizedBox.expand(key: contentKey, child: child),
+          // The insets are applied here; without this, ListTile and other
+          // safe-area-aware children would apply them a second time.
+          child: MediaQuery.removePadding(
+            context: context,
+            removeLeft: true,
+            removeTop: true,
+            removeRight: true,
+            removeBottom: true,
+            child: SizedBox.expand(key: contentKey, child: child),
+          ),
         ),
       ),
     );
