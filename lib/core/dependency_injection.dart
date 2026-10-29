@@ -8,6 +8,7 @@ import '../engine/asset_server.dart';
 import '../engine/engine_assets.dart';
 import '../engine/engine_bridge.dart';
 import '../engine/engine_host.dart';
+import '../features/editor/editor_cubit.dart';
 import '../features/import/incoming_files_provider.dart';
 import '../features/library/library_cubit.dart';
 import '../features/playback/playback_cubit.dart';
@@ -62,6 +63,8 @@ Future<void> setupDependencies() async {
     settings: settings,
   );
 
+  final editor = EditorCubit(engine: engine, score: score);
+
   getIt
     ..registerSingleton<AppDirectories>(AppDirectories(documents: documents))
     ..registerSingleton<AssetServer>(server)
@@ -70,6 +73,7 @@ Future<void> setupDependencies() async {
     ..registerSingleton<LibraryCubit>(library)
     ..registerSingleton<ScoreCubit>(score)
     ..registerSingleton<PlaybackCubit>(playback)
+    ..registerSingleton<EditorCubit>(editor)
     ..registerSingleton<PracticeStore>(practice)
     ..registerSingleton<SettingsCubit>(settings)
     ..registerSingleton<IncomingFilesProvider>(

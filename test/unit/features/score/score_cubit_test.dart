@@ -117,4 +117,71 @@ void main() {
     verify(() => engine.renderTrack(2)).called(2);
     expect(cubit.state.selectedTrackIndex, 2);
   });
+
+  test('each open has a new openId', () async {
+    when(() => engine.open(any())).thenAnswer((_) async => drumsAndTwoGuitars);
+    final cubit = ScoreCubit(engine: engine);
+    addTearDown(cubit.close);
+    await cubit.open('fixture.gp');
+    final first = cubit.state.openId;
+    await cubit.open('fixture.gp');
+    expect(cubit.state.openId, first + 1);
+  });
+
+  test('applyEdit keeps the openId and the drawn track', () async {
+    when(() => engine.open(any())).thenAnswer((_) async => drumsAndTwoGuitars);
+    final cubit = ScoreCubit(engine: engine);
+    addTearDown(cubit.close);
+    await cubit.open('fixture.gp');
+    await cubit.selectTrack(2);
+    final openId = cubit.state.openId;
+    const edited = SongSummary(title: 'Edited', tracks: []);
+
+    cubit.applyEdit(edited);
+
+    expect(cubit.state.song, same(edited));
+    expect(cubit.state.openId, openId);
+    expect(cubit.state.selectedTrackIndex, 2);
+    expect(cubit.state.path, 'fixture.gp');
+  });
+
+  test('moveTo changes only the path', () async {
+    when(() => engine.open(any())).thenAnswer((_) async => drumsAndTwoGuitars);
+    final cubit = ScoreCubit(engine: engine);
+    addTearDown(cubit.close);
+    await cubit.open('fixture.gp');
+    final before = cubit.state;
+
+    cubit.moveTo('fixture (DuoTab).gp');
+
+    expect(cubit.state.path, 'fixture (DuoTab).gp');
+    expect(cubit.state.song, same(before.song));
+    expect(cubit.state.openId, before.openId);
+  });
+
+  test('create opens a new song at its path', () async {
+    const options = NewSongOptions(
+      title: 'Riff',
+      tuning: [64, 59, 55, 50, 45, 40],
+      tempo: 120,
+      numerator: 4,
+      denominator: 4,
+    );
+    when(() => engine.newSong(options)).thenAnswer(
+      (_) async => SongSummary(
+        title: 'Riff',
+        tracks: [track(0, 'Guitar', TrackKind.guitar)],
+      ),
+    );
+    final cubit = ScoreCubit(engine: engine);
+    addTearDown(cubit.close);
+
+    await cubit.create(options, 'Riff.gp');
+
+    expect(cubit.state.path, 'Riff.gp');
+    expect(cubit.state.song!.title, 'Riff');
+    expect(cubit.state.selectedTrackIndex, 0);
+    expect(cubit.state.openId, 1);
+    verify(() => engine.renderTrack(0)).called(1);
+  });
 }

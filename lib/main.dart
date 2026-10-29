@@ -7,6 +7,7 @@ import 'app.dart';
 import 'core/dependency_injection.dart';
 import 'core/duo/hinge_status_provider.dart';
 import 'core/duo/vertical_bar_edge_provider.dart';
+import 'features/editor/editor_cubit.dart';
 import 'features/library/library_cubit.dart';
 import 'features/library/library_page.dart';
 import 'features/playback/playback_cubit.dart';
@@ -33,6 +34,7 @@ Future<void> main() async {
         BlocProvider.value(value: getIt<LibraryCubit>()),
         BlocProvider.value(value: getIt<ScoreCubit>()),
         BlocProvider.value(value: getIt<PlaybackCubit>()),
+        BlocProvider.value(value: getIt<EditorCubit>()),
         BlocProvider.value(value: getIt<SettingsCubit>()),
       ],
       child: DuoTabApp(

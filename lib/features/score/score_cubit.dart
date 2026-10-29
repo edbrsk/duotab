@@ -14,12 +14,17 @@ class ScoreState {
   final bool loading;
   final String? error;
 
+  /// Changes each time a song is opened or created, and only then: an edit
+  /// replaces [song] but is the same open song.
+  final int openId;
+
   const ScoreState({
     this.song,
     this.path,
     this.selectedTrackIndex,
     this.loading = false,
     this.error,
+    this.openId = 0,
   });
 }
 
@@ -56,11 +61,19 @@ class ScoreCubit extends Cubit<ScoreState> {
         path: state.path,
         selectedTrackIndex: state.selectedTrackIndex,
         loading: true,
+        openId: state.openId,
       ),
     );
+    await _show(() => engine.open(path), path);
+  }
+
+  Future<void> create(NewSongOptions options, String path) =>
+      _show(() => engine.newSong(options), path);
+
+  Future<void> _show(Future<SongSummary> Function() load, String path) async {
     final SongSummary song;
     try {
-      song = await engine.open(path);
+      song = await load();
     } on Object catch (e) {
       emit(
         ScoreState(
@@ -68,6 +81,7 @@ class ScoreCubit extends Cubit<ScoreState> {
           path: state.path,
           selectedTrackIndex: state.selectedTrackIndex,
           error: _describe(e),
+          openId: state.openId,
         ),
       );
       return;
@@ -75,9 +89,36 @@ class ScoreCubit extends Cubit<ScoreState> {
     // The engine now holds this song, so the state must too, even if the
     // render below fails; track indexes refer to it.
     final first = song.guitarTracks.firstOrNull?.index;
-    emit(ScoreState(song: song, path: path, selectedTrackIndex: first));
+    emit(
+      ScoreState(
+        song: song,
+        path: path,
+        selectedTrackIndex: first,
+        openId: state.openId + 1,
+      ),
+    );
     if (first != null) await _render(first);
   }
+
+  /// The open song after an edit.
+  void applyEdit(SongSummary song) => emit(
+    ScoreState(
+      song: song,
+      path: state.path,
+      selectedTrackIndex: state.selectedTrackIndex,
+      openId: state.openId,
+    ),
+  );
+
+  /// The open song is now saved at [path], such as its "(DuoTab)" copy.
+  void moveTo(String path) => emit(
+    ScoreState(
+      song: state.song,
+      path: path,
+      selectedTrackIndex: state.selectedTrackIndex,
+      openId: state.openId,
+    ),
+  );
 
   Future<void> selectTrack(int trackIndex) async {
     if (await _render(trackIndex)) {
@@ -86,6 +127,7 @@ class ScoreCubit extends Cubit<ScoreState> {
           song: state.song,
           path: state.path,
           selectedTrackIndex: trackIndex,
+          openId: state.openId,
         ),
       );
     }
@@ -102,6 +144,7 @@ class ScoreCubit extends Cubit<ScoreState> {
           path: state.path,
           selectedTrackIndex: state.selectedTrackIndex,
           error: _describe(e),
+          openId: state.openId,
         ),
       );
       return false;

@@ -48,6 +48,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   late final StreamSubscription<ScoreState> _songs;
   late final StreamSubscription<AppSettings> _settings;
   SongSummary? _song;
+  int? _openId;
   String? _path;
 
   /// False from a song's arrival until its practice settings are applied;
@@ -75,11 +76,21 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     ),
   );
 
-  // A new song object means the engine loaded a song, even the same file
-  // again after a restart; the engine's player starts over at bar 0.
+  // A new openId means the engine loaded a song, even the same file again
+  // after a restart; its player starts over at bar 0. An edit or a move to
+  // the song's "(DuoTab)" copy keeps the same song.
   void _onScoreChanged(ScoreState scoreState) {
     final song = scoreState.song;
-    if (song == null || identical(song, _song)) return;
+    if (song == null) return;
+    if (scoreState.openId == _openId) {
+      _song = song;
+      if (scoreState.path != _path) {
+        _path = scoreState.path;
+        if (_practiceReady) unawaited(practice.save(_path!, state.practice));
+      }
+      return;
+    }
+    _openId = scoreState.openId;
     _song = song;
     _path = scoreState.path;
     _practiceReady = false;
@@ -94,12 +105,13 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   }
 
   Future<void> _applyPractice(SongSummary song, String path) async {
+    final openId = _openId;
     final resolved = resolvePractice(
       song,
       await practice.load(path),
       settings.state.defaultTone,
     );
-    if (!identical(song, _song)) return;
+    if (openId != _openId) return;
     emit(state.copyWith(practice: resolved));
     _practiceReady = true;
     final hidden = [
@@ -115,7 +127,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
       () => engine.setLooping(looping: resolved.looping),
       () => engine.setRange(resolved.range),
     ]) {
-      if (!identical(song, _song)) return;
+      if (openId != _openId) return;
       await _send(command);
     }
   }
