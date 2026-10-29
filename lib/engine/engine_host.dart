@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
@@ -61,6 +62,10 @@ class EngineHost {
           },
         ),
       )
+      ..setOnConsoleMessage((m) {
+        // The page's own warnings and errors, in the device log while developing.
+        if (kDebugMode) debugPrint('engine ${m.level.name}: ${m.message}');
+      })
       ..addJavaScriptChannel(
         'DuoTab',
         onMessageReceived: (m) => transport._incoming.add(m.message),
