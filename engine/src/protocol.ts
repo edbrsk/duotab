@@ -76,3 +76,12 @@ export type EditPosition = { track: number; bar: number; voice: number; beat: nu
 
 /** A voice whose notes and rests don't add up to its bar; negative `ticksOff` means short. */
 export type BarIssue = { bar: number; voice: number; ticksOff: number };
+
+export type NewSongOptions = {
+  title: string;
+  /** MIDI note numbers of the open strings, top string first. */
+  tuning: number[];
+  tempo: number;
+  numerator: number;
+  denominator: number;
+};
