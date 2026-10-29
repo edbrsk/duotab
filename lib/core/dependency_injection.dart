@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -74,6 +75,8 @@ Future<void> setupDependencies() async {
     onSaved: library.refresh,
   );
   editor.edited.listen((_) => saver.schedule());
+  // iOS may end a hidden app without warning; save what is pending first.
+  AppLifecycleListener(onHide: saver.flush, onInactive: saver.flush);
 
   getIt
     ..registerSingleton<AppDirectories>(AppDirectories(documents: documents))
@@ -92,6 +95,7 @@ Future<void> setupDependencies() async {
         documents: documents,
         onImported: (path) async {
           navigation.select(AppTab.editor);
+          await saver.flush();
           await Future.wait([library.refresh(), score.open(path)]);
         },
       ),

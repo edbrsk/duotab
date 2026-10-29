@@ -1,16 +1,13 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import { Mixer } from './mixer';
-import { checkBars } from './editing/bar_check';
-import { runCommand } from './editing/commands';
 import { hitTest } from './editing/hit_test';
-import { History } from './editing/history';
 import { newSong } from './editing/new_song';
 import { drawOverlay } from './editing/overlay';
-import { clampPosition } from './editing/position';
+import { carryPlaybackSettings, rangeAfterTap } from './editing/restore';
+import { EditSession } from './editing/session';
 import type {
   EditPayload,
-  EditPosition,
   EditState,
   EngineEvent,
   NewSongOptions,
@@ -57,6 +54,9 @@ settings.player.scrollElement = document.scrollingElement as HTMLElement;
 // Taps are resolved to strings from the layout, which only exists on the page
 // when alphaTab renders here rather than in a worker.
 settings.core.useWorkers = false;
+// DuoTab handles taps itself: alphaTab's would clear the loop on every tap
+// that places the edit cursor.
+settings.player.enableUserInteraction = false;
 
 const api = new alphaTab.AlphaTabApi(document.getElementById('score')!, settings);
 api.renderFinished.on(() => post({ event: 'rendered', payload: {} }));
@@ -77,8 +77,6 @@ const postRange = () => {
   const range = r ? { startTick: r.startTick, endTick: r.endTick } : null;
   post({ event: 'rangeChanged', payload: { range } satisfies RangePayload });
 };
-// alphaTab's own tap and mouse selection set or clear the range before this fires.
-api.beatMouseUp.on(postRange);
 keepRangeHighlighted(api as unknown as HighlightApi);
 
 const scoreElement = document.getElementById('score')!;
@@ -104,45 +102,41 @@ scoreElement.addEventListener('touchmove', (e) => touchSelection.touchMove(e), {
 scoreElement.addEventListener('touchend', (e) => touchSelection.touchEnd(e), { passive: false });
 scoreElement.addEventListener('touchcancel', (e) => touchSelection.touchEnd(e), { passive: false });
 
-const history = new History(100, settings);
-const startOf = (track: number): EditPosition => ({ track, bar: 0, voice: 0, beat: 0, string: 1 });
-let position: EditPosition = startOf(0);
-let issues = checkBarsOfDrawnTrack();
-
-function drawnTrack(): number {
-  return api.tracks[0]?.index ?? 0;
-}
-
-function checkBarsOfDrawnTrack() {
-  return api?.score ? checkBars(api.score, drawnTrack()) : [];
-}
+const session = new EditSession(settings);
 
 function redrawOverlay() {
-  if (api.score) drawOverlay(scoreElement, api.renderer, api.score, position, issues);
+  if (api.score) drawOverlay(scoreElement, api.renderer, api.score, session.position, session.issues);
 }
 api.postRenderFinished.on(redrawOverlay);
 
 function editState(edited: boolean): EditState {
-  issues = checkBarsOfDrawnTrack();
   redrawOverlay();
-  return {
-    position,
-    issues,
-    canUndo: history.canUndo,
-    canRedo: history.canRedo,
-    song: describeOpened(api.score!, api.score!.title),
-    edited,
-  };
+  return session.state(api.score!, edited);
 }
 
-// alphaTab's own click handling still seeks playback to the tapped beat.
 scoreElement.addEventListener('click', (e) => {
   if (!api.score) return;
   const rect = scoreElement.getBoundingClientRect();
-  const hit = hitTest(api.renderer, drawnTrack(), position.voice, e.clientX - rect.left, e.clientY - rect.top);
+  const voice = session.position?.voice ?? 0;
+  const hit = hitTest(api.renderer, session.track, voice, e.clientX - rect.left, e.clientY - rect.top);
   if (!hit) return;
-  post({ event: 'tapped', payload: { position: { ...hit, string: hit.string ?? position.string } } });
+  seekToBeat(hit);
+  post({ event: 'tapped', payload: { position: { ...hit, string: hit.string ?? session.position?.string ?? 1 } } });
 });
+
+/** Playback follows a tap, as in Guitar Pro; a loop survives a tap inside it. */
+function seekToBeat(at: { bar: number; voice: number; beat: number }) {
+  const cache = api.tickCache;
+  const beat = api.score?.tracks[session.track].staves[0].bars[at.bar]?.voices[at.voice]?.beats[at.beat];
+  if (!cache || !beat) return;
+  const tick = cache.getMasterBarStart(beat.voice.bar.masterBar) + beat.playbackStart;
+  const range = api.playbackRange;
+  if (range && !rangeAfterTap(range, tick)) {
+    api.playbackRange = null;
+    postRange();
+  }
+  api.tickPosition = tick;
+}
 
 function base64(bytes: Uint8Array): string {
   let binary = '';
@@ -223,15 +217,14 @@ function startSong() {
   api.playbackSpeed = 1;
   api.isLooping = false;
   api.playbackRange = null;
-  history.clear();
-  position = startOf(0);
 }
 
 async function restore(score: alphaTab.model.Score | null): Promise<EditState> {
   if (!score) return editState(false);
-  const track = drawnTrack();
+  carryPlaybackSettings(api.score!, score);
+  const track = session.track;
   await mixer.regenerate(() => api.renderScore(score, [track]));
-  position = clampPosition(score, position);
+  session.restored(score);
   return editState(true);
 }
 
@@ -254,6 +247,8 @@ async function run(request: Request): Promise<unknown> {
       api.load(bytes, []);
       const score = await loaded;
       startSong();
+      session.open(score, 0, fileName(path).replace(/\.[^.]+$/, ''));
+      redrawOverlay();
       return describeOpened(score, fileName(path));
     }
     case 'renderTrack': {
@@ -261,7 +256,7 @@ async function run(request: Request): Promise<unknown> {
       const track = api.score?.tracks[index];
       if (!track) throw new Error(`no track ${index}`);
       api.renderTracks([track]);
-      position = clampPosition(api.score!, { ...position, track: index });
+      session.drawTrack(api.score!, index);
       return {};
     }
     case 'play':
@@ -299,8 +294,7 @@ async function run(request: Request): Promise<unknown> {
     case 'edit': {
       if (!api.score) throw new Error('no song open');
       const { command } = request.payload as EditPayload;
-      const result = runCommand(api.score, position, command, history, settings);
-      position = result.position;
+      const result = session.command(api.score, command);
       if (result.edited) {
         api.render();
         await mixer.regenerate();
@@ -309,15 +303,17 @@ async function run(request: Request): Promise<unknown> {
     }
     case 'undo':
       if (!api.score) throw new Error('no song open');
-      return restore(history.undo(api.score));
+      return restore(await session.history.undo(api.score));
     case 'redo':
       if (!api.score) throw new Error('no song open');
-      return restore(history.redo(api.score));
+      return restore(await session.history.redo(api.score));
     case 'newSong': {
       const options = request.payload as NewSongOptions;
       openCount++;
       const score = await showScore(newSong(options, settings), [0]);
       startSong();
+      session.open(score, 0, options.title);
+      redrawOverlay();
       return describeOpened(score, options.title);
     }
     case 'exportGp': {

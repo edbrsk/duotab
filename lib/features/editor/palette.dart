@@ -35,6 +35,8 @@ class Palette extends StatelessWidget {
       64: l10n.sixtyFourthRest,
     };
     final voice = state.position?.voice ?? 0;
+    // Voices and rests change the song, so they wait for a placed cursor.
+    final placed = state.position != null;
 
     return Material(
       type: MaterialType.transparency,
@@ -62,7 +64,9 @@ class Palette extends StatelessWidget {
                   tooltip: l10n.voiceN(v + 1),
                   label: Text('${v + 1}'),
                   selected: v == voice,
-                  onSelected: () => editor.command(SelectVoice(v)),
+                  onSelected: placed
+                      ? () => editor.command(SelectVoice(v))
+                      : null,
                 ),
             ],
           ),
@@ -88,10 +92,12 @@ class Palette extends StatelessWidget {
                   tooltip: restNames[duration]!,
                   label: _Glyph(glyph),
                   selected: false,
-                  onSelected: () async {
-                    await editor.chooseDuration(duration);
-                    await editor.command(const SetRest());
-                  },
+                  onSelected: placed
+                      ? () async {
+                          await editor.chooseDuration(duration);
+                          await editor.command(const SetRest());
+                        }
+                      : null,
                 ),
             ],
           ),
@@ -147,7 +153,7 @@ class _Chip extends StatelessWidget {
   final String tooltip;
   final Widget label;
   final bool selected;
-  final VoidCallback onSelected;
+  final VoidCallback? onSelected;
 
   const _Chip({
     required this.tooltip,
@@ -165,7 +171,7 @@ class _Chip extends StatelessWidget {
       showCheckmark: false,
       backgroundColor: AppColors.key,
       selectedColor: AppColors.accent,
-      onSelected: (_) => onSelected(),
+      onSelected: onSelected == null ? null : (_) => onSelected!(),
     ),
   );
 }

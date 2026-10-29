@@ -29,7 +29,8 @@ function staffLines(kind: 'TabBarRenderer' | 'ScoreBarRenderer'): Line {
   for (const group of system.staves)
     for (const staff of group.staves) {
       const bar = staff.barRenderers[0];
-      if (bar.constructor.name === kind) return { y: (line) => system.y + staff.y + bar.y + bar.getLineY(line) };
+      if (bar.constructor.name === kind)
+        return { y: (line) => system.y + system.topPadding + staff.y + bar.y + bar.getLineY(line) };
     }
   throw new Error(`no ${kind}`);
 }
@@ -73,4 +74,32 @@ test('the cursor sits on its string at its beat', () => {
 test("an issue covers its bar", () => {
   const bar = renderer.boundsLookup!.findMasterBarByIndex(1)!.visualBounds;
   expect(issueRect(renderer, 1)).toEqual({ x: bar.x, y: bar.y, w: bar.w, h: bar.h });
+});
+
+test('taps land on the drawn string on every line of music', async () => {
+  const settings = new alphaTab.Settings();
+  settings.core.engine = 'svg';
+  settings.core.enableLazyLoading = false;
+  settings.core.includeNoteBounds = true;
+  settings.display.staveProfile = alphaTab.StaveProfile.ScoreTab;
+  const many = score(String.raw`\title "Many"
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+` + Array(16).fill('0.6.4 2.5.4 3.4.4 5.3.4').join(' | '));
+  const wide = new alphaTab.rendering.ScoreRenderer(settings);
+  wide.width = 800;
+  await new Promise<void>((resolve) => {
+    wide.renderFinished.on(() => resolve());
+    wide.renderScore(many, [0]);
+  });
+  // alphaTab's own note bounds, independent of hit_test: the last BeatBounds of a beat is its tab staff.
+  for (const barIndex of [0, 12]) {
+    const beats = many.tracks[0].staves[0].bars[barIndex].voices[0].beats;
+    for (const [beat, string] of [[0, 1], [1, 2], [2, 3], [3, 4]] as const) {
+      const tab = wide.boundsLookup!.findBeats(beats[beat])!.at(-1)!;
+      const head = tab.notes![0].noteHeadBounds;
+      const hit = hitTest(wide, 0, 0, tab.onNotesX, head.y + head.h / 2);
+      expect(hit, `bar ${barIndex} beat ${beat}`).toMatchObject({ bar: barIndex, beat, string });
+    }
+  }
 });

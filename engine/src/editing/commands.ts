@@ -7,15 +7,24 @@ import { clampPosition, staffOf } from './position';
 
 type Score = alphaTab.model.Score;
 
-/** Bar, voice and beat counts: what a cursor move can add to. */
+/** Every beat of the staff: value, rest or empty, and notes. Comparing it before and after tells a real change from a no-op. */
 const shape = (score: Score, at: EditPosition) =>
   staffOf(score, at)
-    .bars.map((bar) => bar.voices.map((voice) => voice.beats.length).join(','))
+    .bars.map((bar) =>
+      bar.voices
+        .map((voice) =>
+          voice.beats
+            .map((b) => `${b.duration}.${b.dots}${b.isEmpty ? 'e' : ''}:${b.notes.map((n) => `${n.string}/${n.fret}`).sort()}`)
+            .join(' '),
+        )
+        .join(','),
+    )
     .join('|');
 
 /**
  * One edit command on the song. A step goes into `history` only when the song
- * changed, and a command that fails leaves no step.
+ * changed, so a no-op never makes a "(DuoTab)" copy, and a command that fails
+ * leaves no step.
  */
 export function runCommand(
   score: Score,
@@ -48,8 +57,7 @@ export function runCommand(
         return move(score, at, command.direction, settings);
     }
   })();
-  const structural = command.op === 'move' || command.op === 'selectVoice';
-  const edited = !structural || shape(score, at) !== shapeBefore;
+  const edited = shape(score, at) !== shapeBefore;
   if (edited) history.push(before);
   return { position, edited };
 }

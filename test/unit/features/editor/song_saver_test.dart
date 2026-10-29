@@ -166,7 +166,88 @@ void main() {
       numerator: 4,
       denominator: 4,
     );
-    await expectLater(saver.createSong(options), throwsA(isA<SongNotCreated>()));
+    await expectLater(
+      saver.createSong(options),
+      throwsA(isA<SongNotCreated>()),
+    );
     expect(doc('Riff.gp').existsSync(), isFalse);
+  });
+
+  test('flush saves a pending edit at once', () async {
+    await openFile('a.gp');
+    saver.schedule();
+    await saver.flush();
+    expect(doc('a (DuoTab).gp').existsSync(), isTrue);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    verify(() => engine.exportGp()).called(1);
+  });
+
+  test('flush does nothing without edits', () async {
+    await openFile('a.gp');
+    await saver.flush();
+    verifyNever(() => engine.exportGp());
+    expect(doc('a (DuoTab).gp').existsSync(), isFalse);
+  });
+
+  test('opening another song cancels a pending save', () async {
+    await openFile('a.gp');
+    saver.schedule();
+    await openFile('b.gp');
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    verifyNever(() => engine.exportGp());
+  });
+
+  test(
+    'a save is dropped when another song opened during the export',
+    () async {
+      await openFile('a.gp');
+      final export = Completer<Uint8List>();
+      when(() => engine.exportGp()).thenAnswer((_) => export.future);
+      saver.schedule();
+      final saving = saver.flush();
+      await pumpEventQueue();
+      await openFile('b.gp');
+      export.complete(Uint8List.fromList([8]));
+      await saving;
+      expect(doc('a (DuoTab).gp').existsSync(), isFalse);
+      expect(doc('b (DuoTab).gp').existsSync(), isFalse);
+    },
+  );
+
+  test('a failed save stays pending and is retried', () async {
+    await openFile('a.gp');
+    when(() => engine.exportGp()).thenThrow(const EngineException('busy'));
+    saver.schedule();
+    await saver.flush();
+    expect(doc('a (DuoTab).gp').existsSync(), isFalse);
+    when(() => engine.exportGp()).thenAnswer((_) async => export);
+    await saver.flush();
+    expect(doc('a (DuoTab).gp').readAsBytesSync(), [1, 2, 3]);
+  });
+
+  test('an owned song is replaced without leaving a temporary file', () async {
+    await openFile('a.gp');
+    await saver.saveNow();
+    export = Uint8List.fromList([6]);
+    await saver.saveNow();
+    expect(doc('a (DuoTab).gp').readAsBytesSync(), [6]);
+    expect(
+      documents.listSync().map((e) => p.basename(e.path)),
+      isNot(contains(endsWith('.tmp'))),
+    );
+  });
+
+  test('creating a song first saves the open one', () async {
+    await openFile('a.gp');
+    saver.schedule();
+    const options = NewSongOptions(
+      title: 'Riff',
+      tuning: [64, 59, 55, 50, 45, 40],
+      tempo: 120,
+      numerator: 4,
+      denominator: 4,
+    );
+    await saver.createSong(options);
+    expect(doc('a (DuoTab).gp').readAsBytesSync(), [1, 2, 3]);
   });
 }

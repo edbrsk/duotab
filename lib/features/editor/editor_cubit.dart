@@ -14,7 +14,8 @@ class EditorState {
   final bool canUndo;
   final bool canRedo;
 
-  /// The note value and dots chosen in the palette, as alphaTab durations.
+  /// The note value and dots of the beat under the cursor, or the ones last
+  /// chosen in the palette, as alphaTab durations.
   final int duration;
   final int dots;
 
@@ -89,6 +90,7 @@ class EditorCubit extends Cubit<EditorState> {
   }
 
   Future<void> _apply(Future<EditState> Function() request) async {
+    final openId = _openId;
     final EditState reply;
     try {
       reply = await request();
@@ -96,14 +98,16 @@ class EditorCubit extends Cubit<EditorState> {
       debugPrint('EditorCubit: $e');
       return;
     }
+    // A reply that arrives after another song opened belongs to the old one.
+    if (openId != _openId || isClosed) return;
     emit(
       EditorState(
         position: reply.position,
         issues: reply.issues,
         canUndo: reply.canUndo,
         canRedo: reply.canRedo,
-        duration: state.duration,
-        dots: state.dots,
+        duration: reply.beatDuration ?? state.duration,
+        dots: reply.beatDots ?? state.dots,
       ),
     );
     if (reply.edited) {

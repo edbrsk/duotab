@@ -113,3 +113,12 @@ test('an appended bar has as many voices as the song uses', () => {
   move(s, at(1, 0), 'right');
   expect(s.tracks[0].staves[0].bars[2].voices).toHaveLength(2);
 });
+
+test('moving right in an unused voice turns its empty beat into a rest', () => {
+  selectVoice(s, at(0, 0), 1);
+  expect(move(s, at(0, 0, 1, 1), 'right')).toEqual(at(0, 1, 1, 1));
+  expect(voice(0, 1).beats.map((b) => [b.isEmpty, b.isRest])).toEqual([
+    [false, true],
+    [false, true],
+  ]);
+});

@@ -13,8 +13,15 @@ class _Engine extends Mock implements EngineBridge {}
 
 const _at = EditPosition(track: 0, bar: 1, voice: 0, beat: 2, string: 3);
 
-EditState _state({bool edited = true, String title = 'Edited'}) => EditState(
+EditState _state({
+  bool edited = true,
+  String title = 'Edited',
+  int duration = 4,
+  int dots = 0,
+}) => EditState(
   position: _at,
+  beatDuration: duration,
+  beatDots: dots,
   issues: const [BarIssue(bar: 1, voice: 0, ticksOff: -480)],
   canUndo: true,
   canRedo: false,
@@ -36,7 +43,13 @@ void main() {
     when(() => engine.events).thenAnswer((_) => events.stream);
     when(() => engine.renderTrack(any())).thenAnswer((_) async {});
     when(() => engine.open(any())).thenAnswer((_) async => drumsAndTwoGuitars);
-    when(() => engine.edit(any())).thenAnswer((_) async => _state());
+    // Like the engine, the reply tells the cursor beat's value after the command.
+    when(() => engine.edit(any())).thenAnswer((invocation) async {
+      final command = invocation.positionalArguments.single as EditCommand;
+      return command is SetDuration
+          ? _state(duration: command.duration, dots: command.dots)
+          : _state();
+    });
     score = ScoreCubit(engine: engine);
     editor = EditorCubit(engine: engine, score: score);
     await score.open('fixture.gp');
@@ -127,5 +140,24 @@ void main() {
         .thenThrow(const EngineException('fret 30 out of range'));
     await editor.command(const SetFret(30));
     expect(editor.state.position, isNull);
+  });
+
+  test("the note value follows the cursor beat's", () async {
+    when(() => engine.edit(any()))
+        .thenAnswer((_) async => _state(edited: false, duration: 1, dots: 1));
+    await editor.command(const Place(_at));
+    expect(editor.state.duration, 1);
+    expect(editor.state.dots, 1);
+  });
+
+  test('a reply for a song no longer open is ignored', () async {
+    final reply = Completer<EditState>();
+    when(() => engine.edit(any())).thenAnswer((_) => reply.future);
+    final command = editor.command(const SetFret(5));
+    await score.open('fixture.gp');
+    reply.complete(_state(title: 'Old song'));
+    await command;
+    expect(editor.state.position, isNull);
+    expect(score.state.song!.title, isNot('Old song'));
   });
 }

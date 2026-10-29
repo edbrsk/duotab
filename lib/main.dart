@@ -43,9 +43,10 @@ Future<void> main() async {
           child: AppShell(
             pageFor: (tab) => switch (tab) {
               AppTab.library => LibraryPage(
-                onOpen: (path) {
+                onOpen: (path) async {
                   getIt<NavigationCubit>().select(AppTab.editor);
-                  getIt<ScoreCubit>().open(path);
+                  await getIt<SongSaver>().flush();
+                  await getIt<ScoreCubit>().open(path);
                 },
                 onNewSong: (options) async {
                   getIt<NavigationCubit>().select(AppTab.editor);

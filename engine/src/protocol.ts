@@ -99,12 +99,15 @@ export type EditPayload = { command: EditCommand };
 
 /** The reply to `edit`, `undo` and `redo`; `edited` is true when the song changed. */
 export type EditState = {
-  position: EditPosition;
+  /** Null until the owner taps a string. */
+  position: EditPosition | null;
   issues: BarIssue[];
   canUndo: boolean;
   canRedo: boolean;
   song: SongSummary;
   edited: boolean;
+  /** The note value of the beat under the cursor, which the palette shows. */
+  beat: { duration: number; dots: number } | null;
 };
 
 /** Posted for a tap on the drawn track. */

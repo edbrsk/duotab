@@ -242,7 +242,8 @@ class BarIssue {
 }
 
 class EditState {
-  final EditPosition position;
+  /// Null until the owner taps a string.
+  final EditPosition? position;
   final List<BarIssue> issues;
   final bool canUndo;
   final bool canRedo;
@@ -251,6 +252,10 @@ class EditState {
   /// True when the song changed, so it needs saving.
   final bool edited;
 
+  /// The note value of the beat under the cursor, which the palette shows.
+  final int? beatDuration;
+  final int? beatDots;
+
   const EditState({
     required this.position,
     required this.issues,
@@ -258,19 +263,29 @@ class EditState {
     required this.canRedo,
     required this.song,
     required this.edited,
+    this.beatDuration,
+    this.beatDots,
   });
 
-  factory EditState.fromJson(Map<String, dynamic> json) => EditState(
-    position: EditPosition.fromJson(json['position'] as Map<String, dynamic>),
-    issues: [
-      for (final i in json['issues'] as List<dynamic>)
-        BarIssue.fromJson(i as Map<String, dynamic>),
-    ],
-    canUndo: json['canUndo'] as bool,
-    canRedo: json['canRedo'] as bool,
-    song: SongSummary.fromJson(json['song'] as Map<String, dynamic>),
-    edited: json['edited'] as bool,
-  );
+  factory EditState.fromJson(Map<String, dynamic> json) {
+    final beat = json['beat'] as Map<String, dynamic>?;
+    return EditState(
+      position: switch (json['position']) {
+        final Map<String, dynamic> p => EditPosition.fromJson(p),
+        _ => null,
+      },
+      issues: [
+        for (final i in json['issues'] as List<dynamic>)
+          BarIssue.fromJson(i as Map<String, dynamic>),
+      ],
+      canUndo: json['canUndo'] as bool,
+      canRedo: json['canRedo'] as bool,
+      song: SongSummary.fromJson(json['song'] as Map<String, dynamic>),
+      edited: json['edited'] as bool,
+      beatDuration: beat?['duration'] as int?,
+      beatDots: beat?['dots'] as int?,
+    );
+  }
 }
 
 @immutable

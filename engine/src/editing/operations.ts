@@ -44,6 +44,7 @@ export function setDuration(
   const beat = beatOf(score, at);
   beat.duration = duration;
   beat.dots = dots;
+  beat.isEmpty = false;
   score.finish(settings);
   return at;
 }
@@ -81,6 +82,10 @@ export function move(score: Score, at: EditPosition, direction: Direction, setti
     case 'right': {
       const voice = voiceOf(score, at);
       if (at.beat < voice.beats.length - 1) return { ...at, beat: at.beat + 1 };
+      // An unused voice's empty beat is not drawn; leaving it would put a
+      // hidden beat in front of the new one, which Guitar Pro shows as a rest.
+      const current = beatOf(score, at);
+      if (current.isEmpty) current.isEmpty = false;
       if (voiceTicks(voice) < barOf(score, at).masterBar.calculateDuration()) {
         const rest = new Beat();
         rest.duration = beatOf(score, at).duration;

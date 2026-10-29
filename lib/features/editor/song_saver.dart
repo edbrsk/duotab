@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../../engine/engine_bridge.dart';
@@ -29,6 +30,9 @@ class SongSaver {
   final Duration delay;
   Timer? _timer;
   Future<void> _saves = Future.value();
+  var _dirty = false;
+  late int _openId;
+  late final StreamSubscription<ScoreState> _songs;
 
   SongSaver({
     required this.documents,
@@ -37,13 +41,28 @@ class SongSaver {
     required this.owned,
     required this.onSaved,
     this.delay = const Duration(seconds: 1),
-  });
+  }) {
+    _openId = score.state.openId;
+    // Another song, or the same file reopened after an engine restart: the
+    // engine no longer holds the edits a pending save was for.
+    _songs = score.stream.listen((state) {
+      if (state.openId == _openId) return;
+      _openId = state.openId;
+      _timer?.cancel();
+      _dirty = false;
+    });
+  }
 
   /// Saves once edits pause for [delay].
   void schedule() {
+    _dirty = true;
     _timer?.cancel();
-    _timer = Timer(delay, () => unawaited(saveNow()));
+    _timer = Timer(delay, () => unawaited(flush()));
   }
+
+  /// Saves a pending edit now: before another song opens, or when the app is
+  /// hidden.
+  Future<void> flush() => _dirty ? saveNow() : Future.value();
 
   /// One at a time, so two saves cannot both make a copy.
   Future<void> saveNow() {
@@ -55,26 +74,45 @@ class SongSaver {
 
   Future<void> _save() async {
     final path = score.state.path;
+    final openId = score.state.openId;
     if (path == null) return;
-    final bytes = await engine.exportGp();
-    if (await owned.owns(path)) {
-      await File(p.join(documents.path, path)).writeAsBytes(bytes, flush: true);
-    } else {
-      final folder = Directory(p.join(documents.path, p.dirname(path)));
-      final copy = uniqueDestination(
-        folder,
-        '${p.basenameWithoutExtension(path)} (DuoTab).gp',
-      );
-      await copy.writeAsBytes(bytes, flush: true);
-      final copyPath = p.relative(copy.path, from: documents.path);
-      await owned.add(copyPath);
-      score.moveTo(copyPath);
+    _dirty = false;
+    try {
+      final bytes = await engine.exportGp();
+      // The export may be of a song opened since; it must not land in this one.
+      if (score.state.openId != openId) return;
+      if (await owned.owns(path)) {
+        await _write(File(p.join(documents.path, path)), bytes);
+      } else {
+        final folder = Directory(p.join(documents.path, p.dirname(path)));
+        final copy = uniqueDestination(
+          folder,
+          '${p.basenameWithoutExtension(path)} (DuoTab).gp',
+        );
+        await _write(copy, bytes);
+        final copyPath = p.relative(copy.path, from: documents.path);
+        await owned.add(copyPath);
+        score.moveTo(copyPath);
+      }
+      await onSaved();
+    } on Object catch (e) {
+      // Kept pending: the next edit or flush tries again.
+      debugPrint('SongSaver: could not save $path: $e');
+      if (score.state.openId == openId) _dirty = true;
     }
-    await onSaved();
+  }
+
+  /// A temporary file renamed over the target, so a save cut short never
+  /// leaves a truncated song.
+  static Future<void> _write(File file, List<int> bytes) async {
+    final temp = File('${file.path}.tmp');
+    await temp.writeAsBytes(bytes, flush: true);
+    await temp.rename(file.path);
   }
 
   /// Creates a song in the app, saved as `<title>.gp`.
   Future<String> createSong(NewSongOptions options) async {
+    await flush();
     final name = options.title.replaceAll(RegExp(r'[/\\:]'), '-').trim();
     final file = uniqueDestination(
       documents,
@@ -90,5 +128,10 @@ class SongSaver {
     await owned.add(path);
     await saveNow();
     return path;
+  }
+
+  void dispose() {
+    _timer?.cancel();
+    unawaited(_songs.cancel());
   }
 }

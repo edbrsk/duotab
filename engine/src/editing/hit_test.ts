@@ -7,7 +7,7 @@ export type Hit = { track: number; bar: number; voice: number; beat: number; str
 // locate tab lines; boundsLookup has no string positions.
 type BarRenderer = { bar: alphaTab.model.Bar; y: number; drawnLineCount: number; getLineY(line: number): number };
 type RenderStaff = { staffId: string; y: number; barRenderers: BarRenderer[] };
-type StaffSystem = { y: number; staves: { staves: RenderStaff[] }[] };
+type StaffSystem = { y: number; topPadding: number; staves: { staves: RenderStaff[] }[] };
 
 type Renderer = { boundsLookup: alphaTab.rendering.BoundsLookup | null };
 
@@ -44,7 +44,9 @@ function tabStaff(layout: unknown, bar: alphaTab.model.Bar) {
         if (staff.staffId !== 'tab') continue;
         const renderer = staff.barRenderers.find((r) => r.bar === bar);
         if (!renderer) continue;
-        const lineY = (line: number) => system.y + staff.y + renderer.y + renderer.getLineY(line);
+        // alphaTab paints a system and builds its bounds offset by its topPadding.
+        const lineY = (line: number) =>
+          system.y + system.topPadding + staff.y + renderer.y + renderer.getLineY(line);
         return { lineY, lines: renderer.drawnLineCount, spacing: lineY(1) - lineY(0) };
       }
     }

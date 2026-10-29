@@ -98,6 +98,15 @@ void main() {
     verify(() => editor.command(const SelectVoice(1))).called(1);
   });
 
+  testWidgets('voices and rests need a cursor', (tester) async {
+    await pump(tester, const EditorState());
+    await tester.tap(find.byTooltip('Voice 2'));
+    await tester.tap(find.byTooltip('Eighth rest'));
+    await tester.pump();
+    verifyNever(() => editor.command(any()));
+    verifyNever(() => editor.chooseDuration(any()));
+  });
+
   testWidgets('undo and redo follow the history', (tester) async {
     await pump(tester, const EditorState(canRedo: true));
     final undo = tester.widget<IconButton>(

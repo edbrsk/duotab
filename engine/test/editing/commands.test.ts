@@ -47,3 +47,19 @@ test('a failed edit leaves no history step', () => {
   expect(() => runCommand(score(fourQuarters), start, { op: 'setFret', fret: 30 }, history)).toThrow();
   expect(history.canUndo).toBe(false);
 });
+
+test('a command that changes nothing is not an edit', () => {
+  const s = score(fourQuarters);
+  const history = new History();
+  const rest = { ...start, beat: 3, string: 2 };
+  for (const [at, command] of [
+    [rest, { op: 'deleteNote' }],
+    [rest, { op: 'setRest' }],
+    [start, { op: 'setFret', fret: 0 }],
+    [start, { op: 'setDuration', duration: 4, dots: 0 }],
+    [start, { op: 'selectVoice', voice: 0 }],
+  ] as const) {
+    expect(runCommand(s, at, command, history).edited, command.op).toBe(false);
+  }
+  expect(history.canUndo).toBe(false);
+});

@@ -85,8 +85,8 @@ void main() {
       },
     });
     final s = await state;
-    expect(s.position.bar, 2);
-    expect(s.position.string, 3);
+    expect(s.position!.bar, 2);
+    expect(s.position!.string, 3);
     expect(s.issues.single.ticksOff, -480);
     expect(s.canUndo, isTrue);
     expect(s.edited, isTrue);
