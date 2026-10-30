@@ -2,8 +2,11 @@ import 'dart:io';
 
 import 'package:duoscore/engine/engine_bridge.dart';
 import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/editor/song_saver.dart';
 import 'package:duoscore/features/export/export_channel.dart';
 import 'package:duoscore/features/export/song_exporter.dart';
+import 'package:duoscore/features/playback/practice_settings.dart';
+import 'package:duoscore/features/playback/practice_store.dart';
 import 'package:duoscore/features/score/score_cubit.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +18,10 @@ class _Engine extends Mock implements EngineBridge {}
 class _Score extends Mock implements ScoreCubit {}
 
 class _Channel extends Mock implements ExportChannel {}
+
+class _Saver extends Mock implements SongSaver {}
+
+class _Practice extends Mock implements PracticeStore {}
 
 void main() {
   late Directory temporary;
@@ -30,10 +37,23 @@ void main() {
     ),
   );
 
-  setUpAll(() => registerFallbackValue(Rect.zero));
+  late Directory documents;
+  late _Saver saver;
+  late _Practice practice;
+
+  setUpAll(() {
+    registerFallbackValue(Rect.zero);
+    registerFallbackValue(<StaffView>[]);
+  });
 
   setUp(() async {
     temporary = await Directory.systemTemp.createTemp('exports');
+    documents = await Directory.systemTemp.createTemp('documents');
+    saver = _Saver();
+    practice = _Practice();
+    when(() => saver.flush()).thenAnswer((_) async {});
+    when(() => saver.idle).thenAnswer((_) async {});
+    when(() => practice.load(any())).thenAnswer((_) async => null);
     engine = _Engine();
     score = _Score();
     channel = _Channel();
@@ -44,10 +64,16 @@ void main() {
       score: score,
       channel: channel,
       temporary: temporary,
+      documents: documents,
+      saver: saver,
+      practice: practice,
     );
   });
 
-  tearDown(() => temporary.delete(recursive: true));
+  tearDown(() async {
+    await temporary.delete(recursive: true);
+    await documents.delete(recursive: true);
+  });
 
   String exportPath(String name) => p.join(temporary.path, 'exports', name);
 
@@ -128,5 +154,65 @@ void main() {
       throwsA(isA<PlatformException>()),
     );
     verifyNever(() => channel.share(any(), any()));
+  });
+
+  group('a song from the library', () {
+    void stubPdf() {
+      when(
+        () => channel.makePdf(
+          pages: any(named: 'pages'),
+          baseUrl: any(named: 'baseUrl'),
+          path: any(named: 'path'),
+        ),
+      ).thenAnswer((_) async {});
+    }
+
+    test('a .gp song is shared as the file itself, under its name', () async {
+      File(p.join(documents.path, 'a (DuoScore).gp')).writeAsBytesSync([7, 8]);
+      await exporter.shareFile('a (DuoScore).gp', 'a', ExportFormat.gp, anchor);
+      expect(await File(exportPath('a.gp')).readAsBytes(), [7, 8]);
+      verify(() => channel.share([exportPath('a.gp')], anchor)).called(1);
+      verifyNever(() => engine.exportFileGp(any()));
+    });
+
+    test('another format is converted to .gp by the engine', () async {
+      when(() => engine.exportFileGp('b.gp5'))
+          .thenAnswer((_) async => Uint8List.fromList([4]));
+      await exporter.shareFile('b.gp5', 'b', ExportFormat.gp, anchor);
+      expect(await File(exportPath('b.gp')).readAsBytes(), [4]);
+    });
+
+    test('a PDF uses the staves chosen for the song', () async {
+      when(() => practice.load('a.gp')).thenAnswer(
+        (_) async =>
+            const PracticeSettings(tracks: {1: TrackPractice(showTab: false)}),
+      );
+      when(() => engine.exportFilePdf(any(), any())).thenAnswer(
+        (_) async => const PdfPages(pages: ['<p>1</p>'], baseUrl: 'http://h/'),
+      );
+      stubPdf();
+      await exporter.shareFile('a.gp', 'a', ExportFormat.pdf, anchor);
+      final staves =
+          verify(() => engine.exportFilePdf('a.gp', captureAny()))
+                  .captured
+                  .single
+              as List<StaffView>;
+      expect(staves.single.index, 1);
+      expect(staves.single.tab, isFalse);
+      expect(staves.single.notation, isTrue);
+      verify(
+        () => channel.makePdf(
+          pages: ['<p>1</p>'],
+          baseUrl: 'http://h/',
+          path: exportPath('a.pdf'),
+        ),
+      ).called(1);
+    });
+
+    test('pending edits are saved before the export', () async {
+      File(p.join(documents.path, 'a.gp')).writeAsBytesSync([1]);
+      await exporter.shareFile('a.gp', 'a', ExportFormat.gp, anchor);
+      verifyInOrder([() => saver.flush(), () => channel.share(any(), any())]);
+    });
   });
 }

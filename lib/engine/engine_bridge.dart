@@ -129,6 +129,27 @@ class EngineBridge {
         as Map<String, dynamic>,
   );
 
+  /// A song file, not the open one, as `.gp`.
+  Future<Uint8List> exportFileGp(String documentsRelativePath) async =>
+      base64Decode(
+        ((await _request('exportFileGp', {'path': documentsRelativePath}))!
+                as Map<String, dynamic>)['base64']
+            as String,
+      );
+
+  /// A song file's first guitar track as pages, with [staves] the owner chose
+  /// for its tracks.
+  Future<PdfPages> exportFilePdf(
+    String documentsRelativePath,
+    List<StaffView> staves,
+  ) async => PdfPages.fromJson(
+    (await _request('exportFilePdf', {
+          'path': documentsRelativePath,
+          'staves': [for (final s in staves) s.toJson()],
+        }, timeout: const Duration(minutes: 1)))!
+        as Map<String, dynamic>,
+  );
+
   Future<void> setTracks(List<TrackMix> tracks) => _request('setTracks', {
     'tracks': [for (final t in tracks) t.toJson()],
   });

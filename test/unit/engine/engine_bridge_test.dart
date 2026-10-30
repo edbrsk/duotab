@@ -173,6 +173,41 @@ void main() {
     expect(reply.baseUrl, 'http://127.0.0.1:1/');
   });
 
+  test('exportFileGp and exportFilePdf send the file and staves', () async {
+    await engineReady();
+    final bytes = bridge.exportFileGp('a.gp5');
+    await pumpEventQueue();
+    expect(transport.lastRequest['type'], 'exportFileGp');
+    expect(transport.lastRequest['payload'], {'path': 'a.gp5'});
+    transport.deliver({
+      'id': transport.lastRequest['id'],
+      'ok': true,
+      'payload': {'base64': 'AQID'},
+    });
+    expect(await bytes, [1, 2, 3]);
+
+    final pages = bridge.exportFilePdf('a.gp', const [
+      StaffView(index: 1, notation: true, tab: false),
+    ]);
+    await pumpEventQueue();
+    expect(transport.lastRequest['type'], 'exportFilePdf');
+    expect(transport.lastRequest['payload'], {
+      'path': 'a.gp',
+      'staves': [
+        {'index': 1, 'notation': true, 'tab': false},
+      ],
+    });
+    transport.deliver({
+      'id': transport.lastRequest['id'],
+      'ok': true,
+      'payload': {
+        'pages': ['<p>1</p>'],
+        'baseUrl': 'http://h/',
+      },
+    });
+    expect((await pages).pages, ['<p>1</p>']);
+  });
+
   test('exportPdf waits up to a minute', () {
     fakeAsync((async) {
       // Built inside the fake zone, so its streams run on fake time.

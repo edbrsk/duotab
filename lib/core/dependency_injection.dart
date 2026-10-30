@@ -103,6 +103,9 @@ Future<void> setupDependencies() async {
         score: score,
         channel: const ExportChannel(),
         temporary: temporary,
+        documents: documents,
+        saver: saver,
+        practice: practice,
       ),
     )
     ..registerSingleton<SongFiles>(
