@@ -93,6 +93,9 @@ void main() {
     hinge.dispose();
     await hingeEvents.close();
     await events.close();
+    // Queued behind any save the cubit started without awaiting, so the
+    // folder outlives it.
+    await practice.remove('');
     await dir.delete(recursive: true);
   });
 
