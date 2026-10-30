@@ -89,7 +89,6 @@ void main() {
     await pumpButton(tester);
     await choose(tester, 'Guitar Pro file (.gp)');
     await tester.pumpAndSettle();
-    expect(find.textContaining("Couldn't export"), findsOneWidget);
-    expect(find.textContaining('no room'), findsOneWidget);
+    expect(find.text("Couldn't export"), findsOneWidget);
   });
 }

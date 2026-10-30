@@ -2,7 +2,8 @@ import * as alphaTab from '@coderline/alphatab';
 import { expect, test } from 'vitest';
 
 import { fileGp, filePdf } from '../src/file_export';
-import { gpBytes, longRiff, pitchOnlyXml, twoGuitarsAndDrums } from './fixtures';
+import { moveTrack } from '../src/editing/tracks';
+import { gpBytes, guitarsAndDrums, longRiff, pitchOnlyXml, score, twoGuitarsAndDrums } from './fixtures';
 
 const fontUrl = 'http://127.0.0.1:1/alphatab/font/Bravura.woff2';
 const xml = new TextEncoder().encode(pitchOnlyXml);
@@ -30,4 +31,16 @@ test('a file without a guitar track has no PDF', () => {
 \articulation defaults
 42.4`);
   expect(() => filePdf(drums, [], alphaTab.StaveProfile.ScoreTab, fontUrl)).toThrow('no guitar track');
+});
+
+test('a library PDF prints the first guitar track after drums', () => {
+  // alphaTex reads no tuning after a drum track, so the drums move to the front.
+  const song = score(guitarsAndDrums);
+  moveTrack(song, 1, 2);
+  moveTrack(song, 0, 2);
+  expect(song.tracks.map((t) => t.name)).toEqual(['Drums', 'Guitar B', 'Guitar A']);
+  const bytes = new alphaTab.exporter.Gp7Exporter().export(song, new alphaTab.Settings());
+  const both = filePdf(bytes, [], alphaTab.StaveProfile.ScoreTab, fontUrl);
+  const notation = filePdf(bytes, [{ index: 1, notation: true, tab: false }], alphaTab.StaveProfile.ScoreTab, fontUrl);
+  expect(notation.join('').length).toBeLessThan(both.join('').length);
 });

@@ -289,6 +289,7 @@ final class SongExport: NSObject, WKNavigationDelegate {
   private weak var registrar: FlutterPluginRegistrar?
   private var rendering = false
   private var loading: CheckedContinuation<Void, Error>?
+  private var navigation: WKNavigation?
   private var loads = 0
 
   func register(with registrar: FlutterPluginRegistrar) {
@@ -345,11 +346,16 @@ final class SongExport: NSObject, WKNavigationDelegate {
       try await load(page, baseURL: baseURL, in: webView)
       // The music glyphs are text in Bravura; a page captured before the font
       // arrives shows boxes.
-      _ = try await webView.callAsyncJavaScript(
-        "await document.fonts.load(\"34px alphaTab\"); await document.fonts.ready; return true;",
+      // fonts.load resolves empty, not with an error, when the font is missing.
+      let fontReady = try await webView.callAsyncJavaScript(
+        "await document.fonts.load(\"34px alphaTab\"); await document.fonts.ready; return document.fonts.check(\"34px alphaTab\");",
         contentWorld: .page
       )
-      let data = try await webView.pdf(configuration: WKPDFConfiguration())
+      guard fontReady as? Bool == true else { throw ExportError.fontMissing }
+      // Exactly one A4 page; a part taller than the page is clipped, not stretched.
+      let configuration = WKPDFConfiguration()
+      configuration.rect = Self.page
+      let data = try await webView.pdf(configuration: configuration)
       guard let rendered = PDFDocument(data: data)?.page(at: 0) else { throw ExportError.emptyPage }
       document.insert(rendered, at: document.pageCount)
     }
@@ -363,7 +369,7 @@ final class SongExport: NSObject, WKNavigationDelegate {
     let current = loads
     try await withCheckedThrowingContinuation { continuation in
       loading = continuation
-      webView.loadHTMLString(page, baseURL: baseURL)
+      navigation = webView.loadHTMLString(page, baseURL: baseURL)
       Task { [weak self] in
         try? await Task.sleep(for: Self.pageLoadLimit)
         if self?.loads == current { self?.finishLoading(ExportError.pageTimedOut) }
@@ -371,24 +377,28 @@ final class SongExport: NSObject, WKNavigationDelegate {
     }
   }
 
-  private func finishLoading(_ error: Error?) {
+  /// Only the load this export started finishes it; a report for another
+  /// navigation (a reload, an earlier page) is ignored.
+  private func finishLoading(_ error: Error?, for navigation: WKNavigation? = nil) {
     guard let loading else { return }
+    if let navigation, navigation !== self.navigation { return }
     self.loading = nil
+    self.navigation = nil
     if let error { loading.resume(throwing: error) } else { loading.resume() }
   }
 
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-    finishLoading(nil)
+    finishLoading(nil, for: navigation)
   }
 
   func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-    finishLoading(error)
+    finishLoading(error, for: navigation)
   }
 
   func webView(
     _ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error
   ) {
-    finishLoading(error)
+    finishLoading(error, for: navigation)
   }
 
   func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
@@ -433,7 +443,7 @@ final class SongExport: NSObject, WKNavigationDelegate {
 }
 
 enum ExportError: LocalizedError {
-  case emptyPage, notWritten, pageTimedOut, webViewEnded
+  case emptyPage, notWritten, pageTimedOut, webViewEnded, fontMissing
 
   var errorDescription: String? {
     switch self {
@@ -441,6 +451,7 @@ enum ExportError: LocalizedError {
     case .notWritten: "the PDF could not be written"
     case .pageTimedOut: "a page took too long to load"
     case .webViewEnded: "the page renderer stopped"
+    case .fontMissing: "the music font didn't load"
     }
   }
 }

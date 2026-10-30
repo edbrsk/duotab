@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 
@@ -30,17 +31,49 @@ class SongExporter {
     required this.documents,
     required this.saver,
     required this.practice,
+    this.now = DateTime.now,
   });
 
+  final DateTime Function() now;
+
+  static const _maxNameBytes = 200;
+
+  /// The share sheet takes this long at most to finish with a file.
+  static const _keepExports = Duration(minutes: 10);
+
+  /// A name the Files app shows: no path characters, no leading dot (a
+  /// hidden file), and short enough for the file system.
   static String fileName(String title, String extension) {
-    final name = title.replaceAll(RegExp(r'[/\\:]'), '-').trim();
+    var name = title
+        .replaceAll(RegExp(r'[/\\:]'), '-')
+        .trim()
+        .replaceFirst(RegExp(r'^\.+'), '')
+        .trim();
+    while (utf8.encode(name).length > _maxNameBytes) {
+      name = String.fromCharCodes(name.runes.toList()..removeLast())
+          .trimRight();
+    }
     return '${name.isEmpty ? 'Untitled' : name}.$extension';
   }
 
-  /// The share sheet has finished with earlier files by now.
+  /// Each export has its own folder, so two at once never meet. Folders
+  /// older than the share sheet could still be using go.
   Future<File> _exportFile(String name, ExportFormat format) async {
-    final folder = Directory(p.join(temporary.path, 'exports'));
-    if (folder.existsSync()) await folder.delete(recursive: true);
+    final exports = Directory(p.join(temporary.path, 'exports'));
+    final time = now();
+    if (exports.existsSync()) {
+      for (final old in exports.listSync().whereType<Directory>()) {
+        final made = int.tryParse(p.basename(old.path));
+        if (made == null ||
+            time.difference(DateTime.fromMicrosecondsSinceEpoch(made)) >
+                _keepExports) {
+          await old.delete(recursive: true);
+        }
+      }
+    }
+    final folder = Directory(
+      p.join(exports.path, '${time.microsecondsSinceEpoch}'),
+    );
     await folder.create(recursive: true);
     return File(p.join(folder.path, fileName(name, format.name)));
   }

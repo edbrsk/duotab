@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:duoscore/engine/engine_bridge.dart';
@@ -39,6 +40,7 @@ void main() {
 
   late Directory documents;
   late _Saver saver;
+  var now = DateTime(2026, 10, 30, 12);
   late _Practice practice;
 
   setUpAll(() {
@@ -67,6 +69,7 @@ void main() {
       documents: documents,
       saver: saver,
       practice: practice,
+      now: () => now,
     );
   });
 
@@ -75,7 +78,8 @@ void main() {
     await documents.delete(recursive: true);
   });
 
-  String exportPath(String name) => p.join(temporary.path, 'exports', name);
+  String exportPath(String name) =>
+      p.join(temporary.path, 'exports', '${now.microsecondsSinceEpoch}', name);
 
   test(
     "a .gp export writes the engine's bytes as <title>.gp and shares it",
@@ -123,19 +127,32 @@ void main() {
     expect(SongExporter.fileName('  ', 'pdf'), 'Untitled.pdf');
   });
 
-  test('each export clears the previous exports', () async {
+  test('each export keeps its own folder', () async {
     when(() => engine.exportGp()).thenAnswer((_) async => Uint8List(1));
     await exporter.share(ExportFormat.gp, anchor);
+    final first = exportPath('Riff.gp');
+    now = now.add(const Duration(minutes: 5));
     titled('Other');
-
     await exporter.share(ExportFormat.gp, anchor);
+    expect(File(first).existsSync(), isTrue);
+    expect(File(exportPath('Other.gp')).existsSync(), isTrue);
 
+    now = now.add(const Duration(minutes: 11));
+    await exporter.share(ExportFormat.gp, anchor);
+    expect(File(first).existsSync(), isFalse);
     expect(
-      Directory(p.join(temporary.path, 'exports'))
-          .listSync()
-          .map((f) => p.basename(f.path)),
-      ['Other.gp'],
+      Directory(p.join(temporary.path, 'exports')).listSync(),
+      hasLength(1),
     );
+  });
+
+  test('file names stay under 200 bytes and never start with a dot', () {
+    final long = SongExporter.fileName('é' * 150, 'gp');
+    expect(long.endsWith('.gp'), isTrue);
+    expect(utf8.encode(long).length, lessThanOrEqualTo(200 + '.gp'.length));
+    expect(long.startsWith('é'), isTrue);
+    expect(SongExporter.fileName('.hidden', 'pdf'), 'hidden.pdf');
+    expect(SongExporter.fileName('...', 'pdf'), 'Untitled.pdf');
   });
 
   test('a failed PDF shares nothing', () async {

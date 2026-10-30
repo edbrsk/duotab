@@ -629,11 +629,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportPdf => 'PDF';
 
   @override
-  String exportFailed(String error) {
-    return 'Couldn\'t export: $error';
-  }
-
-  @override
   String get save => 'Save';
 
   @override
@@ -681,6 +676,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trackName => 'Track name';
+
+  @override
+  String get exportFailedPdf => 'Couldn\'t make the PDF';
+
+  @override
+  String get exportFailedBusy => 'Another export is open';
+
+  @override
+  String get exportFailedNoGuitar => 'This song has no guitar track to print';
+
+  @override
+  String get exportFailedMissing => 'The song file is missing';
+
+  @override
+  String get exportFailedOther => 'Couldn\'t export';
 
   @override
   String startupFailed(String error) {

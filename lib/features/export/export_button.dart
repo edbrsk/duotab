@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/design/design_tokens.dart';
 import '../../l10n/app_localizations.dart';
+import 'export_failure.dart';
 import 'song_exporter.dart';
 
 /// Exports the open song as `.gp` or PDF; one export at a time.
@@ -33,7 +34,9 @@ class _ExportButtonState extends State<ExportButton> {
     try {
       await widget.onExport(format, anchor);
     } on Object catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.exportFailed('$e'))));
+      messenger.showSnackBar(
+        SnackBar(content: Text(exportFailureMessage(l10n, e))),
+      );
     } finally {
       if (mounted) setState(() => _running = false);
     }

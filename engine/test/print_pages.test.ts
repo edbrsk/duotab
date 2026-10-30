@@ -4,6 +4,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { expect, test } from 'vitest';
 
 import { paginate, printPages, renderParts } from '../src/print_pages';
+import { showNotationAndTab } from '../src/staves';
 import { longRiff, score } from './fixtures';
 
 const fontUrl = 'http://127.0.0.1:1234/alphatab/font/Bravura.woff2';
@@ -56,6 +57,8 @@ test('titles are escaped', () => {
 test.skipIf(!process.env.DUOSCORE_PRIVATE_SAMPLE)('the private sample prints every system', () => {
   const bytes = new Uint8Array(readFileSync(process.env.DUOSCORE_PRIVATE_SAMPLE!));
   const song = alphaTab.importer.ScoreLoader.loadScoreFromBytes(bytes, new alphaTab.Settings());
+  // As the app lays it out: notation over tab, whatever the file saved.
+  showNotationAndTab(song);
   const started = performance.now();
   const pages = printPages(song, 0, profile, fontUrl);
   expect(performance.now() - started).toBeLessThan(20_000);

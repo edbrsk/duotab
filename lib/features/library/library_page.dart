@@ -5,6 +5,7 @@ import '../../core/design/design_tokens.dart';
 import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
 import '../editor/new_song_dialog.dart';
+import '../export/export_failure.dart';
 import '../export/song_exporter.dart';
 import 'library_cubit.dart';
 import 'song_files.dart';
@@ -288,7 +289,9 @@ class _SongTileState extends State<_SongTile> {
     try {
       await widget.onExport(format, anchor);
     } on Object catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(l10n.exportFailed('$e'))));
+      messenger.showSnackBar(
+        SnackBar(content: Text(exportFailureMessage(l10n, e))),
+      );
     } finally {
       if (mounted) setState(() => _exporting = false);
     }

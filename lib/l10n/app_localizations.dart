@@ -1222,12 +1222,6 @@ abstract class AppLocalizations {
   /// **'PDF'**
   String get exportPdf;
 
-  /// No description provided for @exportFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t export: {error}'**
-  String exportFailed(String error);
-
   /// No description provided for @save.
   ///
   /// In en, this message translates to:
@@ -1317,6 +1311,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Track name'**
   String get trackName;
+
+  /// No description provided for @exportFailedPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t make the PDF'**
+  String get exportFailedPdf;
+
+  /// No description provided for @exportFailedBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Another export is open'**
+  String get exportFailedBusy;
+
+  /// No description provided for @exportFailedNoGuitar.
+  ///
+  /// In en, this message translates to:
+  /// **'This song has no guitar track to print'**
+  String get exportFailedNoGuitar;
+
+  /// No description provided for @exportFailedMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The song file is missing'**
+  String get exportFailedMissing;
+
+  /// No description provided for @exportFailedOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export'**
+  String get exportFailedOther;
 
   /// No description provided for @startupFailed.
   ///

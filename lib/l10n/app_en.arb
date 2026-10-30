@@ -303,14 +303,6 @@
   "export": "Export",
   "exportGp": "Guitar Pro file (.gp)",
   "exportPdf": "PDF",
-  "exportFailed": "Couldn't export: {error}",
-  "@exportFailed": {
-    "placeholders": {
-      "error": {
-        "type": "String"
-      }
-    }
-  },
   "save": "Save",
   "strings": "Strings",
   "custom": "Custom",
@@ -333,6 +325,11 @@
   "deleteEditedBody": "The original file and your edited copy are removed from this iPhone and can't be recovered.",
   "edited": "Edited",
   "trackName": "Track name",
+  "exportFailedPdf": "Couldn't make the PDF",
+  "exportFailedBusy": "Another export is open",
+  "exportFailedNoGuitar": "This song has no guitar track to print",
+  "exportFailedMissing": "The song file is missing",
+  "exportFailedOther": "Couldn't export",
   "startupFailed": "DuoScore couldn't start: {error}",
   "@startupFailed": {
     "placeholders": {
