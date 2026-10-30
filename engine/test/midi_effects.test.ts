@@ -140,3 +140,10 @@ test('a note after a dive starts at its own pitch', () => {
   const curve = pitchCurve(s, 2 * BAR);
   for (const p of curve.slice(BAR / 120, (BAR + BAR / 2) / 120)) expect(p).toBeCloseTo(0, 1);
 });
+
+test('tied tremolo-picked notes strike once on every eighth', () => {
+  const strikes = midiOf(dive(true))
+    .filter((e) => e instanceof alphaTab.midi.NoteOnEvent)
+    .map((e) => e.tick);
+  expect(strikes).toEqual(Array.from({ length: 32 }, (_, i) => i * 480));
+});

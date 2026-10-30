@@ -27,9 +27,9 @@ const wheels = new WeakMap<object, Map<number, number>>();
 
 /**
  * Makes `generator` play a tremolo-picked note's bend, whammy, slide and
- * vibrato, which alphaTab skips, and play a whammy from its first point once:
- * alphaTab sets that point both on the channel and on the note, and the synth
- * adds the two. A note without a whammy starts with the channel unbent, which
+ * vibrato, which alphaTab skips, and pick a tied tremolo note once. It plays
+ * a whammy from its first point once: alphaTab sets that point both on the
+ * channel and on the note, and the synth adds the two. A note without a whammy starts with the channel unbent, which
  * alphaTab leaves where the last whammy ended.
  */
 export function playEffectsUnderTremolo(generator: typeof alphaTab.midi.MidiFileGenerator): void {
@@ -70,8 +70,11 @@ export function playEffectsUnderTremolo(generator: typeof alphaTab.midi.MidiFile
       strikes.push(tick);
       addNote.call(this, track, tick, ...rest);
     };
+    // alphaTab picks a tied note through the whole tie, and a tied note that is
+    // tremolo-picked too picks itself again, so the strikes would stack.
+    const picked = note.tieDestination?.beat.isTremolo ? { ...duration, untilTieOrSlideEnd: duration.noteOnly } : duration;
     try {
-      generateTremoloPicking.call(this, note, start, duration, key, velocity, channel);
+      generateTremoloPicking.call(this, note, start, picked, key, velocity, channel);
     } finally {
       handler.addNote = addNote;
     }
