@@ -244,6 +244,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get graceNote => 'Grace note';
 
   @override
+  String get bar => 'Bar';
+
+  @override
+  String get bars => 'Bars';
+
+  @override
+  String get clef => 'Clef';
+
+  @override
+  String get trebleClef => 'Treble clef';
+
+  @override
+  String get bassClef => 'Bass clef';
+
+  @override
+  String get keySignature => 'Key signature';
+
+  @override
+  String get major => 'Major';
+
+  @override
+  String get minor => 'Minor';
+
+  @override
+  String get moreBeats => 'More beats';
+
+  @override
+  String get fewerBeats => 'Fewer beats';
+
+  @override
+  String beatValue(int value) {
+    return 'Beat value $value';
+  }
+
+  @override
+  String get tempoChange => 'Tempo marking';
+
+  @override
+  String get setTempo => 'Set';
+
+  @override
+  String get removeTempoChange => 'Remove tempo change';
+
+  @override
+  String get insertBar => 'Insert bar';
+
+  @override
+  String get deleteBar => 'Delete bar';
+
+  @override
+  String get copyBars => 'Copy bars';
+
+  @override
+  String get pasteBars => 'Paste bars';
+
+  @override
   String get accidentals => 'Accidentals';
 
   @override

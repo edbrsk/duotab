@@ -56,4 +56,7 @@ abstract final class Smufl {
   static const pickDown = '';
   static const pickUp = '';
   static const tremolo = '';
+
+  static const gClef = '\u{E050}';
+  static const fClef = '\u{E062}';
 }

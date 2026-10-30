@@ -538,6 +538,114 @@ abstract class AppLocalizations {
   /// **'Grace note'**
   String get graceNote;
 
+  /// No description provided for @bar.
+  ///
+  /// In en, this message translates to:
+  /// **'Bar'**
+  String get bar;
+
+  /// No description provided for @bars.
+  ///
+  /// In en, this message translates to:
+  /// **'Bars'**
+  String get bars;
+
+  /// No description provided for @clef.
+  ///
+  /// In en, this message translates to:
+  /// **'Clef'**
+  String get clef;
+
+  /// No description provided for @trebleClef.
+  ///
+  /// In en, this message translates to:
+  /// **'Treble clef'**
+  String get trebleClef;
+
+  /// No description provided for @bassClef.
+  ///
+  /// In en, this message translates to:
+  /// **'Bass clef'**
+  String get bassClef;
+
+  /// No description provided for @keySignature.
+  ///
+  /// In en, this message translates to:
+  /// **'Key signature'**
+  String get keySignature;
+
+  /// No description provided for @major.
+  ///
+  /// In en, this message translates to:
+  /// **'Major'**
+  String get major;
+
+  /// No description provided for @minor.
+  ///
+  /// In en, this message translates to:
+  /// **'Minor'**
+  String get minor;
+
+  /// No description provided for @moreBeats.
+  ///
+  /// In en, this message translates to:
+  /// **'More beats'**
+  String get moreBeats;
+
+  /// No description provided for @fewerBeats.
+  ///
+  /// In en, this message translates to:
+  /// **'Fewer beats'**
+  String get fewerBeats;
+
+  /// No description provided for @beatValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Beat value {value}'**
+  String beatValue(int value);
+
+  /// No description provided for @tempoChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Tempo marking'**
+  String get tempoChange;
+
+  /// No description provided for @setTempo.
+  ///
+  /// In en, this message translates to:
+  /// **'Set'**
+  String get setTempo;
+
+  /// No description provided for @removeTempoChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove tempo change'**
+  String get removeTempoChange;
+
+  /// No description provided for @insertBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Insert bar'**
+  String get insertBar;
+
+  /// No description provided for @deleteBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete bar'**
+  String get deleteBar;
+
+  /// No description provided for @copyBars.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy bars'**
+  String get copyBars;
+
+  /// No description provided for @pasteBars.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste bars'**
+  String get pasteBars;
+
   /// No description provided for @accidentals.
   ///
   /// In en, this message translates to:

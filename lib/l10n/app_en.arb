@@ -116,6 +116,31 @@
   "sextuplet": "Sextuplet",
   "tie": "Tie",
   "graceNote": "Grace note",
+  "bar": "Bar",
+  "bars": "Bars",
+  "clef": "Clef",
+  "trebleClef": "Treble clef",
+  "bassClef": "Bass clef",
+  "keySignature": "Key signature",
+  "major": "Major",
+  "minor": "Minor",
+  "moreBeats": "More beats",
+  "fewerBeats": "Fewer beats",
+  "beatValue": "Beat value {value}",
+  "@beatValue": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      }
+    }
+  },
+  "tempoChange": "Tempo marking",
+  "setTempo": "Set",
+  "removeTempoChange": "Remove tempo change",
+  "insertBar": "Insert bar",
+  "deleteBar": "Delete bar",
+  "copyBars": "Copy bars",
+  "pasteBars": "Paste bars",
   "accidentals": "Accidentals",
   "doubleFlat": "Double flat",
   "flat": "Flat",

@@ -29,6 +29,15 @@ void main() {
     when(() => editor.setTuplet(any())).thenAnswer((_) async {});
     when(() => editor.addGrace()).thenAnswer((_) async {});
     when(() => editor.setBend(any(), any())).thenAnswer((_) async {});
+    when(() => editor.setTimeSignature(any(), any())).thenAnswer((_) async {});
+    when(() => editor.setTempo(any())).thenAnswer((_) async {});
+    when(() => editor.setKeySignature(any(), minor: any(named: 'minor')))
+        .thenAnswer((_) async {});
+    when(() => editor.setClef(any())).thenAnswer((_) async {});
+    when(() => editor.insertBar()).thenAnswer((_) async {});
+    when(() => editor.deleteBar()).thenAnswer((_) async {});
+    when(() => editor.copyBars()).thenAnswer((_) async {});
+    when(() => editor.pasteBars()).thenAnswer((_) async {});
   });
 
   Future<void> pump(WidgetTester tester, EditorState state) async {
@@ -249,5 +258,69 @@ void main() {
     );
     expect(text.data, '\u{E262}');
     expect(text.style!.fontFamily, 'Bravura');
+  });
+
+  testWidgets('shows the bar groups', (tester) async {
+    await pump(tester, const EditorState());
+    expect(find.text('BAR'), findsOneWidget);
+    expect(find.text('BARS'), findsOneWidget);
+  });
+
+  testWidgets("bar chips show the bar's values", (tester) async {
+    await pump(
+      tester,
+      const EditorState(
+        position: _at,
+        barNumerator: 6,
+        barDenominator: 8,
+        barKey: -3,
+        barClef: 'bass',
+        barTempo: 90,
+      ),
+    );
+    expect(find.text('6/8'), findsOneWidget);
+    expect(find.text('E♭'), findsOneWidget);
+    expect(find.text('♩ = 90'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byTooltip('Clef'),
+        matching: find.text('\u{E062}'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('bar chips need a cursor', (tester) async {
+    await pump(tester, const EditorState(canPaste: true));
+    for (final tooltip in [
+      'Clef',
+      'Time signature',
+      'Key signature',
+      'Tempo marking',
+      'Insert bar',
+      'Delete bar',
+      'Copy bars',
+      'Paste bars',
+    ]) {
+      expect(chip(tester, tooltip).onSelected, isNull, reason: tooltip);
+    }
+  });
+
+  testWidgets('paste needs a clipboard', (tester) async {
+    await pump(tester, const EditorState(position: _at));
+    expect(chip(tester, 'Paste bars').onSelected, isNull);
+    expect(chip(tester, 'Copy bars').onSelected, isNotNull);
+  });
+
+  testWidgets('the bars chips send their commands', (tester) async {
+    await pump(tester, const EditorState(position: _at, canPaste: true));
+    await tester.tap(find.byTooltip('Insert bar'));
+    await tester.tap(find.byTooltip('Delete bar'));
+    await tester.tap(find.byTooltip('Copy bars'));
+    await tester.tap(find.byTooltip('Paste bars'));
+    verify(() => editor.insertBar()).called(1);
+    verify(() => editor.deleteBar()).called(1);
+    verify(() => editor.copyBars()).called(1);
+    verify(() => editor.pasteBars()).called(1);
   });
 }
