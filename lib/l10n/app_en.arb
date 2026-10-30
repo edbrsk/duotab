@@ -275,6 +275,9 @@
     }
   },
   "retuneHint": "Every note keeps its pitch; frets move.",
+  "retuneHintFrets": "Every note keeps its string and fret, and sounds in the new tuning.",
+  "keepSound": "Keep the sound",
+  "keepFrets": "Keep the frets",
   "retuneConfirm": "Retune",
   "retuneReport": "{moved, plural, =0{No notes moved} =1{1 note moved to another string} other{{moved} notes moved to another string}}, {unplayable, plural, =0{all can be played} =1{1 can't be played} other{{unplayable} can't be played}}",
   "@retuneReport": {

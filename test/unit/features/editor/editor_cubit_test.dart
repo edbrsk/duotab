@@ -372,10 +372,11 @@ void main() {
       edited: true,
       retune: retune,
     );
-    RetuneReport report(int octave) => RetuneReport(
+    RetuneReport report(int octave, {bool keepFrets = false}) => RetuneReport(
       track: 1,
       tuning: e,
       octave: octave,
+      keepFrets: keepFrets,
       moved: 2,
       unplayable: 1,
     );
@@ -384,7 +385,9 @@ void main() {
       when(() => engine.edit(any())).thenAnswer((invocation) async {
         final command = invocation.positionalArguments.single as EditCommand;
         return command is RetuneTrack
-            ? reply(retune: report(command.octave))
+            ? reply(
+                retune: report(command.octave, keepFrets: command.keepFrets),
+              )
             : reply();
       });
       when(() => engine.undo()).thenAnswer((_) async => reply());
@@ -415,6 +418,16 @@ void main() {
       verify(() => engine.edit(const RetuneTrack(1, e, 2))).called(1);
       expect(editor.state.retune!.octave, 2);
 
+      clearInteractions(engine);
+      await editor.retuneOctave(1);
+      verifyNever(() => engine.undo());
+      verifyNever(() => engine.edit(any()));
+    });
+
+    test('keeping frets sends it, and takes no octave rerun', () async {
+      await editor.retune(1, e, keepFrets: true);
+      verify(() => engine.edit(const RetuneTrack(1, e, 0, keepFrets: true)))
+          .called(1);
       clearInteractions(engine);
       await editor.retuneOctave(1);
       verifyNever(() => engine.undo());

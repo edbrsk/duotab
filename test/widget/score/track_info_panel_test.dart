@@ -187,16 +187,21 @@ void main() {
     verify(() => editor.retune(1, [64, 59, 55, 50, 45, 40])).called(1);
   });
 
-  EditorState reported({int moved = 12, int unplayable = 3, int octave = 0}) =>
-      EditorState(
-        retune: RetuneReport(
-          track: 1,
-          tuning: const [64, 59, 55, 50, 45, 40],
-          octave: octave,
-          moved: moved,
-          unplayable: unplayable,
-        ),
-      );
+  EditorState reported({
+    int moved = 12,
+    int unplayable = 3,
+    int octave = 0,
+    bool keepFrets = false,
+  }) => EditorState(
+    retune: RetuneReport(
+      track: 1,
+      tuning: const [64, 59, 55, 50, 45, 40],
+      octave: octave,
+      keepFrets: keepFrets,
+      moved: moved,
+      unplayable: unplayable,
+    ),
+  );
 
   testWidgets('the report shows the counts with Undo and the octave buttons', (
     tester,
@@ -229,6 +234,15 @@ void main() {
     );
     expect(up.onPressed, isNull);
     expect(down.onPressed, isNotNull);
+  });
+
+  testWidgets('a retune keeping frets offers Undo but no octave', (
+    tester,
+  ) async {
+    when(() => editor.state).thenReturn(reported(keepFrets: true));
+    await pump(tester, drawn);
+    expect(find.text('Undo'), findsOneWidget);
+    expect(find.text('Octave up'), findsNothing);
   });
 
   testWidgets('no report shows when both counts are zero', (tester) async {

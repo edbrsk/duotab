@@ -206,8 +206,12 @@ class EditorCubit extends Cubit<EditorState> {
 
   Future<void> setTitle(String title) => command(SetTitle(title));
 
-  Future<void> retune(int track, List<int> tuning, {int octave = 0}) =>
-      command(RetuneTrack(track, tuning, octave));
+  Future<void> retune(
+    int track,
+    List<int> tuning, {
+    int octave = 0,
+    bool keepFrets = false,
+  }) => command(RetuneTrack(track, tuning, octave, keepFrets: keepFrets));
 
   var _rerunning = false;
 
@@ -216,7 +220,7 @@ class EditorCubit extends Cubit<EditorState> {
   /// a second undo would take back the edit before the retune.
   Future<void> retuneOctave(int delta) async {
     final report = state.retune;
-    if (report == null || _rerunning) return;
+    if (report == null || report.keepFrets || _rerunning) return;
     final octave = report.octave + delta;
     if (octave < minOctave || octave > maxOctave) return;
     _rerunning = true;

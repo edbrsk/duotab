@@ -1156,6 +1156,24 @@ abstract class AppLocalizations {
   /// **'Every note keeps its pitch; frets move.'**
   String get retuneHint;
 
+  /// No description provided for @retuneHintFrets.
+  ///
+  /// In en, this message translates to:
+  /// **'Every note keeps its string and fret, and sounds in the new tuning.'**
+  String get retuneHintFrets;
+
+  /// No description provided for @keepSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the sound'**
+  String get keepSound;
+
+  /// No description provided for @keepFrets.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the frets'**
+  String get keepFrets;
+
   /// No description provided for @retuneConfirm.
   ///
   /// In en, this message translates to:

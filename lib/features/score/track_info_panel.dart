@@ -78,13 +78,17 @@ class TrackInfoPanel extends StatelessWidget {
                   style: TextButton.styleFrom(padding: EdgeInsets.zero),
                   onPressed: () async {
                     final editor = context.read<EditorCubit>();
-                    final chosen = await showDialog<List<int>>(
+                    final chosen = await showDialog<RetuneChoice>(
                       context: context,
                       builder: (_) =>
                           RetuneDialog(trackName: track.name, tuning: tuning),
                     );
                     if (chosen != null) {
-                      await editor.retune(track.index, chosen);
+                      await editor.retune(
+                        track.index,
+                        chosen.tuning,
+                        keepFrets: chosen.keepFrets,
+                      );
                     }
                   },
                   child: Text(l10n.retune),
@@ -179,18 +183,21 @@ class _RetuneReportCard extends StatelessWidget {
             Wrap(
               children: [
                 TextButton(onPressed: editor.undo, child: Text(l10n.undo)),
-                TextButton(
-                  onPressed: report.octave < maxOctave
-                      ? () => editor.retuneOctave(1)
-                      : null,
-                  child: Text(l10n.octaveUp),
-                ),
-                TextButton(
-                  onPressed: report.octave > minOctave
-                      ? () => editor.retuneOctave(-1)
-                      : null,
-                  child: Text(l10n.octaveDown),
-                ),
+                // Octaves only shift a retune that keeps the sound.
+                if (!report.keepFrets) ...[
+                  TextButton(
+                    onPressed: report.octave < maxOctave
+                        ? () => editor.retuneOctave(1)
+                        : null,
+                    child: Text(l10n.octaveUp),
+                  ),
+                  TextButton(
+                    onPressed: report.octave > minOctave
+                        ? () => editor.retuneOctave(-1)
+                        : null,
+                    child: Text(l10n.octaveDown),
+                  ),
+                ],
               ],
             ),
           ],

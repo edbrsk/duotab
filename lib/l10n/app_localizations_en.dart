@@ -570,6 +570,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get retuneHint => 'Every note keeps its pitch; frets move.';
 
   @override
+  String get retuneHintFrets =>
+      'Every note keeps its string and fret, and sounds in the new tuning.';
+
+  @override
+  String get keepSound => 'Keep the sound';
+
+  @override
+  String get keepFrets => 'Keep the frets';
+
+  @override
   String get retuneConfirm => 'Retune';
 
   @override

@@ -102,7 +102,17 @@ void main() {
       'track': 1,
       'tuning': [64, 59, 55, 50, 45, 40],
       'octave': -1,
+      'keep': 'pitch',
     });
+    expect(
+      const RetuneTrack(
+        1,
+        [64, 59, 55, 50, 45, 40],
+        0,
+        keepFrets: true,
+      ).toJson()['keep'],
+      'frets',
+    );
   });
 
   test('the edit state reads the retune report', () {
@@ -117,6 +127,7 @@ void main() {
         'track': 0,
         'tuning': [64, 59, 55, 50, 45, 40],
         'octave': 1,
+        'keep': 'frets',
         'moved': 12,
         'unplayable': 3,
       },
@@ -124,6 +135,7 @@ void main() {
     expect(state.retune!.track, 0);
     expect(state.retune!.tuning, [64, 59, 55, 50, 45, 40]);
     expect(state.retune!.octave, 1);
+    expect(state.retune!.keepFrets, isTrue);
     expect(state.retune!.moved, 12);
     expect(state.retune!.unplayable, 3);
     expect(state.song.unplayableNotes, 3);

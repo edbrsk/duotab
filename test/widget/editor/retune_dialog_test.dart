@@ -4,19 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  Future<Future<List<int>?>> open(WidgetTester tester, List<int> tuning) async {
+  Future<Future<RetuneChoice?>> open(
+    WidgetTester tester,
+    List<int> tuning,
+  ) async {
     tester.view
       ..physicalSize = const Size(951, 1400)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    late Future<List<int>?> result;
+    late Future<RetuneChoice?> result;
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
           builder: (context) => TextButton(
-            onPressed: () => result = showDialog<List<int>>(
+            onPressed: () => result = showDialog<RetuneChoice>(
               context: context,
               builder: (_) => RetuneDialog(trackName: 'Lead', tuning: tuning),
             ),
@@ -59,7 +62,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Retune'));
     await tester.pumpAndSettle();
-    expect(await result, [64, 59, 55, 50, 45, 40]);
+    expect((await result)!.tuning, [64, 59, 55, 50, 45, 40]);
+    expect((await result)!.keepFrets, isFalse);
 
     result = await open(tester, const [62, 57, 53, 48, 43, 38]);
     await tester.tap(find.text('Cancel'));
@@ -74,6 +78,26 @@ void main() {
     expect(find.text('Standard E'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, 'Retune'));
     await tester.pumpAndSettle();
-    expect(await result, [64, 59, 55, 50, 45, 40]);
+    expect((await result)!.tuning, [64, 59, 55, 50, 45, 40]);
+  });
+
+  testWidgets('Keep the frets changes the hint and is popped', (tester) async {
+    final result = await open(tester, const [63, 58, 54, 49, 44, 39]);
+    await tester.tap(find.text('Keep the frets'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Every note keeps its string and fret, and sounds in the new tuning.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('tuning')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Standard E').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Retune'));
+    await tester.pumpAndSettle();
+    expect((await result)!.keepFrets, isTrue);
+    expect((await result)!.tuning, [64, 59, 55, 50, 45, 40]);
   });
 }

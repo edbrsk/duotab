@@ -423,6 +423,9 @@ class RetuneReport {
   /// MIDI note numbers of the open strings, top string first.
   final List<int> tuning;
   final int octave;
+
+  /// The retune kept each note's string and fret, not its sound.
+  final bool keepFrets;
   final int moved;
   final int unplayable;
 
@@ -432,12 +435,14 @@ class RetuneReport {
     required this.octave,
     required this.moved,
     required this.unplayable,
+    this.keepFrets = false,
   });
 
   factory RetuneReport.fromJson(Map<String, dynamic> json) => RetuneReport(
     track: json['track'] as int,
     tuning: [for (final n in json['tuning'] as List<dynamic>) n as int],
     octave: json['octave'] as int,
+    keepFrets: json['keep'] == 'frets',
     moved: json['moved'] as int,
     unplayable: json['unplayable'] as int,
   );
@@ -746,13 +751,20 @@ class RenameTrack extends EditCommand {
   };
 }
 
-/// Keeps every pitch; [octave], −2 to 2, shifts them all.
+/// Keeps every note's sound, [octave] (−2 to 2) shifting them all; with
+/// [keepFrets], keeps every string and fret instead, at octave 0.
 class RetuneTrack extends EditCommand {
   final int track;
   final List<int> tuning;
   final int octave;
+  final bool keepFrets;
 
-  const RetuneTrack(this.track, this.tuning, this.octave);
+  const RetuneTrack(
+    this.track,
+    this.tuning,
+    this.octave, {
+    this.keepFrets = false,
+  });
 
   @override
   Map<String, Object> toJson() => {
@@ -760,6 +772,7 @@ class RetuneTrack extends EditCommand {
     'track': track,
     'tuning': tuning,
     'octave': octave,
+    'keep': keepFrets ? 'frets' : 'pitch',
   };
 }
 

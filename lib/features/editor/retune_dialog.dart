@@ -5,7 +5,10 @@ import '../../l10n/app_localizations.dart';
 import 'tuning_fields.dart';
 import 'tuning_presets.dart';
 
-/// Picks a track's new tuning; pops it, or null when cancelled.
+typedef RetuneChoice = ({List<int> tuning, bool keepFrets});
+
+/// Picks a track's new tuning and what the retune keeps; pops the choice, or
+/// null when cancelled.
 class RetuneDialog extends StatefulWidget {
   final String trackName;
 
@@ -28,6 +31,7 @@ class _RetuneDialogState extends State<RetuneDialog> {
   late var _tuning = TuningFields.fits(widget.tuning)
       ? [...widget.tuning]
       : [...tuningPresets(6).first.tuning];
+  var _keepFrets = false;
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +49,20 @@ class _RetuneDialogState extends State<RetuneDialog> {
                 initial: widget.tuning,
                 onChanged: (t) => setState(() => _tuning = t),
               ),
+              SegmentedButton<bool>(
+                segments: [
+                  ButtonSegment(value: false, label: Text(l10n.keepSound)),
+                  ButtonSegment(value: true, label: Text(l10n.keepFrets)),
+                ],
+                selected: {_keepFrets},
+                onSelectionChanged: (s) =>
+                    setState(() => _keepFrets = s.single),
+              ),
               Padding(
                 padding: const EdgeInsets.only(top: Spacing.xs),
-                child: Text(l10n.retuneHint),
+                child: Text(
+                  _keepFrets ? l10n.retuneHintFrets : l10n.retuneHint,
+                ),
               ),
             ],
           ),
@@ -59,7 +74,9 @@ class _RetuneDialogState extends State<RetuneDialog> {
           child: Text(l10n.cancel),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(context).pop(_tuning),
+          onPressed: () =>
+              Navigator.of(context)
+                  .pop<RetuneChoice>((tuning: _tuning, keepFrets: _keepFrets)),
           child: Text(l10n.retuneConfirm),
         ),
       ],

@@ -132,7 +132,7 @@ Chosen by the [engine spike](../spikes/2026-10-29-engine-spike.md): on the owner
 
 ### Retuning
 
-Retuning applies to one guitar track, keeps every note's pitch and moves the frets.
+Retuning applies to one guitar track, keeps every note's pitch and moves the frets. The Retune dialog also offers **Keep the frets**: every note keeps its string and fret and sounds in the new tuning; only notes on a removed string move, to the nearest string by pitch, and the octave buttons are not offered.
 
 1. Each note on string *s* moves by the semitone difference between the old and new tuning of *s*: `newFret = fret + oldPitch(s) − newPitch(s)`. Standard D → Standard E lowers every fret by 2.
 2. A note whose `newFret` is below 0 or above the track's highest fret (24 by default) moves to another string that no voice uses at that moment, if one can play it. Notes joined by a hammer-on, pull-off or slide move together; when the group cannot stay on one string, the technique is removed.
