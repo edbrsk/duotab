@@ -45,6 +45,11 @@ export const twoTracksThreeBars = String.raw`\title "Bars"
 \track "B" \tuning E4 B3 G3 D3 A2 E2
 \ts 4 4 0.6.4 2.6.4 3.6.4 5.6.4 | r.1 | r.1`;
 
+export const sixBars = String.raw`\title "Form"
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+0.6.1 | 1.6.1 | 2.6.1 | 3.6.1 | 4.6.1 | 5.6.1`;
+
 export function score(alphaTex: string): alphaTab.model.Score {
   const importer = new alphaTab.importer.AlphaTexImporter();
   importer.initFromString(alphaTex, new alphaTab.Settings());

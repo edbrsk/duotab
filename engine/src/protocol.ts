@@ -141,6 +141,27 @@ export type BarProperties = {
   tempoChange: boolean;
 };
 
+export type DirectionId =
+  | 'segno'
+  | 'coda'
+  | 'fine'
+  | 'daCapo'
+  | 'daCapoAlFine'
+  | 'daCapoAlCoda'
+  | 'dalSegno'
+  | 'dalSegnoAlFine'
+  | 'dalSegnoAlCoda'
+  | 'toCoda';
+
+export type Structure = {
+  repeatStart: boolean;
+  /** How many times the repeat plays; 0 when the bar ends no repeat. */
+  repeatCount: number;
+  /** Ascending, 1–8. */
+  endings: number[];
+  directions: DirectionId[];
+};
+
 export type EditCommand =
   | { op: 'setFret'; fret: number }
   | { op: 'deleteNote' }
