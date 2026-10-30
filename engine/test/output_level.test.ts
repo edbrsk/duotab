@@ -30,6 +30,10 @@ test('the level recovers after a loud passage', () => {
   l.process(frames(50, 0.9));
   const quiet = frames(1000, 0.1);
   l.process(quiet);
+  // The last loud frame left the gain at 0.95 / 1.8, and the first quiet one
+  // releases it one step.
+  const held = 0.95 / 1.8;
+  expect(quiet[0]).toBeCloseTo(0.2 * (held + (1 - held) * (1 - Math.exp(-1 / 100))), 5);
   expect(quiet[quiet.length - 1]).toBeCloseTo(0.2, 3);
   for (let i = 1; i < quiet.length; i++) expect(quiet[i]).toBeGreaterThanOrEqual(quiet[i - 1]);
 });
