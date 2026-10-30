@@ -21,8 +21,26 @@ await build({
   external: ['@coderline/alphatab'],
 });
 
+// The synth worker runs DuoScore's entry, which imports alphaTab's core as alphaTab's own
+// entry does: module workers don't see the page's import map.
+await build({
+  entryPoints: [join(here, 'src', 'worker', 'entry.ts')],
+  outfile: join(out, 'alphatab', 'alphaTab.worker.mjs'),
+  bundle: true,
+  format: 'esm',
+  target: 'es2022',
+  plugins: [
+    {
+      name: 'alphatab-core',
+      setup(b) {
+        b.onResolve({ filter: /^@coderline\/alphatab$/ }, () => ({ path: './alphaTab.core.mjs', external: true }));
+      },
+    },
+  ],
+});
+
 cpSync(join(here, 'index.html'), join(out, 'index.html'));
-for (const name of ['alphaTab.mjs', 'alphaTab.core.mjs', 'alphaTab.worker.mjs', 'alphaTab.worklet.mjs', 'font']) {
+for (const name of ['alphaTab.mjs', 'alphaTab.core.mjs', 'alphaTab.worklet.mjs', 'font']) {
   cpSync(join(dist, name), join(out, 'alphatab', name), { recursive: true });
 }
 cpSync(join(here, 'node_modules', '@coderline', 'alphatab', 'LICENSE'), join(out, 'alphatab', 'LICENSE'));
