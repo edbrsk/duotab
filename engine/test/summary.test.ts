@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { expect, test } from 'vitest';
 
-import { summarize, summarizeScore } from '../src/summary';
+import { describeOpened, summarize, summarizeScore } from '../src/summary';
 import { gpBytes, pitchOnlyXml, score, twoGuitarsAndDrums } from './fixtures';
 
 test('summarizes a generated song with two guitars and drums', () => {
@@ -48,4 +48,20 @@ test('a pitch-only guitar part summarises with its fingered tuning', () => {
   expect(s.tracks[0].stringCount).toBe(6);
   expect(s.tracks[0].tuning).toEqual([64, 59, 55, 50, 45, 40]);
   expect(s.unplayableNotes).toBe(0);
+});
+
+test("open reports the file's levels", () => {
+  const s = score(String.raw`\title "Levels"
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+0.6.1`);
+  s.tracks[0].playbackInfo.volume = 12;
+  const opened = describeOpened(s, 'Levels.gp', 0, { tracks: [{ volume: 0.68, pan: 0 }], master: 0.61 });
+  expect(opened.tracks[0].volumeDb).toBeCloseTo(-6, 6);
+  expect(opened.tracks[0].pan).toBeCloseTo(-1, 6);
+  expect(opened.masterDb).toBeCloseTo(-6, 6);
+  const plain = describeOpened(s, 'Levels.gp');
+  expect(plain.tracks[0].volumeDb).toBeCloseTo(0, 6);
+  expect(plain.tracks[0].pan).toBe(0);
+  expect(plain.masterDb).toBe(0);
 });

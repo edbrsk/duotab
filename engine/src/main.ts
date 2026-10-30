@@ -33,6 +33,7 @@ import type {
 } from './protocol';
 import { type HighlightApi, keepRangeHighlighted } from './range_highlight';
 import { setStaves, showNotationAndTab } from './staves';
+import { readGpMixer } from './gp_mixer';
 import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
 import { LongPressSelection } from './touch_selection';
@@ -284,6 +285,7 @@ async function run(request: Request): Promise<unknown> {
     case 'open': {
       const { path } = request.payload as PathPayload;
       const bytes = await fetchBytes(path);
+      const fileMixer = await readGpMixer(bytes).catch(() => null);
       const loaded = opens.wait({ fromFile: true });
       openCount++;
       api.load(bytes, []);
@@ -291,7 +293,7 @@ async function run(request: Request): Promise<unknown> {
       startSong();
       session.open(score, 0, fileName(path).replace(/\.[^.]+$/, ''), openedMarks);
       redrawOverlay();
-      return describeOpened(score, fileName(path), drawnUnplayable(score, openedMarks));
+      return describeOpened(score, fileName(path), drawnUnplayable(score, openedMarks), fileMixer);
     }
     case 'renderTrack': {
       const { index } = request.payload as RenderTrackPayload;

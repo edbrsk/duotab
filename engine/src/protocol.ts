@@ -58,6 +58,10 @@ export type TrackSummary = {
   midiProgram: number;
   /** 0–16. */
   volume: number;
+  /** The file's level; null is −∞. */
+  volumeDb: number | null;
+  /** −1 full left … 1 full right. */
+  pan: number;
   /** The primary MIDI channel, which tells the track apart when tracks move. */
   channel: number;
   /** Per bar; filled by `open`, empty from `summarize`. */
@@ -76,6 +80,7 @@ export type SongSummary = {
   bars: BarInfo[];
   /** Notes that automatic fingering on `open` could not place; 0 elsewhere. */
   unplayableNotes: number;
+  masterDb: number;
 };
 
 /** alphaTab numbers strings from the lowest: string 1 is the lowest-pitched. */
