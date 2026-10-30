@@ -36,7 +36,7 @@ final class VerticalBarEdgeStreamHandler: NSObject, @preconcurrency FlutterStrea
     let handler = VerticalBarEdgeStreamHandler()
     handler.registrar = registrar
     FlutterEventChannel(
-      name: "me.withedgar.duotab/vertical_bar_edge",
+      name: "dev.edbrsk.duoscore/vertical_bar_edge",
       binaryMessenger: registrar.messenger()
     ).setStreamHandler(handler)
   }
@@ -88,7 +88,7 @@ final class HingeStatusStreamHandler: NSObject, @preconcurrency FlutterStreamHan
     let handler = HingeStatusStreamHandler()
     handler.registrar = registrar
     FlutterEventChannel(
-      name: "me.withedgar.duotab/hinge_status",
+      name: "dev.edbrsk.duoscore/hinge_status",
       binaryMessenger: registrar.messenger()
     ).setStreamHandler(handler)
   }
@@ -129,7 +129,7 @@ final class HingeStatusStreamHandler: NSObject, @preconcurrency FlutterStreamHan
   }
 }
 
-/// Streams files opened in DuoTab from other apps to Dart, copying them into
+/// Streams files opened in DuoScore from other apps to Dart, copying them into
 /// a staging folder first when they live outside Documents. Files that arrive
 /// before Dart listens (a cold launch from Files) wait in `pending`.
 @MainActor
@@ -141,7 +141,7 @@ final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamH
 
   func register(with registrar: FlutterPluginRegistrar) {
     FlutterEventChannel(
-      name: "me.withedgar.duotab/incoming_files",
+      name: "dev.edbrsk.duoscore/incoming_files",
       binaryMessenger: registrar.messenger()
     ).setStreamHandler(self)
   }
@@ -196,7 +196,7 @@ final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamH
       try fileManager.copyItem(at: url, to: destination)
       return message(original: original.path, staged: destination.path)
     } catch {
-      NSLog("DuoTab: could not stage \(url.lastPathComponent): \(error)")
+      NSLog("DuoScore: could not stage \(url.lastPathComponent): \(error)")
       return nil
     }
   }

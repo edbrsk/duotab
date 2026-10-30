@@ -1,8 +1,8 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/editor/editor_cubit.dart';
-import 'package:duotab/features/editor/palette.dart';
-import 'package:duotab/l10n/app_localizations.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/editor/editor_cubit.dart';
+import 'package:duoscore/features/editor/palette.dart';
+import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';

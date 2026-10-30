@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 enum HingeStatus { unknown, closed, partiallyOpen, fullyOpen, unavailable }
 
 class HingeStatusProvider extends ChangeNotifier {
-  static const _channel = EventChannel('me.withedgar.duotab/hinge_status');
+  static const _channel = EventChannel('dev.edbrsk.duoscore/hinge_status');
 
   StreamSubscription<dynamic>? _subscription;
   HingeStatus _status = HingeStatus.unknown;

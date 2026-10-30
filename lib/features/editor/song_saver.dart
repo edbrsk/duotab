@@ -20,7 +20,7 @@ class SongNotCreated implements Exception {
 }
 
 /// Saves the open song as `.gp`. An opened file is never written: the first
-/// save goes to a "(DuoTab)" copy beside it, and later saves to that copy.
+/// save goes to a "(DuoScore)" copy beside it, and later saves to that copy.
 class SongSaver {
   final Directory documents;
   final EngineBridge engine;
@@ -90,7 +90,7 @@ class SongSaver {
         final folder = Directory(p.join(documents.path, p.dirname(path)));
         final copy = uniqueDestination(
           folder,
-          '${p.basenameWithoutExtension(path)} (DuoTab).gp',
+          '${p.basenameWithoutExtension(path)} (DuoScore).gp',
         );
         await _write(copy, bytes);
         final copyPath = p.relative(copy.path, from: documents.path);

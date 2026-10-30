@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:duotab/core/storage/json_file.dart';
-import 'package:duotab/engine/engine_bridge.dart';
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/editor/owned_files.dart';
-import 'package:duotab/features/editor/song_saver.dart';
-import 'package:duotab/features/score/score_cubit.dart';
+import 'package:duoscore/core/storage/json_file.dart';
+import 'package:duoscore/engine/engine_bridge.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/editor/owned_files.dart';
+import 'package:duoscore/features/editor/song_saver.dart';
+import 'package:duoscore/features/score/score_cubit.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -81,9 +81,9 @@ void main() {
   test('the first edit of an opened file writes a copy beside it', () async {
     await openFile('a.gp');
     await saver.saveNow();
-    expect(doc('a (DuoTab).gp').readAsBytesSync(), [1, 2, 3]);
+    expect(doc('a (DuoScore).gp').readAsBytesSync(), [1, 2, 3]);
     expect(doc('a.gp').readAsBytesSync(), [9]);
-    expect(score.state.path, 'a (DuoTab).gp');
+    expect(score.state.path, 'a (DuoScore).gp');
     expect(saved, 1);
   });
 
@@ -92,30 +92,30 @@ void main() {
     await saver.saveNow();
     export = Uint8List.fromList([4]);
     await saver.saveNow();
-    expect(doc('a (DuoTab).gp').readAsBytesSync(), [4]);
-    expect(doc('a (DuoTab) (2).gp').existsSync(), isFalse);
+    expect(doc('a (DuoScore).gp').readAsBytesSync(), [4]);
+    expect(doc('a (DuoScore) (2).gp').existsSync(), isFalse);
   });
 
   test('an existing copy name gets a counter', () async {
-    doc('a (DuoTab).gp').writeAsBytesSync([7]);
+    doc('a (DuoScore).gp').writeAsBytesSync([7]);
     await openFile('a.gp');
     await saver.saveNow();
-    expect(doc('a (DuoTab) (2).gp').readAsBytesSync(), [1, 2, 3]);
-    expect(doc('a (DuoTab).gp').readAsBytesSync(), [7]);
+    expect(doc('a (DuoScore) (2).gp').readAsBytesSync(), [1, 2, 3]);
+    expect(doc('a (DuoScore).gp').readAsBytesSync(), [7]);
   });
 
   test('a file the app did not create is never written', () async {
-    await openFile('b (DuoTab).gp');
+    await openFile('b (DuoScore).gp');
     await saver.saveNow();
-    expect(doc('b (DuoTab).gp').readAsBytesSync(), [9]);
-    expect(doc('b (DuoTab) (DuoTab).gp').readAsBytesSync(), [1, 2, 3]);
+    expect(doc('b (DuoScore).gp').readAsBytesSync(), [9]);
+    expect(doc('b (DuoScore) (DuoScore).gp').readAsBytesSync(), [1, 2, 3]);
   });
 
   test('a copy in a subfolder stays in that folder', () async {
     Directory(p.join(documents.path, 'Sets')).createSync();
     await openFile(p.join('Sets', 'c.gp'));
     await saver.saveNow();
-    expect(score.state.path, p.join('Sets', 'c (DuoTab).gp'));
+    expect(score.state.path, p.join('Sets', 'c (DuoScore).gp'));
   });
 
   test('schedule saves once after the delay', () async {
@@ -177,7 +177,7 @@ void main() {
     await openFile('a.gp');
     saver.schedule();
     await saver.flush();
-    expect(doc('a (DuoTab).gp').existsSync(), isTrue);
+    expect(doc('a (DuoScore).gp').existsSync(), isTrue);
     await Future<void>.delayed(const Duration(milliseconds: 100));
     verify(() => engine.exportGp()).called(1);
   });
@@ -186,7 +186,7 @@ void main() {
     await openFile('a.gp');
     await saver.flush();
     verifyNever(() => engine.exportGp());
-    expect(doc('a (DuoTab).gp').existsSync(), isFalse);
+    expect(doc('a (DuoScore).gp').existsSync(), isFalse);
   });
 
   test('opening another song cancels a pending save', () async {
@@ -209,8 +209,8 @@ void main() {
       await openFile('b.gp');
       export.complete(Uint8List.fromList([8]));
       await saving;
-      expect(doc('a (DuoTab).gp').existsSync(), isFalse);
-      expect(doc('b (DuoTab).gp').existsSync(), isFalse);
+      expect(doc('a (DuoScore).gp').existsSync(), isFalse);
+      expect(doc('b (DuoScore).gp').existsSync(), isFalse);
     },
   );
 
@@ -219,10 +219,10 @@ void main() {
     when(() => engine.exportGp()).thenThrow(const EngineException('busy'));
     saver.schedule();
     await saver.flush();
-    expect(doc('a (DuoTab).gp').existsSync(), isFalse);
+    expect(doc('a (DuoScore).gp').existsSync(), isFalse);
     when(() => engine.exportGp()).thenAnswer((_) async => export);
     await saver.flush();
-    expect(doc('a (DuoTab).gp').readAsBytesSync(), [1, 2, 3]);
+    expect(doc('a (DuoScore).gp').readAsBytesSync(), [1, 2, 3]);
   });
 
   test('an owned song is replaced without leaving a temporary file', () async {
@@ -230,7 +230,7 @@ void main() {
     await saver.saveNow();
     export = Uint8List.fromList([6]);
     await saver.saveNow();
-    expect(doc('a (DuoTab).gp').readAsBytesSync(), [6]);
+    expect(doc('a (DuoScore).gp').readAsBytesSync(), [6]);
     expect(
       documents.listSync().map((e) => p.basename(e.path)),
       isNot(contains(endsWith('.tmp'))),
@@ -248,6 +248,6 @@ void main() {
       denominator: 4,
     );
     await saver.createSong(options);
-    expect(doc('a (DuoTab).gp').readAsBytesSync(), [1, 2, 3]);
+    expect(doc('a (DuoScore).gp').readAsBytesSync(), [1, 2, 3]);
   });
 }

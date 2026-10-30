@@ -31,13 +31,13 @@ import { LongPressSelection } from './touch_selection';
 
 declare global {
   interface Window {
-    duotab: { handle(json: string): void };
+    duoscore: { handle(json: string): void };
     /** Injected by webview_flutter's JavaScriptChannel. */
-    DuoTab?: { postMessage(message: string): void };
+    DuoScore?: { postMessage(message: string): void };
   }
 }
 
-const post = (message: Reply | EngineEvent) => window.DuoTab?.postMessage(JSON.stringify(message));
+const post = (message: Reply | EngineEvent) => window.DuoScore?.postMessage(JSON.stringify(message));
 
 const pageUrl = (relative: string) => new URL(relative, location.href).href;
 
@@ -54,7 +54,7 @@ settings.player.scrollElement = document.scrollingElement as HTMLElement;
 // Taps are resolved to strings from the layout, which only exists on the page
 // when alphaTab renders here rather than in a worker.
 settings.core.useWorkers = false;
-// DuoTab handles taps itself: alphaTab's would clear the loop on every tap
+// DuoScore handles taps itself: alphaTab's would clear the loop on every tap
 // that places the edit cursor.
 settings.player.enableUserInteraction = false;
 
@@ -348,7 +348,7 @@ async function run(request: Request): Promise<unknown> {
   }
 }
 
-window.duotab = {
+window.duoscore = {
   handle(json: string) {
     const request = JSON.parse(json) as Request;
     run(request).then(

@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:bloc_test/bloc_test.dart';
-import 'package:duotab/engine/engine_bridge.dart';
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/library/library_cubit.dart';
-import 'package:duotab/features/library/song_list_entry.dart';
+import 'package:duoscore/engine/engine_bridge.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/library/library_cubit.dart';
+import 'package:duoscore/features/library/song_list_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 

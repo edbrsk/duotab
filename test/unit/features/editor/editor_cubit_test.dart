@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:duotab/engine/engine_bridge.dart';
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/editor/editor_cubit.dart';
-import 'package:duotab/features/score/score_cubit.dart';
+import 'package:duoscore/engine/engine_bridge.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/editor/editor_cubit.dart';
+import 'package:duoscore/features/score/score_cubit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 

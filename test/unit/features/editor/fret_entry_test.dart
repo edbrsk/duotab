@@ -1,4 +1,4 @@
-import 'package:duotab/features/editor/fret_entry.dart';
+import 'package:duoscore/features/editor/fret_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

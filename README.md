@@ -1,17 +1,6 @@
-# duotab
+# DuoScore
 
-A new Flutter project.
+The foldable composition suite: a guitar tab player and editor for the iPhone Duo, built on alphaTab.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Design: `docs/superpowers/specs/2026-10-29-duoscore-design.md`
+- Plans: `docs/superpowers/plans/`

@@ -1,10 +1,10 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/library/library_cubit.dart';
-import 'package:duotab/features/library/library_page.dart';
-import 'package:duotab/features/library/song_files.dart';
-import 'package:duotab/features/library/song_list_entry.dart';
-import 'package:duotab/l10n/app_localizations.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/library/library_cubit.dart';
+import 'package:duoscore/features/library/library_page.dart';
+import 'package:duoscore/features/library/song_files.dart';
+import 'package:duoscore/features/library/song_list_entry.dart';
+import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -86,7 +86,7 @@ void main() {
 
     expect(
       find.text(
-        'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoTab',
+        'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoScore',
       ),
       findsOneWidget,
     );

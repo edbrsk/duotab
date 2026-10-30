@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:duotab/core/duo/vertical_bar_edge_provider.dart';
+import 'package:duoscore/core/duo/vertical_bar_edge_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

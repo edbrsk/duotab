@@ -1,11 +1,11 @@
-# DuoTab: guitar tab player and editor for iPhone Duo
+# DuoScore: guitar tab player and editor for iPhone Duo
 
 Date: 2026-10-29
 Status: draft for review
 
 ## Intent
 
-A Flutter app that turns the unfolded iPhone Duo into a guitar tab workstation: open Guitar Pro and MusicXML files, read them as notation over tab, hear them through MIDI, and write new songs the way Guitar Pro does. Songsterr is the reference for reading and playback; Guitar Pro is the reference for editing. Both are simplified to what fits one 7.6" screen.
+**DuoScore, the foldable composition suite.** A Flutter app that turns the unfolded iPhone Duo into a guitar tab workstation: open Guitar Pro and MusicXML files, read them as notation over tab, hear them through MIDI, and write new songs the way Guitar Pro does. Songsterr is the reference for reading and playback; Guitar Pro is the reference for editing. Both are simplified to what fits one 7.6" screen.
 
 It is a personal side project. Success is the owner using it to practise and to write riffs on the device.
 
@@ -48,8 +48,8 @@ These count as failures even if every feature works:
 
 ### Project structure
 
-- App lives in `/Users/eordonez/Code/sideprojects/duotab`, iOS target only.
-- **Two codebases in one repo**: the Flutter app (Dart, plus Swift in `ios/`), and `engine/`, a TypeScript package that bundles alphaTab with DuoTab's own engine code into web assets the app ships. The split follows the [Music engine](#music-engine): everything that reads or changes a song runs in the engine; everything around the score runs in Flutter.
+- App lives in `/Users/eordonez/Code/sideprojects/duoscore`, iOS target only.
+- **Two codebases in one repo**: the Flutter app (Dart, plus Swift in `ios/`), and `engine/`, a TypeScript package that bundles alphaTab with DuoScore's own engine code into web assets the app ships. The split follows the [Music engine](#music-engine): everything that reads or changes a song runs in the engine; everything around the score runs in Flutter.
 - Conventions follow `/Users/eordonez/Code/sideprojects/dreambudget_app`: `flutter_bloc` cubits for feature state, `get_it` for dependency injection, `provider` `ChangeNotifier`s for platform signals, `gen-l10n` localisation from day one (English first), design tokens for spacing and sizes, tests in `test/unit` and `test/widget`.
 - The iPhone Duo navigation pattern is ported from dreambudget commit `556e8f9` ("Adapt navigation and layout for iPhone Duo"): `ios/Runner/AppDelegate.swift` (`VerticalBarEdgeStreamHandler`), `lib/core/vertical_bar_edge_provider.dart`, `lib/presentation/widgets/glass_capsule.dart`, `app_navigation_rail.dart` and `vertical_bar_app_bar.dart`.
 
@@ -58,7 +58,7 @@ These count as failures even if every feature works:
 - **Hinge bridge**: a second `EventChannel`, built like the vertical-bar one, streams the hinge status from UIKit's `UIHingeInteraction` (iOS 27.1 SDK, `UIHinge.h`/`UIHingeInteraction.h`). Its update carries `hinge.status` (`.unknown`, `.closed`, `.partiallyOpen`, `.fullyOpen`), or a nil `hinge` when the view is in a hierarchy without one.
 - **Closed**: the app shows only the folded screen (placeholder logo and message). Playback pauses; the open song and editor state are kept.
 - **Partially or fully open**: the app works normally, including tent and laptop poses.
-- **Split View**: when the window becomes too narrow for three columns, the side panels collapse, the score takes the width, and the app works as a player only. Editing shows "Make DuoTab wider to edit" until the window is wide enough again.
+- **Split View**: when the window becomes too narrow for three columns, the side panels collapse, the score takes the width, and the app works as a player only. Editing shows "Make DuoScore wider to edit" until the window is wide enough again.
 
 ### Screen layout
 
@@ -87,7 +87,7 @@ Chosen by the [engine spike](../spikes/2026-10-29-engine-spike.md): on the owner
 
 - **alphaTab 1.6.x** (`@coderline/alphatab`, MPL-2.0) is the score model, the file reader (GP3–GP8, MusicXML), the `.gp` writer (`Gp7Exporter`), the renderer (notation over tab, wrapped into lines, Bravura glyphs) and the player.
 - **It runs in one `WKWebView`** (`webview_flutter`), created at launch and kept alive for the app's lifetime. The score page shows it; when it is off screen it keeps working (library summaries, playback).
-- **The engine** (`engine/`, TypeScript) is the only code that touches alphaTab. It exposes DuoTab's own operations over a JSON message bridge: Dart calls `window.duotab.handle(message)` through `runJavaScript`, and the engine answers and pushes events through a JavaScript channel named `DuoTab`. Each message has an `id`, a `type` and a `payload`; replies carry the same `id`. The message types are declared once, in `engine/src/protocol.ts`, and mirrored by hand in Dart.
+- **The engine** (`engine/`, TypeScript) is the only code that touches alphaTab. It exposes DuoScore's own operations over a JSON message bridge: Dart calls `window.duoscore.handle(message)` through `runJavaScript`, and the engine answers and pushes events through a JavaScript channel named `DuoScore`. Each message has an `id`, a `type` and a `payload`; replies carry the same `id`. The message types are declared once, in `engine/src/protocol.ts`, and mirrored by hand in Dart.
 - **Song files reach the engine** from a loopback HTTP server the app runs on `127.0.0.1` (random port), which serves the engine's assets and, read-only, the Documents folder. The engine fetches a song by its path under Documents. If Step 0b shows alphaTab's worker and audio worklet loading from `file://` in `WKWebView`, the server shrinks to serving Documents, or goes.
 - **Dart sees songs as summaries**: title, and per track: name, kind, string count, tuning, MIDI program. Notes never cross the bridge.
 - **Guitar tracks**: a track counts as guitar when the file gives it strings and frets (a tab staff), or when its MIDI program is in the guitar family (25–32). A file with no guitar track plays its tracks and shows "This song has no guitar track".
@@ -141,9 +141,9 @@ Retuning applies to one guitar track, keeps every note's pitch and moves the fre
 
 ### Files
 
-- Songs live in the app's Documents folder, visible in the Files app under On My iPhone › DuoTab (`UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace`).
-- The app registers document types for every supported extension, so Open In / AirDrop / Files offer DuoTab; an incoming file is copied into Documents.
-- **Opened files are never overwritten.** The first edit to an opened file (any change to notes, bars, tracks or tuning) creates `<name> (DuoTab).gp` beside it, and autosave writes to that copy from then on. The library lists both. Songs created in the app save to `<title>.gp`.
+- Songs live in the app's Documents folder, visible in the Files app under On My iPhone › DuoScore (`UIFileSharingEnabled` and `LSSupportsOpeningDocumentsInPlace`).
+- The app registers document types for every supported extension, so Open In / AirDrop / Files offer DuoScore; an incoming file is copied into Documents.
+- **Opened files are never overwritten.** The first edit to an opened file (any change to notes, bars, tracks or tuning) creates `<name> (DuoScore).gp` beside it, and autosave writes to that copy from then on. The library lists both. Songs created in the app save to `<title>.gp`.
 - **Exports**, shared through the iOS share sheet: `.gp`, and PDF with title, tempo, tuning and notation over tab as alphaTab lays it out in pages.
 
 ### Library screen
@@ -169,7 +169,7 @@ If alphaTab cannot draw or play inside `WKWebView` on the device, the plan stops
 - **Devices**: the iPhone Duo simulator in Xcode 27.1 is the default test target; the owner also has a physical iPhone Duo.
 - **Guitar Pro 8**: the owner has it, for checking saved `.gp` files and comparing rendering.
 - **The owner's songs**: `/Users/eordonez/Desktop/2. Guitar Pro Files/`, 21 Guitar Pro 8 files. The primary one is `07 Collateral Damage.gp`: 7 guitar tracks, all 6-string in E♭ standard, 153 bars, 19 time-signature changes, 4,030 notes, with hundreds of bends, vibratos, palm mutes, let rings, slides and hammer-ons.
-- **These are purchased Sheet Happens transcriptions** and must never be committed or bundled. Tests that use them read the path from the environment variable `DUOTAB_PRIVATE_SAMPLE` and skip when it is unset.
+- **These are purchased Sheet Happens transcriptions** and must never be committed or bundled. Tests that use them read the path from the environment variable `DUOSCORE_PRIVATE_SAMPLE` and skip when it is unset.
 - **The alphaTab test corpus** (`test-data/` from github.com/CoderLine/alphaTab, MPL-2.0) covers GP3–GP8 and MusicXML features, several voices and 7-string tracks. It lives in the git-ignored `test_assets_private/` and is not committed either.
 - **Committed fixtures** are generated by the engine's own tests from alphaTex (alphaTab's text format), so the repo holds no third-party song files.
 

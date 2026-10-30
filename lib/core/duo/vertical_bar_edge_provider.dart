@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 enum VerticalBarEdge { unspecified, leading, trailing }
 
 class VerticalBarEdgeProvider extends ChangeNotifier {
-  static const _channel = EventChannel('me.withedgar.duotab/vertical_bar_edge');
+  static const _channel = EventChannel('dev.edbrsk.duoscore/vertical_bar_edge');
 
   StreamSubscription<dynamic>? _subscription;
   VerticalBarEdge _edge = VerticalBarEdge.unspecified;

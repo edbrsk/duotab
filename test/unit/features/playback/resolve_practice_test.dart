@@ -1,7 +1,7 @@
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/playback/practice_settings.dart';
-import 'package:duotab/features/playback/resolve_practice.dart';
-import 'package:duotab/features/playback/tone.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/playback/practice_settings.dart';
+import 'package:duoscore/features/playback/resolve_practice.dart';
+import 'package:duoscore/features/playback/tone.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../score/score_test_data.dart';

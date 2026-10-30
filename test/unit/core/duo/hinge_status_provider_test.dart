@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:duotab/core/duo/hinge_status_provider.dart';
+import 'package:duoscore/core/duo/hinge_status_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

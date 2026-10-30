@@ -1,6 +1,6 @@
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/editor/new_song_dialog.dart';
-import 'package:duotab/l10n/app_localizations.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/editor/new_song_dialog.dart';
+import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

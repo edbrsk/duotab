@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
-import 'package:duotab/engine/engine_bridge.dart';
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/score/score_cubit.dart';
+import 'package:duoscore/engine/engine_bridge.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/score/score_cubit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -152,9 +152,9 @@ void main() {
     await cubit.open('fixture.gp');
     final before = cubit.state;
 
-    cubit.moveTo('fixture (DuoTab).gp');
+    cubit.moveTo('fixture (DuoScore).gp');
 
-    expect(cubit.state.path, 'fixture (DuoTab).gp');
+    expect(cubit.state.path, 'fixture (DuoScore).gp');
     expect(cubit.state.song, same(before.song));
     expect(cubit.state.openId, before.openId);
   });
@@ -190,11 +190,11 @@ void main() {
     final cubit = ScoreCubit(engine: engine);
     addTearDown(cubit.close);
     await cubit.open('a.gp');
-    cubit.moveTo('a (DuoTab).gp');
+    cubit.moveTo('a (DuoScore).gp');
 
     events.add(const EngineEvent('ready', {}));
     await pumpEventQueue();
 
-    verify(() => engine.open('a (DuoTab).gp')).called(1);
+    verify(() => engine.open('a (DuoScore).gp')).called(1);
   });
 }

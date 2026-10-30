@@ -39,7 +39,7 @@ Future<void> main() async {
         BlocProvider.value(value: getIt<EditorCubit>()),
         BlocProvider.value(value: getIt<SettingsCubit>()),
       ],
-      child: DuoTabApp(
+      child: DuoScoreApp(
         home: FoldGate(
           child: AppShell(
             pageFor: (tab) => switch (tab) {

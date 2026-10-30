@@ -49,7 +49,7 @@ class SettingsPage extends StatelessWidget {
               title: Text(l10n.licences),
               trailing: const Icon(Icons.chevron_right),
               onTap: () =>
-                  showLicensePage(context: context, applicationName: 'DuoTab'),
+                  showLicensePage(context: context, applicationName: 'DuoScore'),
             ),
           ],
         ),

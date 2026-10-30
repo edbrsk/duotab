@@ -8,11 +8,11 @@ import 'package:path/path.dart' as p;
 
 import 'unique_destination.dart';
 
-/// Brings files opened in DuoTab from other apps into Documents, never
+/// Brings files opened in DuoScore from other apps into Documents, never
 /// overwriting an existing song. The iOS runner sends each file's original
 /// path and, unless it is already in Documents, a staged copy.
 class IncomingFilesProvider {
-  static const _channel = EventChannel('me.withedgar.duotab/incoming_files');
+  static const _channel = EventChannel('dev.edbrsk.duoscore/incoming_files');
 
   final Directory documents;
   final Future<void> Function(String documentsRelativePath) onImported;

@@ -1,15 +1,15 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:duotab/engine/engine_bridge.dart';
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/editor/editor_cubit.dart';
-import 'package:duotab/features/editor/fret_pad.dart';
-import 'package:duotab/features/editor/palette.dart';
-import 'package:duotab/features/playback/playback_cubit.dart';
-import 'package:duotab/features/playback/transport_bar.dart';
-import 'package:duotab/features/score/score_cubit.dart';
-import 'package:duotab/features/score/score_page.dart';
-import 'package:duotab/features/settings/settings_cubit.dart';
-import 'package:duotab/l10n/app_localizations.dart';
+import 'package:duoscore/engine/engine_bridge.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/editor/editor_cubit.dart';
+import 'package:duoscore/features/editor/fret_pad.dart';
+import 'package:duoscore/features/editor/palette.dart';
+import 'package:duoscore/features/playback/playback_cubit.dart';
+import 'package:duoscore/features/playback/transport_bar.dart';
+import 'package:duoscore/features/score/score_cubit.dart';
+import 'package:duoscore/features/score/score_page.dart';
+import 'package:duoscore/features/settings/settings_cubit.dart';
+import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -125,7 +125,7 @@ void main() {
     await pumpPage(tester, width: 600);
     expect(find.byType(Palette), findsNothing);
     expect(find.byType(FretPad), findsNothing);
-    expect(find.text('Make DuoTab wider to edit'), findsOneWidget);
+    expect(find.text('Make DuoScore wider to edit'), findsOneWidget);
   });
 
   testWidgets('shows the palette when a song is open', (tester) async {

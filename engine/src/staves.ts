@@ -4,7 +4,7 @@ import type { StaffView } from './protocol';
 
 /**
  * Guitar Pro files save which staves a track shows, and alphaTab draws only
- * those; DuoTab draws notation above tab unless the owner hides one.
+ * those; DuoScore draws notation above tab unless the owner hides one.
  */
 export function showNotationAndTab(score: alphaTab.model.Score): void {
   for (const track of score.tracks) {

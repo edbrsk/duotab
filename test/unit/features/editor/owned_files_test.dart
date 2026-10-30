@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:duotab/core/storage/json_file.dart';
-import 'package:duotab/features/editor/owned_files.dart';
+import 'package:duoscore/core/storage/json_file.dart';
+import 'package:duoscore/features/editor/owned_files.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 

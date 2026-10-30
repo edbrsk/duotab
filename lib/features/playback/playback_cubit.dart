@@ -78,7 +78,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
 
   // A new openId means the engine loaded a song, even the same file again
   // after a restart; its player starts over at bar 0. An edit or a move to
-  // the song's "(DuoTab)" copy keeps the same song.
+  // the song's "(DuoScore)" copy keeps the same song.
   void _onScoreChanged(ScoreState scoreState) {
     final song = scoreState.song;
     if (song == null) {

@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:duotab/features/import/unique_destination.dart';
+import 'package:duoscore/features/import/unique_destination.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 

@@ -1,10 +1,10 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:duotab/engine/protocol.dart';
-import 'package:duotab/features/playback/playback_cubit.dart';
-import 'package:duotab/features/playback/practice_settings.dart';
-import 'package:duotab/features/score/score_cubit.dart';
-import 'package:duotab/features/score/track_drawer.dart';
-import 'package:duotab/l10n/app_localizations.dart';
+import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/playback/playback_cubit.dart';
+import 'package:duoscore/features/playback/practice_settings.dart';
+import 'package:duoscore/features/score/score_cubit.dart';
+import 'package:duoscore/features/score/track_drawer.dart';
+import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';

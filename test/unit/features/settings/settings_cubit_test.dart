@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:duotab/core/storage/json_file.dart';
-import 'package:duotab/features/playback/tone.dart';
-import 'package:duotab/features/settings/settings_cubit.dart';
+import 'package:duoscore/core/storage/json_file.dart';
+import 'package:duoscore/features/playback/tone.dart';
+import 'package:duoscore/features/settings/settings_cubit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 

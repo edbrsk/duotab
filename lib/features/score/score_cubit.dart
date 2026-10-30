@@ -121,7 +121,7 @@ class ScoreCubit extends Cubit<ScoreState> {
     emit(ScoreState(openId: state.openId + 1));
   }
 
-  /// The open song is now saved at [path], such as its "(DuoTab)" copy.
+  /// The open song is now saved at [path], such as its "(DuoScore)" copy.
   void moveTo(String path) => emit(
     ScoreState(
       song: state.song,

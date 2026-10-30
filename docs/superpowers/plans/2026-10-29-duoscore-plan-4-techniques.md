@@ -1,4 +1,4 @@
-# DuoTab Plan 4: Techniques Implementation Plan
+# DuoScore Plan 4: Techniques Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -13,7 +13,7 @@
 - `Note`: `isHammerPullOrigin`, `slideOutType`, `bendType`, `bendPoints`, `vibrato`, `isPalmMute`, `isLetRing`, `isDead`, `isGhost`, `harmonicType`, `harmonicValue`, `isTieDestination`, `accentuated`, `isStaccato`, `accidentalMode`.
 - `Beat`: `tupletNumerator`, `tupletDenominator`, `graceType`, `dynamics`, `crescendo`, `pickStroke`, `tremoloSpeed`, `tap`, `fermata`.
 
-**Spec:** `docs/superpowers/specs/2026-10-29-duotab-design.md` (Editor › Palette groups; Anti-goals: real notation symbols, never drop content)
+**Spec:** `docs/superpowers/specs/2026-10-29-duoscore-design.md` (Editor › Palette groups; Anti-goals: real notation symbols, never drop content)
 
 **Branch:** `plan-4-techniques`, from `main`.
 
@@ -34,7 +34,7 @@ Tones are already written into saved songs: `Mixer.apply` sets `playbackInfo.pro
 
 Plans 1–3's Global Constraints all apply. In addition:
 
-- **Note or beat.** A note technique applies to the note on the cursor's string. If that string has no note it does nothing, makes no undo step and no "(DuoTab)" copy. A beat technique applies to the cursor's beat.
+- **Note or beat.** A note technique applies to the note on the cursor's string. If that string has no note it does nothing, makes no undo step and no "(DuoScore)" copy. A beat technique applies to the cursor's beat.
 - **Toggles.** Tapping a technique that is on turns it off. In each exclusive group, choosing one replaces the others:
   - accent, marcato and tenuto (`accentuated`);
   - natural and artificial harmonic;
@@ -275,7 +275,7 @@ No new code unless a check fails; a failure goes through superpowers:systematic-
 
 - [ ] **Step 1: Build and install**
 
-Run: `npm --prefix engine run build && flutter build ios --simulator && xcrun simctl install booted build/ios/iphonesimulator/Runner.app && xcrun simctl launch booted me.withedgar.duotab`
+Run: `npm --prefix engine run build && flutter build ios --simulator && xcrun simctl install booted build/ios/iphonesimulator/Runner.app && xcrun simctl launch booted dev.edbrsk.duoscore`
 Expected: build succeeds; the app launches.
 
 - [ ] **Step 2: Owner checks**, reported back in one message:
@@ -287,7 +287,7 @@ Expected: build succeeds; the app launches.
   6. Dynamics: pp on one beat shows once and holds until a later change.
   7. Accent, marcato, staccato, tenuto and fermata draw over the notes.
   8. Undo steps back through these.
-  9. The "(DuoTab)" copy opens in Guitar Pro 8 with every one of these marks.
+  9. The "(DuoScore)" copy opens in Guitar Pro 8 with every one of these marks.
 
 - [ ] **Step 3: Record the results** in the ledger, one line per check, and fix any failure as described above.
 
@@ -299,7 +299,7 @@ From the first simulator check:
 - **H/P stays as in Guitar Pro.** It belongs to the first note of the pair; on the second note the chip adds the next link, so legato runs chain.
 - **Added: a bend picker (Task 6).**
 - **Added: tuplets continue (Task 7).**
-- **Still later:** a time signature per bar (Plan 5); export and share (Plan 6). The "(DuoTab)" copy is already in Files › On My iPhone › DuoTab.
+- **Still later:** a time signature per bar (Plan 5); export and share (Plan 6). The "(DuoScore)" copy is already in Files › On My iPhone › DuoScore.
 
 ### Task 6: Bend types and amounts
 

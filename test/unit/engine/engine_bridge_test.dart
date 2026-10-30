@@ -1,5 +1,5 @@
-import 'package:duotab/engine/engine_bridge.dart';
-import 'package:duotab/engine/protocol.dart';
+import 'package:duoscore/engine/engine_bridge.dart';
+import 'package:duoscore/engine/protocol.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_transport.dart';

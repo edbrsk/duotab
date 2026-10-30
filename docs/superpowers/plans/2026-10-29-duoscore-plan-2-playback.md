@@ -1,4 +1,4 @@
-# DuoTab Plan 2: Playback Implementation Plan
+# DuoScore Plan 2: Playback Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** as Plan 1, plus `webview_flutter_wkwebview` (direct dependency for the WebKit creation params). alphaTab 1.6.1 APIs used: `play`/`pause`/`stop`, `playerReady`, `playerStateChanged`, `playerPositionChanged`, `playbackRangeChanged`, `tickPosition`, `playbackSpeed`, `isLooping`, `playbackRange`, `countInVolume`, `metronomeVolume`, `changeTrackMute`/`changeTrackSolo`, `loadMidiForScore`, `midiLoaded`, `tickCache` (`masterBars`, `getMasterBarStart`), `renderer.boundsLookup.getBeatAtPos`, `scrollToCursor`, and headless `midi.MidiFileGenerator` for the bar timeline.
 
-**Spec:** `docs/superpowers/specs/2026-10-29-duotab-design.md` (sections Playback, Track drawer, Screen layout, iPhone Duo behaviour, Constraints › Licences)
+**Spec:** `docs/superpowers/specs/2026-10-29-duoscore-design.md` (sections Playback, Track drawer, Screen layout, iPhone Duo behaviour, Constraints › Licences)
 
 **Left for Plan 3:** the single-note preview for editing, and writing each guitar track's tone into a saved song; both need the editor.
 
@@ -16,7 +16,7 @@
 
 ## Global Constraints
 
-Plan 1's Global Constraints all still apply (iOS 27.1 only, channel names, verbatim `analysis_options.yaml` with `flutter analyze` clean at every commit, no (L)GPL Dart packages, alphaTab pinned to exactly `1.6.1` and shipped unmodified, engine built into git-ignored `assets/engine/`, protocol declared in `engine/src/protocol.ts` and mirrored in `lib/engine/protocol.dart` in the same commit, every user-facing string from `lib/l10n/app_en.arb`, private songs only via `DUOTAB_PRIVATE_SAMPLE`). In addition:
+Plan 1's Global Constraints all still apply (iOS 27.1 only, channel names, verbatim `analysis_options.yaml` with `flutter analyze` clean at every commit, no (L)GPL Dart packages, alphaTab pinned to exactly `1.6.1` and shipped unmodified, engine built into git-ignored `assets/engine/`, protocol declared in `engine/src/protocol.ts` and mirrored in `lib/engine/protocol.dart` in the same commit, every user-facing string from `lib/l10n/app_en.arb`, private songs only via `DUOSCORE_PRIVATE_SAMPLE`). In addition:
 
 - Tones are General MIDI programs, stored 0-based as alphaTab does: Clean = 27 (GM 28 Electric Guitar (clean)), Overdrive = 29 (GM 30 Overdriven Guitar), High gain = 30 (GM 31 Distortion Guitar). Exact labels: `Clean`, `Overdrive`, `High gain`.
 - A guitar track starts with its file's program when that is one of the three tones, otherwise with the default tone from Settings (`Clean` until the owner changes it).
@@ -382,7 +382,7 @@ Expected: FAIL: `setPlayerOptions`, `registerBundledLicences` not defined; no `C
   - Engine `setPlayerOptions` sets `api.countInVolume` and `api.metronomeVolume` to 1 or 0.
   - `PlaybackCubit` sends the options at construction, on every `settings.stream` change and after each `ready` event.
   - `registerBundledLicences` adds one `LicenseEntryWithLineBreaks` per package, loading each text through `bundle.loadString`; alphaTab's entry starts with "Shipped unmodified. Source: https://github.com/CoderLine/alphaTab". `main.dart` calls it with `rootBundle` before `runApp`.
-  - `SettingsPage`: a `ListView` with `SwitchListTile`s `Count-in` and `Metronome`, a `Default tone` group (`RadioGroup<Tone>` with three `RadioListTile`s, labelled `Clean`, `Overdrive` and `High gain`) and a `Licences` `ListTile` that calls `showLicensePage(context: context, applicationName: 'DuoTab')`. It sits in a transparent `Material` with a `SafeArea`, as `LibraryPage` does. New l10n keys: `countIn`, `metronome`, `defaultTone`, `toneClean`, `toneOverdrive`, `toneHighGain`, `licences`.
+  - `SettingsPage`: a `ListView` with `SwitchListTile`s `Count-in` and `Metronome`, a `Default tone` group (`RadioGroup<Tone>` with three `RadioListTile`s, labelled `Clean`, `Overdrive` and `High gain`) and a `Licences` `ListTile` that calls `showLicensePage(context: context, applicationName: 'DuoScore')`. It sits in a transparent `Material` with a `SafeArea`, as `LibraryPage` does. New l10n keys: `countIn`, `metronome`, `defaultTone`, `toneClean`, `toneOverdrive`, `toneHighGain`, `licences`.
 
 - [ ] **Step 4: Run the tests and the suite**
 
@@ -494,7 +494,7 @@ No new code unless a check fails; a failure goes through superpowers:systematic-
 
 - [ ] **Step 1: Build and install**
 
-Run: `npm --prefix engine run build && flutter build ios --simulator && xcrun simctl install booted build/ios/iphonesimulator/Runner.app && xcrun simctl launch booted me.withedgar.duotab`
+Run: `npm --prefix engine run build && flutter build ios --simulator && xcrun simctl install booted build/ios/iphonesimulator/Runner.app && xcrun simctl launch booted dev.edbrsk.duoscore`
 Expected: build succeeds; the app launches on the iPhone Duo simulator.
 
 - [ ] **Step 2: Owner checks**, reported back in one message. Open Collateral Damage from the library, then:

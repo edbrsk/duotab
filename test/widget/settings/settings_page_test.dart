@@ -1,8 +1,8 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:duotab/features/playback/tone.dart';
-import 'package:duotab/features/settings/settings_cubit.dart';
-import 'package:duotab/features/settings/settings_page.dart';
-import 'package:duotab/l10n/app_localizations.dart';
+import 'package:duoscore/features/playback/tone.dart';
+import 'package:duoscore/features/settings/settings_cubit.dart';
+import 'package:duoscore/features/settings/settings_page.dart';
+import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -1,4 +1,4 @@
-# DuoTab Plan 3: Write Notes Implementation Plan
+# DuoScore Plan 3: Write Notes Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -7,11 +7,11 @@
 **Architecture:**
 - **Engine.** Every edit is a pure function on alphaTab's `Score` in `engine/src/editing/`, tested headless in Node. The engine applies it to `api.score`, re-checks bar lengths, re-renders, regenerates the MIDI and replies with the new edit state.
 - **Taps.** The engine resolves a tap to bar, beat and string from alphaTab's layout. That layout is only on the page when alphaTab renders on the main thread, so the engine stops using a render worker.
-- **Dart.** An `EditorCubit` holds the cursor and the palette choices; the fret pad and the palette send commands. A `SongSaver` writes the engine's `.gp` export to Documents, into a `<name> (DuoTab).gp` copy the first time an opened file is edited.
+- **Dart.** An `EditorCubit` holds the cursor and the palette choices; the fret pad and the palette send commands. A `SongSaver` writes the engine's `.gp` export to Documents, into a `<name> (DuoScore).gp` copy the first time an opened file is edited.
 
 **Tech Stack:** as Plans 1–2. alphaTab 1.6.1 APIs added: `model.Beat`, `model.Note`, `model.Voice`, `model.Bar`, `model.MasterBar`, `Voice.addBeat`/`insertBeat`, `Beat.addNote`/`removeNote`, `Score.finish`, `MasterBar.calculateDuration`, `model.JsonConverter.scoreToJsObject`/`jsObjectToScore`, `exporter.Gp7Exporter`, `importer.AlphaTexImporter`, `rendering.ScoreRenderer` (headless `svg` engine, for tests), `renderer.layout` staff systems and their `TabBarRenderer.getLineY` (internal, pinned by the exact alphaTab version), `boundsLookup.getBeatAtPos`, `api.render`, `settings.core.useWorkers`.
 
-**Spec:** `docs/superpowers/specs/2026-10-29-duotab-design.md` (sections Editor, Files, Screen layout, Music engine)
+**Spec:** `docs/superpowers/specs/2026-10-29-duoscore-design.md` (sections Editor, Files, Screen layout, Music engine)
 
 **Branch:** `plan-3-write-notes`, from `main`.
 
@@ -21,7 +21,7 @@ The editor is split in two so each plan stays reviewable; retune and export move
 
 | Plan | Delivers |
 |---|---|
-| 3 Write notes (this) | standard notation above tab with per-track staff toggles, new song, tap-to-cursor, fret pad, palette (voices, note values, rests, dots) with collapse, bar check, undo/redo, autosave and the "(DuoTab)" copy |
+| 3 Write notes (this) | standard notation above tab with per-track staff toggles, new song, tap-to-cursor, fret pad, palette (voices, note values, rests, dots) with collapse, bar check, undo/redo, autosave and the "(DuoScore)" copy |
 | 4 Notation tools | tuplets, ties, grace notes, accidentals, dynamics, guitar techniques, articulations; bar tools (clef, time signature per bar, key signature, repeats, alternate endings, segno/coda, tempo marking); insert, delete, copy and paste bars; guitar track management in the drawer; tones written into saved songs |
 | 5 Retune and export | retuning, automatic fingering, `.gp` and PDF export, share sheet |
 
@@ -34,16 +34,16 @@ Plans 1–2's Global Constraints all apply. In addition:
 - Note values are alphaTab `Duration`s: whole 1, half 2, quarter 4, eighth 8, sixteenth 16, thirty-second 32, sixty-fourth 64; dots 0–2.
 - A bar is checked per voice that has notes or rests; a voice whose only beat is `isEmpty` is unused and not checked. The amount off is shown as a fraction of a whole note: `⅛ short`, `3/16 long` (a Unicode vulgar fraction when one exists, otherwise `n/d`), with 3840 ticks per whole note.
 - Undo keeps at most 100 steps per open song; opening a song clears it.
-- Files: an opened file is never written. The first edit writes `<name> (DuoTab).gp` beside it (through `uniqueDestination`), and every later save writes that copy. A song created in the app saves to `<title>.gp`. The app remembers the files it created or copied in `<Application Support>/owned.json`; only those are ever overwritten.
+- Files: an opened file is never written. The first edit writes `<name> (DuoScore).gp` beside it (through `uniqueDestination`), and every later save writes that copy. A song created in the app saves to `<title>.gp`. The app remembers the files it created or copied in `<Application Support>/owned.json`; only those are ever overwritten.
 - Autosave runs 1 s after the last edit.
 - Tuning presets for a new song: 6 strings: Standard E, E♭, D, C♯, C, B, Drop D, Drop C♯, Drop C, Drop B; 7 strings: Standard B, A, Drop A; 8 strings: Standard F♯, E, Drop E. A custom tuning picks each string's note.
-- Exact copy: `Make DuoTab wider to edit` (existing), `New song`.
+- Exact copy: `Make DuoScore wider to edit` (existing), `New song`.
 
 ## Review Focus
 
 0. **A file that saved a guitar track with notation or tab switched off** must still open with both drawn; only the owner's own toggles hide one. Test: Task 0 `opens every string track with notation and tab`.
 
-1. **Editing an opened file** must never write to it, including when a `<name> (DuoTab).gp` already exists (the copy becomes `<name> (DuoTab) (2).gp`) and when the opened file is itself an earlier copy the app no longer remembers. Tests: Task 8 `the first edit of an opened file writes a copy beside it`, `an existing copy name gets a counter`, `a file the app did not create is never written`.
+1. **Editing an opened file** must never write to it, including when a `<name> (DuoScore).gp` already exists (the copy becomes `<name> (DuoScore) (2).gp`) and when the opened file is itself an earlier copy the app no longer remembers. Tests: Task 8 `the first edit of an opened file writes a copy beside it`, `an existing copy name gets a counter`, `a file the app did not create is never written`.
 2. **Moving the cursor past the last beat of the last bar** must append a bar in the time signature in force, and the bar check must cover it. Test: Task 1 `moving right from the last beat appends a bar`.
 3. **The engine restarting during editing** must reopen the copy being edited, not the original, and keep the cursor's track. Test: Task 8 `an engine restart reopens the saved copy`.
 4. **Fret entry edge cases**: a second digit that would pass 24, a digit after the time window, and ⌫ on a rest. Tests: Task 6 `a second digit past 24 starts a new fret`, `a digit after the window starts a new fret`; Task 1 `deleting the only note leaves a rest`.
@@ -343,7 +343,7 @@ git commit -m "feat: editing commands, undo and taps over the engine bridge"
   - `score_cubit_test.dart`: `each open has a new openId`; `applyEdit keeps the openId and the drawn track`; `moveTo changes only the path`.
   - `playback_cubit_test.dart`:
     - `an edit keeps the practice settings`: after `setMute(1, on: true)`, `score.applyEdit(newSongObject)` → `state.practice.tracks[1]!.mute` still true, and `setTracks` not sent again.
-    - `moving the song saves its practice under the new path`: `moveTo('a (DuoTab).gp')` → `practice.load('a (DuoTab).gp')` has track 1 muted.
+    - `moving the song saves its practice under the new path`: `moveTo('a (DuoScore).gp')` → `practice.load('a (DuoScore).gp')` has track 1 muted.
 
 - [ ] **Step 2: Run them to verify they fail**
 
@@ -444,7 +444,7 @@ git commit -m "feat: fret pad with two-digit frets and cursor keys"
     - `undo and redo follow the history`: `canUndo: false` → the Undo button is disabled; with `canUndo: true`, tapping it calls `undo()`.
   - `workspace_layout_test.dart`: `a collapsed palette gives its width to the score` and `the palette button toggles the palette`, like the track panel tests.
   - `settings_cubit_test.dart`: `persists each setting` also covers `paletteCollapsed`.
-  - `score_page_test.dart`: `editing is off when the window is narrow`: at width 600, no `Palette` and no `FretPad`, and `Make DuoTab wider to edit` is shown.
+  - `score_page_test.dart`: `editing is off when the window is narrow`: at width 600, no `Palette` and no `FretPad`, and `Make DuoScore wider to edit` is shown.
 
 - [ ] **Step 2: Run them to verify they fail**
 
@@ -488,20 +488,20 @@ git commit -m "feat: notation palette with voices, note values, rests and dots"
   - `class OwnedFiles { OwnedFiles(JsonFile file); Future<bool> owns(String path); Future<void> add(String path); }`
   - `class SongSaver { SongSaver({required Directory documents, required EngineBridge engine, required ScoreCubit score, required OwnedFiles owned, required Future<void> Function() onSaved, Duration delay = const Duration(seconds: 1)}); void schedule(); Future<void> saveNow(); Future<String> createSong(NewSongOptions options); }`
     - `schedule` is debounced.
-    - `saveNow` writes the export to the score's path when it is owned. Otherwise it claims `<name> (DuoTab).gp` beside it, writes there, records it in `owned`, and calls `score.moveTo`.
+    - `saveNow` writes the export to the score's path when it is owned. Otherwise it claims `<name> (DuoScore).gp` beside it, writes there, records it in `owned`, and calls `score.moveTo`.
     - `createSong` claims `<title>.gp` with `uniqueDestination`, records it, calls `score.create` and saves.
   - `List<TuningPreset> tuningPresets(int strings)`, where `class TuningPreset { final String name; final List<int> tuning; }` and `tuning` is top string first.
   - `NewSongDialog` returns `NewSongOptions`; Library's `New song` button opens it, then calls `SongSaver.createSong` and switches to the Editor tab.
 
 - [ ] **Step 1: Write the failing tests.**
   - `song_saver_test.dart` (temp Documents; a mocked engine whose `exportGp` returns `[1, 2, 3]`; a real `ScoreCubit` on a mocked engine, opened at `a.gp`):
-    - `the first edit of an opened file writes a copy beside it`: `saveNow()` → `a (DuoTab).gp` holds `[1, 2, 3]`; `a.gp` untouched; `score.state.path == 'a (DuoTab).gp'`; `onSaved` called.
-    - `later saves write the copy`: a second `saveNow()` with export `[4]` → the copy holds `[4]`, and no `a (DuoTab) (2).gp` exists.
-    - `an existing copy name gets a counter`: an existing `a (DuoTab).gp` (not owned) → writes `a (DuoTab) (2).gp`.
-    - `a file the app did not create is never written`: open `b (DuoTab).gp`, not owned → `saveNow` writes `b (DuoTab) (DuoTab).gp`.
+    - `the first edit of an opened file writes a copy beside it`: `saveNow()` → `a (DuoScore).gp` holds `[1, 2, 3]`; `a.gp` untouched; `score.state.path == 'a (DuoScore).gp'`; `onSaved` called.
+    - `later saves write the copy`: a second `saveNow()` with export `[4]` → the copy holds `[4]`, and no `a (DuoScore) (2).gp` exists.
+    - `an existing copy name gets a counter`: an existing `a (DuoScore).gp` (not owned) → writes `a (DuoScore) (2).gp`.
+    - `a file the app did not create is never written`: open `b (DuoScore).gp`, not owned → `saveNow` writes `b (DuoScore) (DuoScore).gp`.
     - `schedule saves once after the delay`: three `schedule()` calls 100 ms apart (fake async) → one export after 1 s.
     - `createSong saves a new song under its title`: `createSong(title: 'Riff')` → `Riff.gp` exists and is owned; `score.state.path == 'Riff.gp'`.
-  - `score_cubit_test.dart`: `an engine restart reopens the saved copy`: open `a.gp`, `moveTo('a (DuoTab).gp')`, a `ready` event → `engine.open('a (DuoTab).gp')`.
+  - `score_cubit_test.dart`: `an engine restart reopens the saved copy`: open `a.gp`, `moveTo('a (DuoScore).gp')`, a `ready` event → `engine.open('a (DuoScore).gp')`.
   - `tuning_presets_test.dart`:
     - `6 strings start with Standard E` (`[64, 59, 55, 50, 45, 40]`) and include `Drop D` (`[64, 59, 55, 50, 45, 38]`);
     - `7 strings include Standard B` (`[64, 59, 55, 50, 45, 40, 35]`);
@@ -531,7 +531,7 @@ Expected: all pass, `No issues found!`
 
 ```bash
 git add -A lib test
-git commit -m "feat: autosave into a DuoTab copy, and new songs from the library"
+git commit -m "feat: autosave into a DuoScore copy, and new songs from the library"
 ```
 
 ---
@@ -542,7 +542,7 @@ No new code unless a check fails; a failure goes through superpowers:systematic-
 
 - [ ] **Step 1: Build and install**
 
-Run: `npm --prefix engine run build && flutter build ios --simulator && xcrun simctl install booted build/ios/iphonesimulator/Runner.app && xcrun simctl launch booted me.withedgar.duotab`
+Run: `npm --prefix engine run build && flutter build ios --simulator && xcrun simctl install booted build/ios/iphonesimulator/Runner.app && xcrun simctl launch booted dev.edbrsk.duoscore`
 Expected: build succeeds; the app launches.
 
 - [ ] **Step 2: Owner checks**, reported back in one message:
@@ -552,10 +552,10 @@ Expected: build succeeds; the app launches.
   3. **Note values and dots**: an eighth, then a dotted quarter. A bar that's too long or too short turns red with its amount; filling it right clears the red.
   4. **Voice 2**: notes go into a second voice, drawn with stems the other way.
   5. **Undo and redo** step back and forth through those edits.
-  6. **Open Collateral Damage** and change one fret: `Collateral Damage (DuoTab).gp` appears in the library, and the original is untouched (open it in Guitar Pro 8).
+  6. **Open Collateral Damage** and change one fret: `Collateral Damage (DuoScore).gp` appears in the library, and the original is untouched (open it in Guitar Pro 8).
   7. **The copy opens in Guitar Pro 8** with the change.
   8. **Edit while playing**: playback continues from the same spot with the change audible.
-  9. **Collapse the palette and the track panel**: the sheet widens. In narrow Split View, the palette and the fret pad disappear and "Make DuoTab wider to edit" shows.
+  9. **Collapse the palette and the track panel**: the sheet widens. In narrow Split View, the palette and the fret pad disappear and "Make DuoScore wider to edit" shows.
   10. **Re-render time** after an edit on Collateral Damage feels immediate (note the delay if not).
 
 - [ ] **Step 3: Record the results** in the ledger, one line per check, and fix any failure as described above.

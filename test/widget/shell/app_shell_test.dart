@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:duotab/core/duo/vertical_bar_edge_provider.dart';
-import 'package:duotab/l10n/app_localizations.dart';
-import 'package:duotab/presentation/shell/app_destinations.dart';
-import 'package:duotab/presentation/shell/app_shell.dart';
-import 'package:duotab/presentation/shell/navigation_cubit.dart';
-import 'package:duotab/presentation/widgets/app_navigation_rail.dart';
+import 'package:duoscore/core/duo/vertical_bar_edge_provider.dart';
+import 'package:duoscore/l10n/app_localizations.dart';
+import 'package:duoscore/presentation/shell/app_destinations.dart';
+import 'package:duoscore/presentation/shell/app_shell.dart';
+import 'package:duoscore/presentation/shell/navigation_cubit.dart';
+import 'package:duoscore/presentation/widgets/app_navigation_rail.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';

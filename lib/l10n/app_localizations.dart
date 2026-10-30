@@ -97,7 +97,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:
-  /// **'DuoTab'**
+  /// **'DuoScore'**
   String get appTitle;
 
   /// No description provided for @foldedMessage.
@@ -133,13 +133,13 @@ abstract class AppLocalizations {
   /// No description provided for @widerToEdit.
   ///
   /// In en, this message translates to:
-  /// **'Make DuoTab wider to edit'**
+  /// **'Make DuoScore wider to edit'**
   String get widerToEdit;
 
   /// No description provided for @libraryEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoTab'**
+  /// **'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoScore'**
   String get libraryEmpty;
 
   /// No description provided for @unreadableFile.

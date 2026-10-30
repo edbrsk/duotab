@@ -1,13 +1,13 @@
 import 'dart:io';
 
-import 'package:duotab/core/storage/json_file.dart';
-import 'package:duotab/engine/engine_bridge.dart';
-import 'package:duotab/features/editor/owned_files.dart';
-import 'package:duotab/features/editor/song_saver.dart';
-import 'package:duotab/features/library/song_files.dart';
-import 'package:duotab/features/playback/practice_settings.dart';
-import 'package:duotab/features/playback/practice_store.dart';
-import 'package:duotab/features/score/score_cubit.dart';
+import 'package:duoscore/core/storage/json_file.dart';
+import 'package:duoscore/engine/engine_bridge.dart';
+import 'package:duoscore/features/editor/owned_files.dart';
+import 'package:duoscore/features/editor/song_saver.dart';
+import 'package:duoscore/features/library/song_files.dart';
+import 'package:duoscore/features/playback/practice_settings.dart';
+import 'package:duoscore/features/playback/practice_store.dart';
+import 'package:duoscore/features/score/score_cubit.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';

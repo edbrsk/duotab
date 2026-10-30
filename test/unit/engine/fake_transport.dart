@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:duotab/engine/engine_transport.dart';
+import 'package:duoscore/engine/engine_transport.dart';
 
 class FakeTransport implements EngineTransport {
   final sent = <String>[];

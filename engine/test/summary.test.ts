@@ -25,8 +25,8 @@ test('summarize reports a broken file as an error', () => {
   expect(() => summarize(gpBytes(twoGuitarsAndDrums).slice(0, 200), 'truncated.gp')).toThrow();
 });
 
-test.skipIf(!process.env.DUOTAB_PRIVATE_SAMPLE)('summarizes the private sample', () => {
-  const s = summarize(new Uint8Array(readFileSync(process.env.DUOTAB_PRIVATE_SAMPLE!)), '07 Collateral Damage.gp');
+test.skipIf(!process.env.DUOSCORE_PRIVATE_SAMPLE)('summarizes the private sample', () => {
+  const s = summarize(new Uint8Array(readFileSync(process.env.DUOSCORE_PRIVATE_SAMPLE!)), '07 Collateral Damage.gp');
   expect(s.tracks).toHaveLength(7);
   expect(s.tracks.every((t) => t.kind === 'guitar' && t.stringCount === 6)).toBe(true);
   expect(s.tracks[0].tuning).toEqual([63, 58, 54, 49, 44, 39]);

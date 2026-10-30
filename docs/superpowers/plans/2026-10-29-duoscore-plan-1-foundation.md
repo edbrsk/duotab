@@ -1,4 +1,4 @@
-# DuoTab Plan 1: Foundation Implementation Plan
+# DuoScore Plan 1: Foundation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Flutter 3.47.8, Dart 3, Swift (UIKit, iOS 27.1 SDK), `webview_flutter`, `flutter_bloc`, `get_it`, `provider`, `path_provider`, `flutter_localizations` + `intl`, `bloc_test`, `mocktail`; TypeScript, `@coderline/alphatab` 1.6.1, esbuild, vitest, Node 26.
 
-**Spec:** `docs/superpowers/specs/2026-10-29-duotab-design.md`
+**Spec:** `docs/superpowers/specs/2026-10-29-duoscore-design.md`
 
 ## Roadmap
 
@@ -18,20 +18,20 @@ This is the first of four plans; each later one is written after the previous la
 |---|---|
 | 1 Foundation (this) | engine spikes, app shell, fold gate, vertical-bar navigation, workspace layout, engine package and bridge, library, Open In, read-only score view |
 | 2 Playback | engine player commands, transport, tones, practice settings store, cursor, A–B loop, count-in, metronome, pause on close, the track drawer (mute/solo, bar overview grid) replacing Plan 1's right-hand track list, the track information panel, the licence screen (alphaTab, Bravura, Sonivox) in Settings |
-| 3 Editor | new song, tap-to-cursor and fret pad, palette, voices, bar check, bar editing, tempo and time signatures, guitar track management, undo/redo, autosave and the "(DuoTab)" copy |
+| 3 Editor | new song, tap-to-cursor and fret pad, palette, voices, bar check, bar editing, tempo and time signatures, guitar track management, undo/redo, autosave and the "(DuoScore)" copy |
 | 4 Retune and export | retuning, automatic fingering for parts without string/fret data, `.gp` and PDF export, share sheet |
 
 ## Global Constraints
 
 - iOS only; `IPHONEOS_DEPLOYMENT_TARGET = 27.1`, built with Xcode 27.1 (iOS 27.1 SDK).
-- Flutter package name `duotab`; bundle identifier `me.withedgar.duotab`; every platform channel is named `me.withedgar.duotab/<name>`.
+- Flutter package name `duoscore`; bundle identifier `dev.edbrsk.duoscore`; every platform channel is named `dev.edbrsk.duoscore/<name>`.
 - `analysis_options.yaml` is copied verbatim from `/Users/eordonez/Code/sideprojects/dreambudget_app/analysis_options.yaml`; `flutter analyze` must report no issues at every commit.
 - No LGPL (or GPL) Dart packages.
 - `@coderline/alphatab` is pinned to exactly `1.6.1` in `engine/package.json` and shipped unmodified.
 - The engine builds with `npm --prefix engine run build` into `assets/engine/`, which is git-ignored; `flutter build` and `flutter run` need it built first. `npm --prefix engine test` runs the engine's tests.
 - Engine message types are declared once in `engine/src/protocol.ts` and mirrored in `lib/engine/protocol.dart`; a change to one changes the other in the same commit.
-- All user-facing strings come from `lib/l10n/app_en.arb`. Exact copy fixed by the spec: `Open your iPhone Duo to continue`, `This song has no guitar track`, `Make DuoTab wider to edit`.
-- The owner's songs (`/Users/eordonez/Desktop/2. Guitar Pro Files/`) and the alphaTab test corpus are never copied into the repo. Tests reach the primary song only through the environment variable `DUOTAB_PRIVATE_SAMPLE` (`/Users/eordonez/Desktop/2. Guitar Pro Files/07 Collateral Damage.gp`) and skip when it is unset.
+- All user-facing strings come from `lib/l10n/app_en.arb`. Exact copy fixed by the spec: `Open your iPhone Duo to continue`, `This song has no guitar track`, `Make DuoScore wider to edit`.
+- The owner's songs (`/Users/eordonez/Desktop/2. Guitar Pro Files/`) and the alphaTab test corpus are never copied into the repo. Tests reach the primary song only through the environment variable `DUOSCORE_PRIVATE_SAMPLE` (`/Users/eordonez/Desktop/2. Guitar Pro Files/07 Collateral Damage.gp`) and skip when it is unset.
 - Native Swift code lives in `ios/Runner/AppDelegate.swift`, as in dreambudget, so no task edits `project.pbxproj` by hand.
 - Supported song extensions, lowercase: `.gp3`, `.gp4`, `.gp5`, `.gpx`, `.gp`, `.musicxml`, `.xml`, `.mxl`.
 
@@ -64,7 +64,7 @@ Throwaway code on branch `spike/engine`, never merged. Only the report lands on 
 
 - [ ] **Step 1: Build the probe**
 
-The scratch app starts a `dart:io` `HttpServer` on `127.0.0.1:0` serving a folder that holds `index.html`, alphaTab's `dist/` (module, worker, worklet, `font/`, `soundfont/`), and the private sample. It loads `http://127.0.0.1:<port>/index.html` in a `WebViewWidget`. The page imports `alphaTab.mjs` as an ES module, creates `new AlphaTabApi(div, settings)` with `display.staveProfile = ScoreTab`, `core.fontDirectory`, `player.playerMode = EnabledSynthesizer`, `player.soundFont` pointing at `sonivox.sf2`, loads the song by URL, renders only track 0, and posts timings and errors through a `JavaScriptChannel` named `DuoTab`. Add a Play button on the page.
+The scratch app starts a `dart:io` `HttpServer` on `127.0.0.1:0` serving a folder that holds `index.html`, alphaTab's `dist/` (module, worker, worklet, `font/`, `soundfont/`), and the private sample. It loads `http://127.0.0.1:<port>/index.html` in a `WebViewWidget`. The page imports `alphaTab.mjs` as an ES module, creates `new AlphaTabApi(div, settings)` with `display.staveProfile = ScoreTab`, `core.fontDirectory`, `player.playerMode = EnabledSynthesizer`, `player.soundFont` pointing at `sonivox.sf2`, loads the song by URL, renders only track 0, and posts timings and errors through a `JavaScriptChannel` named `DuoScore`. Add a Play button on the page.
 
 - [ ] **Step 2: Run on the iPhone Duo simulator and check**
 
@@ -99,12 +99,12 @@ If alphaTab cannot draw or play inside the web view, stop and bring the report t
 - Test: `test/widget/app_test.dart`
 
 **Interfaces:**
-- Produces: `Future<void> setupDependencies()` in `lib/core/dependency_injection.dart` (later tasks add registrations), `final getIt = GetIt.instance`; `class DuoTabApp extends StatelessWidget` in `lib/app.dart` with a `home` parameter; tokens `Spacing.{xs=4, sm=8, md=16, lg=24, xl=32}`, `AccessibleSizes.minTouchTarget = 48`, `IconSizes.md = 24`, `AppColors.accent = Color(0xFF3D7CFF)`, `AppColors.panel = Color(0xFF1E2128)`, `AppColors.paper = Color(0xFFFBFBF8)`.
+- Produces: `Future<void> setupDependencies()` in `lib/core/dependency_injection.dart` (later tasks add registrations), `final getIt = GetIt.instance`; `class DuoScoreApp extends StatelessWidget` in `lib/app.dart` with a `home` parameter; tokens `Spacing.{xs=4, sm=8, md=16, lg=24, xl=32}`, `AccessibleSizes.minTouchTarget = 48`, `IconSizes.md = 24`, `AppColors.accent = Color(0xFF3D7CFF)`, `AppColors.panel = Color(0xFF1E2128)`, `AppColors.paper = Color(0xFFFBFBF8)`.
 
 - [ ] **Step 1: Generate the project**
 
 ```bash
-flutter create --platforms=ios --org me.withedgar --project-name duotab .
+flutter create --platforms=ios --org dev.edbrsk --project-name duoscore .
 sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 27.1;/' ios/Runner.xcodeproj/project.pbxproj
 flutter pub add flutter_bloc get_it provider path_provider path intl webview_flutter
 flutter pub add flutter_localizations --sdk=flutter
@@ -117,9 +117,9 @@ Set `flutter: generate: true` in `pubspec.yaml`. `l10n.yaml` sets `arb-dir: lib/
 
 ```dart
 testWidgets('boots with localized title', (tester) async {
-  await tester.pumpWidget(const DuoTabApp(home: SizedBox()));
+  await tester.pumpWidget(const DuoScoreApp(home: SizedBox()));
   final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
-  expect(app.title, 'DuoTab');
+  expect(app.title, 'DuoScore');
   expect(app.supportedLocales, contains(const Locale('en')));
 });
 ```
@@ -127,11 +127,11 @@ testWidgets('boots with localized title', (tester) async {
 - [ ] **Step 3: Run it to see it fail**
 
 Run: `flutter test test/widget/app_test.dart`
-Expected: FAIL (`DuoTabApp` not defined)
+Expected: FAIL (`DuoScoreApp` not defined)
 
-- [ ] **Step 4: Implement `DuoTabApp({required Widget home})`, the tokens and `main()`**
+- [ ] **Step 4: Implement `DuoScoreApp({required Widget home})`, the tokens and `main()`**
 
-`main()` calls `WidgetsFlutterBinding.ensureInitialized()`, `await setupDependencies()`, then `runApp`. The theme is dark, with `AppColors.panel` as the surface colour. `app_en.arb` starts with `appTitle: "DuoTab"`.
+`main()` calls `WidgetsFlutterBinding.ensureInitialized()`, `await setupDependencies()`, then `runApp`. The theme is dark, with `AppColors.panel` as the surface colour. `app_en.arb` starts with `appTitle: "DuoScore"`.
 
 - [ ] **Step 5: Verify**
 
@@ -141,7 +141,7 @@ Expected: tests pass, `No issues found!`, `✓ Built build/ios/iphonesimulator/R
 - [ ] **Step 6: Commit**
 
 ```bash
-git add -A && git commit -m "feat: scaffold DuoTab Flutter app for iOS 27.1"
+git add -A && git commit -m "feat: scaffold DuoScore Flutter app for iOS 27.1"
 ```
 
 ---
@@ -157,11 +157,11 @@ A port of dreambudget commit `556e8f9`, with the channel renamed.
 - Test: `test/unit/core/duo/vertical_bar_edge_provider_test.dart`
 
 **Interfaces:**
-- Produces: `enum VerticalBarEdge { unspecified, leading, trailing }`; `class VerticalBarEdgeProvider extends ChangeNotifier` with `VerticalBarEdgeProvider({Stream<dynamic>? edgeEvents})`, `VerticalBarEdge get edge`, `static VerticalBarEdge edgeOf(BuildContext context)`. Channel `me.withedgar.duotab/vertical_bar_edge`, events `'leading' | 'trailing' | 'unspecified'`.
+- Produces: `enum VerticalBarEdge { unspecified, leading, trailing }`; `class VerticalBarEdgeProvider extends ChangeNotifier` with `VerticalBarEdgeProvider({Stream<dynamic>? edgeEvents})`, `VerticalBarEdge get edge`, `static VerticalBarEdge edgeOf(BuildContext context)`. Channel `dev.edbrsk.duoscore/vertical_bar_edge`, events `'leading' | 'trailing' | 'unspecified'`.
 
 - [ ] **Step 1: Port the tests**
 
-Copy `dreambudget_app/test/unit/core/vertical_bar_edge_provider_test.dart`, changing the import to `package:duotab/core/duo/vertical_bar_edge_provider.dart`. Its three tests stay as they are: follows reported edges, no notification on an unchanged edge, unknown values and errors map to `unspecified`.
+Copy `dreambudget_app/test/unit/core/vertical_bar_edge_provider_test.dart`, changing the import to `package:duoscore/core/duo/vertical_bar_edge_provider.dart`. Its three tests stay as they are: follows reported edges, no notification on an unchanged edge, unknown values and errors map to `unspecified`.
 
 - [ ] **Step 2: Run them to see them fail**
 
@@ -170,7 +170,7 @@ Expected: FAIL (import not found)
 
 - [ ] **Step 3: Port the provider and the Swift `VerticalBarEdgeStreamHandler`**
 
-Copy `dreambudget_app/lib/core/vertical_bar_edge_provider.dart` (replace `ErrorHandler.handleError` with `debugPrint`, since DuoTab has no error tracker) and the handler class plus its registration from `dreambudget_app/ios/Runner/AppDelegate.swift`. Change the channel name. With the 27.1 deployment target, the `#available(iOS 27.1, *)` guards can go.
+Copy `dreambudget_app/lib/core/vertical_bar_edge_provider.dart` (replace `ErrorHandler.handleError` with `debugPrint`, since DuoScore has no error tracker) and the handler class plus its registration from `dreambudget_app/ios/Runner/AppDelegate.swift`. Change the channel name. With the 27.1 deployment target, the `#available(iOS 27.1, *)` guards can go.
 
 - [ ] **Step 4: Verify**
 
@@ -194,7 +194,7 @@ git add -A && git commit -m "feat: stream the iPhone Duo vertical bar edge to Fl
 - Test: `test/unit/core/duo/hinge_status_provider_test.dart`
 
 **Interfaces:**
-- Produces: `enum HingeStatus { unknown, closed, partiallyOpen, fullyOpen, unavailable }`; `class HingeStatusProvider extends ChangeNotifier` with `HingeStatusProvider({Stream<dynamic>? hingeEvents})`, `HingeStatus get status`, `bool get isOpen`, `static bool isOpenOf(BuildContext context)`. Channel `me.withedgar.duotab/hinge_status`, events `'unknown' | 'closed' | 'partiallyOpen' | 'fullyOpen' | 'unavailable'`.
+- Produces: `enum HingeStatus { unknown, closed, partiallyOpen, fullyOpen, unavailable }`; `class HingeStatusProvider extends ChangeNotifier` with `HingeStatusProvider({Stream<dynamic>? hingeEvents})`, `HingeStatus get status`, `bool get isOpen`, `static bool isOpenOf(BuildContext context)`. Channel `dev.edbrsk.duoscore/hinge_status`, events `'unknown' | 'closed' | 'partiallyOpen' | 'fullyOpen' | 'unavailable'`.
 - `isOpen` is `false` only for `closed`. `unknown` and `unavailable` count as open, so the app stays usable where no hinge is reported (the builder's call the spec leaves open).
 
 - [ ] **Step 1: Write the failing tests**
@@ -355,7 +355,7 @@ Implements the approved option A v2 mockup (`.superpowers/brainstorm/75036-17932
 
 **Files:**
 - Create: `lib/presentation/workspace/workspace_layout.dart`
-- Modify: `lib/l10n/app_en.arb` (`widerToEdit: "Make DuoTab wider to edit"`)
+- Modify: `lib/l10n/app_en.arb` (`widerToEdit: "Make DuoScore wider to edit"`)
 - Test: `test/widget/workspace/workspace_layout_test.dart`
 
 **Interfaces:**
@@ -383,7 +383,7 @@ testWidgets('mirrors when the bar is on the leading edge', (tester) async {
 testWidgets('collapses to the score below the three-column width', (tester) async {
   // width 600
   expect(find.byKey(const Key('palette')), findsNothing);
-  expect(find.text('Make DuoTab wider to edit'), findsOneWidget);
+  expect(find.text('Make DuoScore wider to edit'), findsOneWidget);
 });
 ```
 
@@ -420,7 +420,7 @@ git add -A && git commit -m "feat: three-column workspace centred on the iPhone 
   - `type Request = { id: number; type: 'ping' | 'summarize' | 'open' | 'renderTrack'; payload: unknown }`, `type Reply = { id: number; ok: true; payload: unknown } | { id: number; ok: false; error: string }`, `type EngineEvent = { event: 'ready' | 'rendered' | 'error'; payload: unknown }`
   - payloads: `summarize { path: string }` → `SongSummary`; `open { path: string }` → `SongSummary`; `renderTrack { index: number }` → `{}` (then a `rendered` event)
   - `type TrackKind = 'guitar' | 'drums' | 'other'`; `type TrackSummary = { index: number; name: string; kind: TrackKind; stringCount: number | null; tuning: number[] | null; midiProgram: number }` (tuning = MIDI numbers, top string first; `midiProgram` 0-based as alphaTab stores it); `type SongSummary = { title: string; tracks: TrackSummary[] }`
-- Produces: `classifyTrack(t: { isPercussion: boolean; stringCount: number; midiProgram: number }): TrackKind` (percussion → drums; strings > 0 or a program 24–31 (0-based guitar family) → guitar; else other); `summarize(bytes: Uint8Array, fileName: string): SongSummary` (title falls back to the file name without its extension); `main.ts` installs `window.duotab = { handle(json: string): void }`, answers through `window.webkit.messageHandlers.DuoTab.postMessage` (the channel `webview_flutter` creates), and posts `ready` once alphaTab is set up. `open` loads the song into the single `AlphaTabApi`; `renderTrack` renders only that track with `staveProfile = ScoreTab`.
+- Produces: `classifyTrack(t: { isPercussion: boolean; stringCount: number; midiProgram: number }): TrackKind` (percussion → drums; strings > 0 or a program 24–31 (0-based guitar family) → guitar; else other); `summarize(bytes: Uint8Array, fileName: string): SongSummary` (title falls back to the file name without its extension); `main.ts` installs `window.duoscore = { handle(json: string): void }`, answers through `window.webkit.messageHandlers.DuoScore.postMessage` (the channel `webview_flutter` creates), and posts `ready` once alphaTab is set up. `open` loads the song into the single `AlphaTabApi`; `renderTrack` renders only that track with `staveProfile = ScoreTab`.
 - `build.mjs` bundles `src/main.ts` to `../assets/engine/engine.js` with alphaTab left as an external ES module, and copies `index.html` and alphaTab's `dist/` files the Task 2 report names into `../assets/engine/`.
 
 - [ ] **Step 1: Set up the package**
@@ -453,8 +453,8 @@ test('summarize reports a broken file as an error', () => {
   expect(() => summarize(new Uint8Array(20), 'broken.gp5')).toThrow();
 });
 
-test.skipIf(!process.env.DUOTAB_PRIVATE_SAMPLE)('summarizes the private sample', () => {
-  const s = summarize(new Uint8Array(readFileSync(process.env.DUOTAB_PRIVATE_SAMPLE!)), '07 Collateral Damage.gp');
+test.skipIf(!process.env.DUOSCORE_PRIVATE_SAMPLE)('summarizes the private sample', () => {
+  const s = summarize(new Uint8Array(readFileSync(process.env.DUOSCORE_PRIVATE_SAMPLE!)), '07 Collateral Damage.gp');
   expect(s.tracks).toHaveLength(7);
   expect(s.tracks.every((t) => t.kind === 'guitar' && t.stringCount === 6)).toBe(true);
   expect(s.tracks[0].tuning).toEqual([63, 58, 54, 49, 44, 39]);
@@ -470,7 +470,7 @@ Expected: FAIL (modules not found)
 
 - [ ] **Step 5: Verify**
 
-Run: `DUOTAB_PRIVATE_SAMPLE="/Users/eordonez/Desktop/2. Guitar Pro Files/07 Collateral Damage.gp" npm --prefix engine test && npm --prefix engine run build && ls assets/engine`
+Run: `DUOSCORE_PRIVATE_SAMPLE="/Users/eordonez/Desktop/2. Guitar Pro Files/07 Collateral Damage.gp" npm --prefix engine test && npm --prefix engine run build && ls assets/engine`
 Expected: all tests pass, the private-sample one included; `assets/engine/` holds `index.html`, `engine.js` and the copied alphaTab files.
 
 - [ ] **Step 6: Commit**
@@ -495,7 +495,7 @@ git add engine .gitignore && git commit -m "feat: add the alphaTab engine packag
   - `abstract interface class EngineTransport { Future<void> send(String json); Stream<String> get incoming; }`
   - `class EngineBridge` with `EngineBridge(EngineTransport transport, {Duration timeout = const Duration(seconds: 15)})`, `Future<bool> get ready`, `Future<SongSummary> summarize(String documentsRelativePath)`, `Future<SongSummary> open(String documentsRelativePath)`, `Future<void> renderTrack(int index)`, `Stream<EngineEvent> get events`, `void dispose()`. A failed reply throws `EngineException(String message)`; no reply within `timeout` throws `EngineTimeout`.
   - `class AssetServer` with `static Future<AssetServer> start({required Directory engineAssets, required Directory documents})`, `Uri get engineUri` (`/engine/index.html`), `Uri songUri(String documentsRelativePath)` (`/songs/<path>`), `Future<void> close()`. It binds `127.0.0.1` only, serves `/engine/**` from the unpacked engine assets and `/songs/**` from Documents read-only, and rejects paths that escape either root.
-  - `class EngineHost` owns the single `WebViewController` and a `WebViewTransport implements EngineTransport` (`runJavaScript('window.duotab.handle(<json>)')` out, `JavaScriptChannel('DuoTab')` in), created once in `setupDependencies()` and loading `engineUri`. `EngineView()` is the `WebViewWidget` for that controller. It sits in the score column (Task 13); the shell's `IndexedStack` (Task 7) mounts the Editor page from launch and keeps it mounted, so the engine runs while other tabs show.
+  - `class EngineHost` owns the single `WebViewController` and a `WebViewTransport implements EngineTransport` (`runJavaScript('window.duoscore.handle(<json>)')` out, `JavaScriptChannel('DuoScore')` in), created once in `setupDependencies()` and loading `engineUri`. `EngineView()` is the `WebViewWidget` for that controller. It sits in the score column (Task 13); the shell's `IndexedStack` (Task 7) mounts the Editor page from launch and keeps it mounted, so the engine runs while other tabs show.
   - Flutter's asset bundle is copied once at launch into `Application Support/engine/<build number>/` so the server can serve it from disk.
 
 - [ ] **Step 1: Write the failing tests**
@@ -530,7 +530,7 @@ Expected: FAIL
 
 - [ ] **Step 4: Verify on the simulator**
 
-Run: `npm --prefix engine run build && flutter test && flutter analyze && flutter run -d "iPhone Duo"`, with a temporary `debugPrint` of `await bridge.ready` and of a `summarize` call on a file copied into the app's Documents (`cp "$DUOTAB_PRIVATE_SAMPLE" "$(xcrun simctl get_app_container booted me.withedgar.duotab data)/Documents/"`). Remove the prints.
+Run: `npm --prefix engine run build && flutter test && flutter analyze && flutter run -d "iPhone Duo"`, with a temporary `debugPrint` of `await bridge.ready` and of a `summarize` call on a file copied into the app's Documents (`cp "$DUOSCORE_PRIVATE_SAMPLE" "$(xcrun simctl get_app_container booted dev.edbrsk.duoscore data)/Documents/"`). Remove the prints.
 Expected: tests pass; the log shows `ready` and a summary with 7 guitar tracks.
 
 - [ ] **Step 5: Commit**
@@ -545,7 +545,7 @@ git add -A && git commit -m "feat: bridge Flutter to the alphaTab engine in a we
 
 **Files:**
 - Create: `lib/features/library/song_list_entry.dart`, `lib/features/library/library_cubit.dart`, `lib/features/library/library_page.dart`
-- Modify: `ios/Runner/Info.plist` (`UIFileSharingEnabled` = true, `LSSupportsOpeningDocumentsInPlace` = true), `lib/l10n/app_en.arb` (`libraryEmpty: "Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoTab"`, `unreadableFile: "Can't open this file"`, `newSong: "New song"`, `stringsCount: "{count} strings"`)
+- Modify: `ios/Runner/Info.plist` (`UIFileSharingEnabled` = true, `LSSupportsOpeningDocumentsInPlace` = true), `lib/l10n/app_en.arb` (`libraryEmpty: "Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoScore"`, `unreadableFile: "Can't open this file"`, `newSong: "New song"`, `stringsCount: "{count} strings"`)
 - Test: `test/unit/features/library/library_cubit_test.dart`, `test/widget/library/library_page_test.dart`
 
 **Interfaces:**
@@ -578,12 +578,12 @@ Expected: FAIL
 - [ ] **Step 4: Verify**
 
 Run: `flutter test && flutter analyze`. Then on the simulator, with the private sample copied into the app's Documents (Task 10 Step 4), relaunch.
-Expected: tests pass; the library shows "Collateral Damage", `E♭ A♭ D♭ G♭ B♭ E♭`, "6 strings", and the Files app lists the DuoTab folder.
+Expected: tests pass; the library shows "Collateral Damage", `E♭ A♭ D♭ G♭ B♭ E♭`, "6 strings", and the Files app lists the DuoScore folder.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add -A && git commit -m "feat: list songs from the DuoTab Files folder"
+git add -A && git commit -m "feat: list songs from the DuoScore Files folder"
 ```
 
 ---
@@ -598,7 +598,7 @@ git add -A && git commit -m "feat: list songs from the DuoTab Files folder"
 
 **Interfaces:**
 - Consumes: `LibraryCubit.refresh()` (Task 11), `NavigationCubit.select` (Task 7), `ScoreCubit.open` (Task 13; wire it in Task 13).
-- Produces: `File uniqueDestination(Directory dir, String fileName)`; `class IncomingFilesProvider` with `IncomingFilesProvider({Stream<dynamic>? events, required Directory documents, required Future<void> Function(String path) onImported})`. It moves each incoming file into Documents at `uniqueDestination`, deletes the staging folder, then calls `onImported` with the path relative to Documents. Channel `me.withedgar.duotab/incoming_files`.
+- Produces: `File uniqueDestination(Directory dir, String fileName)`; `class IncomingFilesProvider` with `IncomingFilesProvider({Stream<dynamic>? events, required Directory documents, required Future<void> Function(String path) onImported})`. It moves each incoming file into Documents at `uniqueDestination`, deletes the staging folder, then calls `onImported` with the path relative to Documents. Channel `dev.edbrsk.duoscore/incoming_files`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -623,8 +623,8 @@ Expected: FAIL
 
 - [ ] **Step 4: Verify on the simulator**
 
-Run: `flutter test && flutter analyze && flutter run -d "iPhone Duo"`. Drag a song from the Mac onto the simulator so it lands in Files under "On My iPhone" (outside DuoTab), long-press it, choose Share › DuoTab.
-Expected: DuoTab opens and the file appears in the library. Sharing the same file again adds `(2)`.
+Run: `flutter test && flutter analyze && flutter run -d "iPhone Duo"`. Drag a song from the Mac onto the simulator so it lands in Files under "On My iPhone" (outside DuoScore), long-press it, choose Share › DuoScore.
+Expected: DuoScore opens and the file appears in the library. Sharing the same file again adds `(2)`.
 
 - [ ] **Step 5: Commit**
 

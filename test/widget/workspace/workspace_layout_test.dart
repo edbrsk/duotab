@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:duotab/core/design/design_tokens.dart';
-import 'package:duotab/core/duo/vertical_bar_edge_provider.dart';
-import 'package:duotab/l10n/app_localizations.dart';
-import 'package:duotab/presentation/workspace/workspace_layout.dart';
+import 'package:duoscore/core/design/design_tokens.dart';
+import 'package:duoscore/core/duo/vertical_bar_edge_provider.dart';
+import 'package:duoscore/l10n/app_localizations.dart';
+import 'package:duoscore/presentation/workspace/workspace_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -124,7 +124,7 @@ void main() {
     await pumpLayout(tester, width: 600, barEdge: 'unspecified');
 
     expect(find.byKey(const Key('palette')), findsNothing);
-    expect(find.text('Make DuoTab wider to edit'), findsOneWidget);
+    expect(find.text('Make DuoScore wider to edit'), findsOneWidget);
     expect(find.text('score content'), findsOneWidget);
   });
 

@@ -66,7 +66,7 @@ A note no string can reach is written as a **rest** (B1 on a 6-string standard t
 
 ### 4. Playback
 
-Not run in this spike. The spike's time went on the gaps above, and the decision below does not depend on it. Known from the API: `scoreToMidi` is format 0 with one tempo and velocity 80, so DuoTab writes its own file in either option (spec, Playback).
+Not run in this spike. The spike's time went on the gaps above, and the decision below does not depend on it. Known from the API: `scoreToMidi` is format 0 with one tempo and velocity 80, so DuoScore writes its own file in either option (spec, Playback).
 
 ### 5. Track information on import
 
@@ -79,13 +79,13 @@ Not run in this spike. The spike's time went on the gaps above, and the decision
 | Tuning, string count | not read | read internally to turn frets into pitches, not exposed |
 | String per note | not read | `Score.tabVoicings` |
 
-`Tuning` is not stored on a `Score`; layout takes it as an argument (`NotationTabView(score:, tuning:)`), so DuoTab's `SongTrack.tuning` is the right home for it in any case.
+`Tuning` is not stored on a `Score`; layout takes it as an argument (`NotationTabView(score:, tuning:)`), so DuoScore's `SongTrack.tuning` is the right home for it in any case.
 
 `NotationTabView({required Score score, required Tuning tuning, double staffSpace = 12, double staffGap = 5, CrispNotationTheme theme, Set<String> highlightedIds, int capo = 0, bool showTuning = false})`
 
 ## What keeping crisp_notation costs
 
-Work DuoTab would add to a fork, or around it:
+Work DuoScore would add to a fork, or around it:
 
 1. **MusicXML guitar import**: tunings from `<staff-tuning>`, string pins from `<string>`/`<fret>`, and bends, hammer-ons/pull-offs, slides, vibrato, palm mute, let ring, harmonics and dead notes. Without this, a MusicXML file shows no techniques and wrong fingering.
 2. **Guitar Pro track headers and techniques**: expose tuning, name, MIDI program and percussion from the GP3–GP5 and GPIF readers, and read palm mute, vibrato and let ring from Guitar Pro 8 files.
@@ -106,7 +106,7 @@ The spec's last-resort fallback, measured with `@coderline/alphatab` 1.6.1 in No
 - **Collateral Damage `.gp`**, all 7 tracks: 4,030 notes, 290 bends, 266 vibratos, 697 palm mutes, 399 let rings, 81 slides, 213 hammer-ons/pull-offs, 14 dead notes, 17 harmonics. The tuning (E♭ standard) and the instrument (program 29, 0-based = Overdriven Guitar) come back on every track.
 - **Saving `.gp`** (`Gp7Exporter`): exporting that song and reading it back gives identical counts. Whether Guitar Pro 8 opens the exported file is pending (`test_assets_private/spike/alphatab-07 Collateral Damage.gp`).
 
-On top of that, alphaTab wraps lines, follows playback with a cursor, and plays through its built-in SoundFont synth with mute/solo, speed and loops. The cost is architectural: the score and its model live in JavaScript inside a `WKWebView`, so the editor's commands run in JavaScript behind a bridge, and DuoTab becomes a Dart + TypeScript codebase. Native playback through `AVAudioSequencer` would no longer be needed.
+On top of that, alphaTab wraps lines, follows playback with a cursor, and plays through its built-in SoundFont synth with mute/solo, speed and loops. The cost is architectural: the score and its model live in JavaScript inside a `WKWebView`, so the editor's commands run in JavaScript behind a bridge, and DuoScore becomes a Dart + TypeScript codebase. Native playback through `AVAudioSequencer` would no longer be needed.
 
 ## Decision
 

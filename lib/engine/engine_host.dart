@@ -19,7 +19,7 @@ class WebViewTransport implements EngineTransport {
   @override
   Future<void> send(String json) =>
       // jsonEncode turns the message into a safely quoted JS string literal.
-      _controller.runJavaScript('window.duotab.handle(${jsonEncode(json)})');
+      _controller.runJavaScript('window.duoscore.handle(${jsonEncode(json)})');
 
   @override
   Stream<String> get incoming => _incoming.stream;
@@ -67,7 +67,7 @@ class EngineHost {
         if (kDebugMode) debugPrint('engine ${m.level.name}: ${m.message}');
       })
       ..addJavaScriptChannel(
-        'DuoTab',
+        'DuoScore',
         onMessageReceived: (m) => transport._incoming.add(m.message),
       );
     transport._controller = controller;

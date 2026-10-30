@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:duotab/core/duo/hinge_status_provider.dart';
-import 'package:duotab/l10n/app_localizations.dart';
-import 'package:duotab/presentation/shell/fold_gate.dart';
-import 'package:duotab/presentation/shell/folded_screen.dart';
+import 'package:duoscore/core/duo/hinge_status_provider.dart';
+import 'package:duoscore/l10n/app_localizations.dart';
+import 'package:duoscore/presentation/shell/fold_gate.dart';
+import 'package:duoscore/presentation/shell/folded_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

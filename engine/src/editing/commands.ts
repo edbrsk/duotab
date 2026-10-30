@@ -35,7 +35,7 @@ const shape = (score: Score, at: EditPosition) => {
 
 /**
  * One edit command on the song. A step goes into `history` only when the song
- * changed, so a no-op never makes a "(DuoTab)" copy, and a command that fails
+ * changed, so a no-op never makes a "(DuoScore)" copy, and a command that fails
  * leaves no step.
  */
 export function runCommand(

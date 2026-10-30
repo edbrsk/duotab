@@ -1,4 +1,4 @@
-import 'package:duotab/engine/protocol.dart';
+import 'package:duoscore/engine/protocol.dart';
 
 TrackSummary track(int index, String name, TrackKind kind) => TrackSummary(
   index: index,

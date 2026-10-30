@@ -10,7 +10,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'DuoTab';
+  String get appTitle => 'DuoScore';
 
   @override
   String get foldedMessage => 'Open your iPhone Duo to continue';
@@ -28,11 +28,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navigationLabel => 'Main navigation';
 
   @override
-  String get widerToEdit => 'Make DuoTab wider to edit';
+  String get widerToEdit => 'Make DuoScore wider to edit';
 
   @override
   String get libraryEmpty =>
-      'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoTab';
+      'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoScore';
 
   @override
   String get unreadableFile => 'Can\'t open this file';
