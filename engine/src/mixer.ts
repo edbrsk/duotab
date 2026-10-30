@@ -1,10 +1,11 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import { applyProgram, type ProgramTrack } from './instrument';
+import { storedFromPan, storedFromTrackDb } from './mix_values';
 import type { TrackMix } from './protocol';
 
 export type MixerTrack = ProgramTrack & {
-  playbackInfo: { program: number; volume: number; primaryChannel: number; secondaryChannel: number };
+  playbackInfo: { program: number; volume: number; balance: number; primaryChannel: number; secondaryChannel: number };
 };
 
 /** The part of AlphaTabApi the mixer drives. */
@@ -42,7 +43,14 @@ export class Mixer {
   /** Regenerates run one at a time; each reads the player as the last left it. */
   private queue: Promise<void> = Promise.resolve();
 
-  constructor(private readonly api: MixerApi) {
+  /** The pan each channel was last given; the synth worker keeps it over the song's own. */
+  private readonly pans = new Map<number, number>();
+
+  /** `pan` sets a channel's pan in the synth worker, or with null gives it the song's own back. */
+  constructor(
+    private readonly api: MixerApi,
+    private readonly pan: (channel: number, pan: number | null) => void,
+  ) {
     api.midiLoaded.on(() => {
       for (const track of api.score?.tracks ?? []) {
         this.baked.set(track, this.making?.get(track) ?? track.playbackInfo.volume);
@@ -64,6 +72,8 @@ export class Mixer {
     }
     this.changedChannels.clear();
     this.mixes.clear();
+    for (const channel of this.pans.keys()) this.pan(channel, null);
+    this.pans.clear();
   }
 
   async apply(mixes: TrackMix[]): Promise<void> {
@@ -76,9 +86,11 @@ export class Mixer {
       const info = track.playbackInfo;
       if (!this.baked.has(track)) this.baked.set(track, info.volume);
       if (applyProgram(track, mix.program)) newMidi = true;
-      info.volume = mix.volume;
-      // No factor lifts a track whose MIDI was made silent.
-      if (this.baked.get(track) === 0 && mix.volume > 0) newMidi = true;
+      // No factor lifts a track whose MIDI was made silent, so it is made at 0 dB.
+      if (this.baked.get(track) === 0 && mix.volumeDb !== null) {
+        info.volume = REFERENCE_VOLUME;
+        newMidi = true;
+      }
       this.mixes.set(track, mix);
     }
     // A new program needs new MIDI, which resets the player's position and channels.
@@ -146,6 +158,22 @@ export class Mixer {
     }
   }
 
+  /** Runs `run` with each mixed track's file volume and pan set to its fader and knob, as a file is written. */
+  withFileLevels<T>(run: () => T): T {
+    const kept = [...this.mixes].map(([track, mix]) => {
+      const info = track.playbackInfo;
+      const was = { volume: info.volume, balance: info.balance };
+      info.volume = storedFromTrackDb(mix.volumeDb) * 16;
+      info.balance = storedFromPan(mix.pan) * 16;
+      return { info, was };
+    });
+    try {
+      return run();
+    } finally {
+      for (const { info, was } of kept) Object.assign(info, was);
+    }
+  }
+
   private send(): void {
     const tracks = this.api.score?.tracks ?? [];
     for (const [track, mix] of this.mixes) {
@@ -156,10 +184,15 @@ export class Mixer {
       }
       this.api.changeTrackMute([track], mix.mute);
       this.api.changeTrackSolo([track], mix.solo);
-      const factor = volumeFactor(mix.volume, this.baked.get(track) ?? track.playbackInfo.volume);
+      const factor = levelFactor(mix.volumeDb, this.baked.get(track) ?? track.playbackInfo.volume);
       if (this.factors.get(track) !== factor && !(factor === 1 && !this.factors.has(track))) {
         this.api.changeTrackVolume([track], factor);
         this.factors.set(track, factor);
+      }
+      for (const channel of [track.playbackInfo.primaryChannel, track.playbackInfo.secondaryChannel]) {
+        if (this.pans.get(channel) === mix.pan) continue;
+        this.pan(channel, mix.pan);
+        this.pans.set(channel, mix.pan);
       }
       if (mix.mute || mix.solo || factor !== 1) {
         this.changedChannels.add(track.playbackInfo.primaryChannel);
@@ -169,13 +202,17 @@ export class Mixer {
   }
 }
 
+/** The alphaTab volume whose MIDI plays at 0 dB: MIDI volume 96, as Guitar Pro's default level. */
+const REFERENCE_VOLUME = 12;
+
 /**
- * The mix volume that sounds like MIDI made at `volume`, given MIDI made at
- * `baked`. alphaTab writes a track volume as MIDI volume `volume × 8`, which
- * the synth applies as its cube; a mix volume applies as is.
+ * The mix volume that plays `db` over MIDI made at `baked`. alphaTab writes a
+ * track volume as MIDI volume `volume × 8`, which the synth applies as its
+ * cube; a mix volume applies as is.
  */
-function volumeFactor(volume: number, baked: number): number {
+function levelFactor(db: number | null, baked: number): number {
+  if (db === null) return 0;
   if (baked === 0) return 1;
   const midi = (v: number) => Math.min(127, v * 8);
-  return (midi(volume) / midi(baked)) ** 3;
+  return 10 ** (db / 20) * (midi(REFERENCE_VOLUME) / midi(baked)) ** 3;
 }

@@ -3,11 +3,13 @@ import { expect, test } from 'vitest';
 
 import { Mixer, type MixerApi, type MixerTrack } from '../src/mixer';
 
+const noPan = () => {};
+
 function fakeApi(programs: number[], volumes: number[] = programs.map(() => 12)) {
   const calls: string[] = [];
   const handlers: (() => void)[] = [];
   const tracks: MixerTrack[] = programs.map((program, i) => ({
-    playbackInfo: { program, volume: volumes[i], primaryChannel: i * 2, secondaryChannel: i * 2 + 1 },
+    playbackInfo: { program, volume: volumes[i], balance: 8, primaryChannel: i * 2, secondaryChannel: i * 2 + 1 },
   }));
   let range: { startTick: number; endTick: number } | null = null;
   const api = {
@@ -59,26 +61,28 @@ function fakeApi(programs: number[], volumes: number[] = programs.map(() => 12))
     },
   };
   const mixerApi: MixerApi = api;
-  return { api, mixerApi, calls, tracks };
+  const pans: string[] = [];
+  const pan = (channel: number, value: number | null) => pans.push(`pan ${channel} ${value}`);
+  return { api, mixerApi, calls, tracks, pan, pans };
 }
 
 test('mutes and solos without regenerating MIDI when programs are unchanged', async () => {
-  const { mixerApi, calls } = fakeApi([29]);
-  await new Mixer(mixerApi).apply([{ index: 0, mute: true, solo: false, program: 29, volume: 12 }]);
+  const { mixerApi, calls, pan } = fakeApi([29]);
+  await new Mixer(mixerApi, pan).apply([{ index: 0, mute: true, solo: false, program: 29, volumeDb: 0, pan: 0 }]);
   expect(calls).toEqual(['mute 0 true', 'solo 0 false']);
 });
 
 test('a program change keeps position, mixer and loop', async () => {
   const { api, mixerApi, calls, tracks } = fakeApi([29, 29]);
-  const mixer = new Mixer(mixerApi);
-  await mixer.apply([{ index: 1, mute: true, solo: false, program: 29, volume: 12 }]);
+  const mixer = new Mixer(mixerApi, noPan);
+  await mixer.apply([{ index: 1, mute: true, solo: false, program: 29, volumeDb: 0, pan: 0 }]);
   api.play();
   api.playbackRange = { startTick: 960, endTick: 3840 };
   api.tickPosition = 5000;
   api.isLooping = true;
   calls.length = 0;
 
-  await mixer.apply([{ index: 0, mute: false, solo: false, program: 30, volume: 12 }]);
+  await mixer.apply([{ index: 0, mute: false, solo: false, program: 30, volumeDb: 0, pan: 0 }]);
 
   expect(tracks[0].playbackInfo.program).toBe(30);
   expect(calls.filter((c) => c === 'loadMidi')).toHaveLength(1);
@@ -90,16 +94,16 @@ test('a program change keeps position, mixer and loop', async () => {
 });
 
 test('an unknown track is an error', async () => {
-  const { mixerApi } = fakeApi([29]);
-  await expect(new Mixer(mixerApi).apply([{ index: 4, mute: false, solo: false, program: 29, volume: 12 }])).rejects.toThrow('no track 4');
+  const { mixerApi, pan } = fakeApi([29]);
+  await expect(new Mixer(mixerApi, pan).apply([{ index: 4, mute: false, solo: false, program: 29, volumeDb: 0, pan: 0 }])).rejects.toThrow('no track 4');
 });
 
 test('a new song starts with no channel muted or soloed', async () => {
-  const { mixerApi, calls } = fakeApi([29, 29]);
-  const mixer = new Mixer(mixerApi);
+  const { mixerApi, calls, pan } = fakeApi([29, 29]);
+  const mixer = new Mixer(mixerApi, pan);
   await mixer.apply([
-    { index: 0, mute: false, solo: false, program: 29, volume: 12 },
-    { index: 1, mute: true, solo: true, program: 29, volume: 12 },
+    { index: 0, mute: false, solo: false, program: 29, volumeDb: 0, pan: 0 },
+    { index: 1, mute: true, solo: true, program: 29, volumeDb: 0, pan: 0 },
   ]);
   calls.length = 0;
 
@@ -117,8 +121,8 @@ test('a new song starts with no channel muted or soloed', async () => {
 
 test('regenerate keeps position, mixer and loop', async () => {
   const { api, mixerApi, calls } = fakeApi([29, 29]);
-  const mixer = new Mixer(mixerApi);
-  await mixer.apply([{ index: 1, mute: true, solo: false, program: 29, volume: 12 }]);
+  const mixer = new Mixer(mixerApi, noPan);
+  await mixer.apply([{ index: 1, mute: true, solo: false, program: 29, volumeDb: 0, pan: 0 }]);
   api.play();
   api.playbackRange = { startTick: 960, endTick: 3840 };
   api.tickPosition = 5000;
@@ -139,7 +143,7 @@ test('regenerate runs the load it is given', async () => {
   const { api, mixerApi, calls } = fakeApi([29]);
   api.tickPosition = 1234;
   let loads = 0;
-  await new Mixer(mixerApi).regenerate(() => {
+  await new Mixer(mixerApi, noPan).regenerate(() => {
     loads++;
     api.loadMidiForScore();
   });
@@ -148,46 +152,79 @@ test('regenerate runs the load it is given', async () => {
   expect(api.tickPosition).toBe(1234);
 });
 
-const mix = (volume: number, program = 29) => ({ index: 0, mute: false, solo: false, program, volume });
+const mix = (volumeDb: number | null, program = 29, pan = 0) => ({ index: 0, mute: false, solo: false, program, volumeDb, pan });
+const lastVolume = (calls: string[]) => Number(calls.filter((c) => c.startsWith('volume 0 ')).at(-1)!.split(' ')[2]);
 
-test('a volume plays at its share of the MIDI level', async () => {
-  const { mixerApi, calls, tracks } = fakeApi([29]);
-  await new Mixer(mixerApi).apply([mix(6)]);
-  // The synth sets a MIDI volume as its cube, (48 / 96)³, and a mix volume as is.
-  expect(calls).toContain('volume 0 0.125');
-  expect(tracks[0].playbackInfo.volume).toBe(6);
+test("a level plays as its dB over the MIDI's", async () => {
+  const at12 = fakeApi([29]);
+  await new Mixer(at12.mixerApi, at12.pan).apply([mix(-6)]);
+  expect(lastVolume(at12.calls)).toBeCloseTo(10 ** (-6 / 20), 6);
+  const at10 = fakeApi([29], [10]);
+  await new Mixer(at10.mixerApi, at10.pan).apply([mix(0)]);
+  // The synth cubes MIDI volume: 0 dB is MIDI volume 96, and 10 makes 80.
+  expect(lastVolume(at10.calls)).toBeCloseTo((96 / 80) ** 3, 6);
+  const off = fakeApi([29]);
+  await new Mixer(off.mixerApi, off.pan).apply([mix(null)]);
+  expect(lastVolume(off.calls)).toBe(0);
 });
 
-test('a volume survives new MIDI', async () => {
-  const { mixerApi, calls, tracks } = fakeApi([29]);
-  const mixer = new Mixer(mixerApi);
-  await mixer.apply([mix(6)]);
+test('a level survives new MIDI', async () => {
+  const { mixerApi, calls, tracks, pan } = fakeApi([29]);
+  const mixer = new Mixer(mixerApi, pan);
+  await mixer.apply([mix(-6)]);
   calls.length = 0;
-  await mixer.apply([mix(6, 30)]);
+  await mixer.apply([mix(-6, 30)]);
   expect(calls).toContain('loadMidi');
-  expect(calls.filter((c) => c.startsWith('volume')).at(-1)).toBe('volume 0 1');
-  expect(tracks[0].playbackInfo.volume).toBe(6);
+  expect(lastVolume(calls)).toBeCloseTo(10 ** (-6 / 20), 6);
+  expect(tracks[0].playbackInfo.volume).toBe(12);
 });
 
-test('a track made at 0 gets new MIDI for a volume', async () => {
-  const { mixerApi, calls } = fakeApi([29], [0]);
-  await new Mixer(mixerApi).apply([mix(8)]);
+test('a silent file track is baked at 0 dB once its fader rises', async () => {
+  const { mixerApi, calls, tracks, pan } = fakeApi([29], [0]);
+  await new Mixer(mixerApi, pan).apply([mix(-6)]);
   expect(calls).toContain('loadMidi');
+  expect(tracks[0].playbackInfo.volume).toBe(12);
+});
+
+test("pan goes to both of a track's channels", async () => {
+  const { mixerApi, pans, pan } = fakeApi([29]);
+  await new Mixer(mixerApi, pan).apply([mix(0, 29, -0.5)]);
+  expect(pans).toEqual(expect.arrayContaining(['pan 0 -0.5', 'pan 1 -0.5']));
+});
+
+test('a new song drops the pans', async () => {
+  const { mixerApi, pans, pan } = fakeApi([29]);
+  const mixer = new Mixer(mixerApi, pan);
+  await mixer.apply([mix(0, 29, -0.5)]);
+  pans.length = 0;
+  mixer.newSong();
+  expect(pans).toEqual(expect.arrayContaining(['pan 0 null', 'pan 1 null']));
+});
+
+test("export writes the faders and leaves the MIDI's level", async () => {
+  const { mixerApi, tracks, pan } = fakeApi([29]);
+  const mixer = new Mixer(mixerApi, pan);
+  await mixer.apply([mix(-6, 29, -1)]);
+  const written = mixer.withFileLevels(() => ({ ...tracks[0].playbackInfo }));
+  expect(written.volume).toBeCloseTo(10.88, 6);
+  expect(written.balance).toBe(0);
+  expect(tracks[0].playbackInfo.volume).toBe(12);
+  expect(tracks[0].playbackInfo.balance).toBe(8);
 });
 
 test("a new song resets the changed channels' volume", async () => {
-  const { mixerApi, calls } = fakeApi([29]);
-  const mixer = new Mixer(mixerApi);
-  await mixer.apply([mix(6)]);
+  const { mixerApi, calls, pan } = fakeApi([29]);
+  const mixer = new Mixer(mixerApi, pan);
+  await mixer.apply([mix(-6)]);
   calls.length = 0;
   mixer.newSong();
   expect(calls).toEqual(expect.arrayContaining(['channel volume 0 1', 'channel volume 1 1']));
 });
 
 test('mixes follow their track when tracks move', async () => {
-  const { mixerApi, calls, tracks } = fakeApi([29, 29]);
-  const mixer = new Mixer(mixerApi);
-  await mixer.apply([{ index: 0, mute: true, solo: false, program: 29, volume: 12 }]);
+  const { mixerApi, calls, tracks, pan } = fakeApi([29, 29]);
+  const mixer = new Mixer(mixerApi, pan);
+  await mixer.apply([{ index: 0, mute: true, solo: false, program: 29, volumeDb: 0, pan: 0 }]);
   tracks.reverse();
   calls.length = 0;
   await mixer.regenerate();
@@ -196,24 +233,25 @@ test('mixes follow their track when tracks move', async () => {
 });
 
 test("a removed track's mix is dropped", async () => {
-  const { mixerApi, tracks } = fakeApi([29, 29, 29]);
-  const mixer = new Mixer(mixerApi);
-  await mixer.apply([0, 1, 2].map((index) => ({ index, mute: false, solo: true, program: 29, volume: 12 })));
+  const { mixerApi, tracks, pan } = fakeApi([29, 29, 29]);
+  const mixer = new Mixer(mixerApi, pan);
+  await mixer.apply([0, 1, 2].map((index) => ({ index, mute: false, solo: true, program: 29, volumeDb: 0, pan: 0 })));
   tracks.splice(2, 1);
   await expect(mixer.regenerate()).resolves.toBeUndefined();
 });
 
 test('the baked level is taken when the MIDI is made', async () => {
-  const { mixerApi, calls, tracks } = fakeApi([29]);
-  const mixer = new Mixer(mixerApi);
+  const { mixerApi, calls, tracks, pan } = fakeApi([29]);
+  const mixer = new Mixer(mixerApi, pan);
   // A level set while the MIDI is still loading was not in it.
   await mixer.regenerate(() => {
     mixerApi.loadMidiForScore();
     tracks[0].playbackInfo.volume = 4;
   });
   calls.length = 0;
-  await mixer.apply([mix(4)]);
-  expect(calls.find((c) => c.startsWith('volume'))).toBe(`volume 0 ${(32 / 96) ** 3}`);
+  await mixer.apply([mix(-6)]);
+  // Made at 12, not 4: a factor against 4 would be 27 times too loud.
+  expect(lastVolume(calls)).toBeCloseTo(10 ** (-6 / 20), 6);
 });
 
 test('a load that makes MIDI twice restores after the second', async () => {
@@ -236,7 +274,7 @@ test('a load that makes MIDI twice restores after the second', async () => {
     else setTimeout(arrive, 0);
   };
   api.tickPosition = 1234;
-  const mixer = new Mixer(mixerApi);
+  const mixer = new Mixer(mixerApi, noPan);
   await mixer.regenerate(() => {
     mixerApi.loadMidiForScore();
     mixerApi.loadMidiForScore();
@@ -255,7 +293,7 @@ test('resuming after new MIDI plays no count-in', async () => {
     counts.push(withCountIn.countInVolume);
     play();
   };
-  await new Mixer(mixerApi).regenerate();
+  await new Mixer(mixerApi, noPan).regenerate();
   expect(counts).toEqual([0]);
   expect(withCountIn.countInVolume).toBe(1);
 });
@@ -277,7 +315,7 @@ test('two regenerates at once keep playing from where they were', async () => {
     }, 1);
   api.play();
   api.tickPosition = 5000;
-  const mixer = new Mixer(mixerApi);
+  const mixer = new Mixer(mixerApi, noPan);
   await Promise.all([mixer.regenerate(), mixer.regenerate()]);
   await new Promise((r) => setTimeout(r, 10));
   expect(api.tickPosition).toBe(5000);

@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp' | 'exportPdf' | 'exportFileGp' | 'exportFilePdf';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setMaster' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp' | 'exportPdf' | 'exportFileGp' | 'exportFilePdf';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -8,7 +8,7 @@ export type Reply =
   | { id: number; ok: true; payload: unknown }
   | { id: number; ok: false; error: string };
 
-export type EventType = 'ready' | 'rendered' | 'error' | 'playerState' | 'position' | 'rangeChanged' | 'tapped';
+export type EventType = 'ready' | 'rendered' | 'error' | 'playerState' | 'position' | 'rangeChanged' | 'tapped' | 'levels';
 
 export type EngineEvent = { event: EventType; payload: unknown };
 
@@ -21,8 +21,14 @@ export type PlayerStatePayload = { playing: boolean };
 
 export type SeekBarPayload = { bar: number };
 
-/** `volume`: 0–16, Guitar Pro's track volume. */
-export type TrackMix = { index: number; mute: boolean; solo: boolean; program: number; volume: number };
+/** `volumeDb` null is −∞; `pan` −1 full left … 1 full right. */
+export type TrackMix = { index: number; mute: boolean; solo: boolean; program: number; volumeDb: number | null; pan: number };
+
+/** `volumeDb` null is −∞. */
+export type SetMasterPayload = { volumeDb: number | null };
+
+/** dBFS by track index, left and right, rounded to 0.1; null below −60. */
+export type LevelsPayload = { tracks: ([number, number] | null)[]; master: [number, number] | null };
 
 export type SetTracksPayload = { tracks: TrackMix[] };
 

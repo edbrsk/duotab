@@ -1,5 +1,6 @@
 import * as alphaTab from '@coderline/alphatab';
 
+import { LevelMeter } from './levels';
 import { Mixer } from './mixer';
 import { glideFinely, playEffectsUnderTremolo, startChannelsUnbent } from './midi_effects';
 import { Limiter, limitOutput } from './output_level';
@@ -16,6 +17,7 @@ import type {
   EditPayload,
   EditState,
   EngineEvent,
+  LevelsPayload,
   ExportFilePayload,
   ExportPdfReply,
   NewSongOptions,
@@ -29,11 +31,13 @@ import type {
   SetLoopingPayload,
   SetStavesPayload,
   SetSpeedPayload,
+  SetMasterPayload,
   SetTracksPayload,
 } from './protocol';
 import { type HighlightApi, keepRangeHighlighted } from './range_highlight';
 import { setStaves, showNotationAndTab } from './staves';
 import { readGpMixer } from './gp_mixer';
+import type { LevelFrame, PanMessage } from './worker/synth_hooks';
 import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
 import { LongPressSelection } from './touch_selection';
@@ -76,17 +80,42 @@ settings.core.useWorkers = false;
 // that places the edit cursor.
 settings.player.enableUserInteraction = false;
 
+// The synth runs in a worker made by alphaTab; DuoScore's entry for it pans
+// channels and reports their levels, so the page needs the Worker itself.
+const synth: { worker: Worker | null } = { worker: null };
+const environment = alphaTab.Environment as unknown as { createWebWorker(s: alphaTab.Settings): Worker };
+const createWebWorker = environment.createWebWorker;
+environment.createWebWorker = (s) => (synth.worker = createWebWorker(s));
+
 const api = new alphaTab.AlphaTabApi(document.getElementById('score')!, settings);
-limitOutput(api.player!.output, new Limiter(api.player!.output.sampleRate));
+const OUTPUT_GAIN = 2;
+const limiter = new Limiter(api.player!.output.sampleRate, OUTPUT_GAIN);
+limitOutput(api.player!.output, limiter);
+const meter = new LevelMeter();
+synth.worker?.addEventListener('message', (e: MessageEvent<LevelFrame>) => {
+  if (e.data?.cmd === 'duoscore.levels') meter.add(e.data);
+});
 api.renderFinished.on(() => post({ event: 'rendered', payload: {} }));
 api.error.on((e) => post({ event: 'error', payload: { message: String(e?.message ?? e) } }));
 
 const opens = new OpenState();
-api.playerStateChanged.on((e) =>
-  post({ event: 'playerState', payload: { playing: e.state === alphaTab.synth.PlayerState.Playing } }),
+api.playerStateChanged.on((e) => {
+  const playing = e.state === alphaTab.synth.PlayerState.Playing;
+  post({ event: 'playerState', payload: { playing } });
+  if (!playing) postSilence();
+});
+
+const mixer = new Mixer(api, (channel, pan) =>
+  synth.worker?.postMessage({ cmd: 'duoscore.pan', channel, pan } satisfies PanMessage),
 );
 
-const mixer = new Mixer(api);
+const LEVELS_EVERY_MS = 40;
+let levelsPosted = 0;
+function postSilence() {
+  meter.clear();
+  const tracks = (api.score?.tracks ?? []).map(() => null);
+  post({ event: 'levels', payload: { tracks, master: null } satisfies LevelsPayload });
+}
 
 // Only the owner's own selections are reported: ranges the engine sets
 // (opening a song, restoring a saved loop) are not choices to save.
@@ -191,11 +220,22 @@ const postBar = (bar: number) => {
   post({ event: 'position', payload: { bar } });
 };
 api.playerPositionChanged.on((e) => {
+  if (e.isSeek) meter.clear();
+  else postLevels(e.currentTime);
   const lookups = api.tickCache?.masterBars;
   if (!lookups) return;
   const bar = barAtTick(lookups, e.currentTick);
   if (bar !== postedBar) postBar(bar);
 });
+
+function postLevels(time: number) {
+  const tracks = api.score?.tracks.map((t) => t.playbackInfo) ?? [];
+  const levels = meter.release(time, tracks, { track: OUTPUT_GAIN, master: limiter.gain });
+  const now = performance.now();
+  if (!levels || now - levelsPosted < LEVELS_EVERY_MS) return;
+  levelsPosted = now;
+  post({ event: 'levels', payload: levels });
+}
 
 let openCount = 0;
 
@@ -332,6 +372,11 @@ async function run(request: Request): Promise<unknown> {
       await mixer.apply(tracks);
       return {};
     }
+    case 'setMaster': {
+      const { volumeDb } = request.payload as SetMasterPayload;
+      limiter.gain = volumeDb === null ? 0 : OUTPUT_GAIN * 10 ** (volumeDb / 20);
+      return {};
+    }
     case 'setPlayerOptions': {
       const { countIn, metronome } = request.payload as PlayerOptionsPayload;
       api.countInVolume = countIn ? 1 : 0;
@@ -374,7 +419,8 @@ async function run(request: Request): Promise<unknown> {
     }
     case 'exportGp': {
       if (!api.score) throw new Error('no song open');
-      return { base64: base64(new alphaTab.exporter.Gp7Exporter().export(api.score, settings)) };
+      const score = api.score;
+      return { base64: base64(mixer.withFileLevels(() => new alphaTab.exporter.Gp7Exporter().export(score, settings))) };
     }
     case 'exportPdf': {
       if (!api.score) throw new Error('no song open');

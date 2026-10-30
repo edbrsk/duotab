@@ -9,7 +9,7 @@ export class Limiter {
 
   constructor(
     sampleRate: number,
-    private readonly gain = 2,
+    public gain = 2,
     private readonly ceiling = 0.95,
     releaseSeconds = 0.1,
   ) {

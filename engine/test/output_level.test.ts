@@ -52,3 +52,11 @@ test('limitOutput limits every block the player sends', () => {
   expect(received).toHaveLength(1);
   received[0].forEach((s) => expect(s).toBeCloseTo(0.2, 6));
 });
+
+test('a new gain applies to the next block', () => {
+  const l = limiter();
+  l.gain = 1;
+  const samples = new Float32Array([0.1, 0.1]);
+  l.process(samples);
+  expect(samples[0]).toBeCloseTo(0.1, 6);
+});
