@@ -1,6 +1,8 @@
 import Flutter
+import PDFKit
 import UIKit
 import UniformTypeIdentifiers
+import WebKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -24,6 +26,9 @@ import UniformTypeIdentifiers
     }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SongPicker") {
       SongPicker.shared.register(with: registrar)
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SongExport") {
+      SongExport.shared.register(with: registrar)
     }
   }
 }
@@ -268,5 +273,142 @@ final class SongPicker: NSObject, UIDocumentPickerDelegate {
   func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
     pending?(0)
     pending = nil
+  }
+}
+
+/// Renders the engine's page documents, one HTML document per A4 page, into
+/// one PDF, and shares files through the share sheet.
+@MainActor
+final class SongExport: NSObject, WKNavigationDelegate {
+  static let shared = SongExport()
+
+  private static let page = CGRect(x: 0, y: 0, width: 595, height: 842)
+
+  private weak var registrar: FlutterPluginRegistrar?
+  private var rendering = false
+  private var sharing = false
+  private var loading: CheckedContinuation<Void, Error>?
+
+  func register(with registrar: FlutterPluginRegistrar) {
+    self.registrar = registrar
+    FlutterMethodChannel(
+      name: "dev.edbrsk.duoscore/export",
+      binaryMessenger: registrar.messenger()
+    ).setMethodCallHandler { [weak self] call, result in
+      // Flutter calls method handlers on the platform (main) thread.
+      MainActor.assumeIsolated {
+        guard let self, let arguments = call.arguments as? [String: Any] else {
+          return result(FlutterMethodNotImplemented)
+        }
+        switch call.method {
+        case "pdf": self.pdf(arguments, result)
+        case "share": self.share(arguments, result)
+        default: result(FlutterMethodNotImplemented)
+        }
+      }
+    }
+  }
+
+  private func pdf(_ arguments: [String: Any], _ result: @escaping FlutterResult) {
+    guard
+      !rendering,
+      let pages = arguments["pages"] as? [String],
+      let baseUrl = arguments["baseUrl"] as? String,
+      let path = arguments["path"] as? String,
+      let view = registrar?.viewController?.view
+    else {
+      return result(FlutterError(code: "unavailable", message: "a PDF is being made, or no view", details: nil))
+    }
+    rendering = true
+    Task {
+      defer { rendering = false }
+      do {
+        try await render(pages, baseURL: URL(string: baseUrl), to: URL(fileURLWithPath: path), in: view)
+        result(nil)
+      } catch {
+        result(FlutterError(code: "pdf_failed", message: error.localizedDescription, details: nil))
+      }
+    }
+  }
+
+  private func render(_ pages: [String], baseURL: URL?, to url: URL, in view: UIView) async throws {
+    // In the window, so WebKit lays it out, but off screen.
+    let webView = WKWebView(frame: Self.page.offsetBy(dx: -10_000, dy: 0))
+    webView.isUserInteractionEnabled = false
+    webView.navigationDelegate = self
+    view.addSubview(webView)
+    defer { webView.removeFromSuperview() }
+    let document = PDFDocument()
+    for page in pages {
+      try await withCheckedThrowingContinuation { continuation in
+        loading = continuation
+        webView.loadHTMLString(page, baseURL: baseURL)
+      }
+      // The music glyphs are text in Bravura; a page captured before the font
+      // arrives shows boxes.
+      _ = try await webView.callAsyncJavaScript(
+        "await document.fonts.load(\"34px alphaTab\"); await document.fonts.ready; return true;",
+        contentWorld: .page
+      )
+      let data = try await webView.pdf(configuration: WKPDFConfiguration())
+      guard let rendered = PDFDocument(data: data)?.page(at: 0) else { throw ExportError.emptyPage }
+      document.insert(rendered, at: document.pageCount)
+    }
+    guard document.write(to: url) else { throw ExportError.notWritten }
+  }
+
+  func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+    loading?.resume()
+    loading = nil
+  }
+
+  func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+    loading?.resume(throwing: error)
+    loading = nil
+  }
+
+  func webView(
+    _ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error
+  ) {
+    loading?.resume(throwing: error)
+    loading = nil
+  }
+
+  private func share(_ arguments: [String: Any], _ result: @escaping FlutterResult) {
+    guard !sharing, let paths = arguments["paths"] as? [String], let viewController = registrar?.viewController
+    else {
+      return result(FlutterError(code: "unavailable", message: "share sheet already open, or no view", details: nil))
+    }
+    let anchor = CGRect(
+      x: arguments["x"] as? Double ?? 0,
+      y: arguments["y"] as? Double ?? 0,
+      width: arguments["width"] as? Double ?? 0,
+      height: arguments["height"] as? Double ?? 0
+    )
+    let sheet = UIActivityViewController(
+      activityItems: paths.map { URL(fileURLWithPath: $0) },
+      applicationActivities: nil
+    )
+    // In regular width the sheet is a popover, which UIKit refuses to show
+    // without an anchor.
+    sheet.popoverPresentationController?.sourceView = viewController.view
+    sheet.popoverPresentationController?.sourceRect = anchor
+    sheet.completionWithItemsHandler = { [weak self] _, completed, _, _ in
+      MainActor.assumeIsolated { self?.sharing = false }
+      result(completed)
+    }
+    sharing = true
+    viewController.present(sheet, animated: true)
+  }
+}
+
+enum ExportError: LocalizedError {
+  case emptyPage, notWritten
+
+  var errorDescription: String? {
+    switch self {
+    case .emptyPage: "WebKit made an empty page"
+    case .notWritten: "the PDF could not be written"
+    }
   }
 }
