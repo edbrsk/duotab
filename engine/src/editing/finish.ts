@@ -9,13 +9,21 @@ type Beat = alphaTab.model.Beat;
 /** `score.finish` after an edit to the staff at `at`, so the song reads as it will from the saved copy. */
 export function finishEdit(score: Score, at: EditPosition, settings: alphaTab.Settings): void {
   const staff = staffOf(score, at);
-  // alphaTab only fills a tie, slide or hammer-on link that is unset, so a
-  // link to a deleted note or past a new one would survive; a re-import
-  // rebuilds them all from the flags.
+  // alphaTab only fills a tie, slide or hammer-on link that is unset, and
+  // never clears the arcs drawn for them, so a link to a deleted note, past a
+  // new one or turned off would survive; a re-import rebuilds them all from
+  // the flags.
   for (const bar of staff.bars) {
     for (const voice of bar.voices) {
       for (const beat of voice.beats) {
+        beat.isEffectSlurOrigin = false;
+        beat.effectSlurOrigin = null;
+        beat.effectSlurDestination = null;
         for (const note of beat.notes) {
+          note.isEffectSlurOrigin = false;
+          note.hasEffectSlur = false;
+          note.effectSlurOrigin = null;
+          note.effectSlurDestination = null;
           note.tieOrigin = null;
           note.tieDestination = null;
           note.slideTarget = null;

@@ -301,3 +301,13 @@ test('a bend on an empty string does nothing', () => {
   setBend(s, at(0, 0, 1), { kind: 'bend', amount: 4 });
   expect(bendAt(s, at(0, 0, 1))).toBeNull();
 });
+
+test('turning a hammer-on off takes away its arc', () => {
+  toggleTechnique(s, at(0, 0, 4), 'hammerPull');
+  toggleTechnique(s, at(0, 0, 4), 'hammerPull');
+  expect(note(0, 0, 4)!.isEffectSlurOrigin).toBe(false);
+  expect(note(0, 0, 4)!.hasEffectSlur).toBe(false);
+  expect(note(0, 1, 4)!.effectSlurOrigin).toBeNull();
+  expect(beat(0, 0).isEffectSlurOrigin).toBe(false);
+  expect(beat(0, 1).effectSlurOrigin).toBeNull();
+});
