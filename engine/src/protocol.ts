@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp' | 'exportPdf';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -242,3 +242,6 @@ export type EditState = {
 export type TappedPayload = { position: EditPosition };
 
 export type ExportGpReply = { base64: string };
+
+/** One HTML document per A4 page; `baseUrl` is the engine's origin, which serves the font. */
+export type ExportPdfReply = { pages: string[]; baseUrl: string };

@@ -70,3 +70,8 @@ export function score(alphaTex: string): alphaTab.model.Score {
 export function gpBytes(alphaTex: string): Uint8Array {
   return new alphaTab.exporter.Gp7Exporter().export(score(alphaTex), new alphaTab.Settings());
 }
+
+export const longRiff = String.raw`\title "Riff" \tempo 140
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+${Array.from({ length: 40 }, () => '0.6.4 2.5.4 3.4.4 5.3.4').join(' | ')}`;

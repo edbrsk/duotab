@@ -8,10 +8,12 @@ import { newSong } from './editing/new_song';
 import { drawOverlay } from './editing/overlay';
 import { carryPlaybackSettings, rangeAfterTap } from './editing/restore';
 import { EditSession } from './editing/session';
+import { isGuitar } from './editing/tracks';
 import type {
   EditPayload,
   EditState,
   EngineEvent,
+  ExportPdfReply,
   NewSongOptions,
   PathPayload,
   PlayerOptionsPayload,
@@ -30,6 +32,7 @@ import { setStaves, showNotationAndTab } from './staves';
 import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
 import { LongPressSelection } from './touch_selection';
+import { printPages } from './print_pages';
 
 declare global {
   interface Window {
@@ -342,6 +345,14 @@ async function run(request: Request): Promise<unknown> {
     case 'exportGp': {
       if (!api.score) throw new Error('no song open');
       return { base64: base64(new alphaTab.exporter.Gp7Exporter().export(api.score, settings)) };
+    }
+    case 'exportPdf': {
+      if (!api.score) throw new Error('no song open');
+      const track = api.score.tracks[session.track];
+      if (!track || !isGuitar(track)) throw new Error('no guitar track');
+      const fontUrl = pageUrl('./alphatab/font/Bravura.woff2');
+      const pages = printPages(api.score, session.track, settings.display.staveProfile, fontUrl);
+      return { pages, baseUrl: `${location.origin}/` } satisfies ExportPdfReply;
     }
     case 'setStaves': {
       if (!api.score) throw new Error('no song open');
