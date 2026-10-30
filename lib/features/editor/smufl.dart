@@ -23,7 +23,6 @@ abstract final class Smufl {
 
   static const augmentationDot = '';
 
-  /// By tuplet: 3, 5, 6.
   static const tuplets = {3: '', 5: '', 6: ''};
 
   static const graceNote = '';
@@ -34,7 +33,6 @@ abstract final class Smufl {
   static const sharp = '';
   static const doubleSharp = '';
 
-  /// By engine dynamic, quietest first.
   static const dynamics = {
     'ppp': '',
     'pp': '',

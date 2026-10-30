@@ -3,7 +3,8 @@ import { expect, test } from 'vitest';
 
 import { checkBars, describeOff } from '../../src/editing/bar_check';
 import { deleteNote, selectVoice, setDuration } from '../../src/editing/operations';
-import { fourQuarters, score } from '../fixtures';
+import { addGrace } from '../../src/editing/techniques';
+import { fourQuarters, lineOfEighths, score } from '../fixtures';
 
 const at = (bar: number, beat: number) => ({ track: 0, bar, voice: 0, beat, string: 1 });
 
@@ -42,5 +43,12 @@ test('deleting rests clears the bar check once the bar is refilled', () => {
   setDuration(s, at(1, 0), alphaTab.model.Duration.Eighth, 0);
   expect(checkBars(s, 0)).toEqual([{ bar: 1, voice: 0, ticksOff: -3360 }]);
   deleteNote(s, { ...at(1, 0), string: 1 });
+  expect(checkBars(s, 0)).toEqual([]);
+});
+
+test('a grace note at the start of a bar or the song keeps both bars right', () => {
+  const s = score(lineOfEighths);
+  addGrace(s, { track: 0, bar: 1, voice: 0, beat: 0, string: 1 });
+  addGrace(s, { track: 0, bar: 0, voice: 0, beat: 0, string: 4 });
   expect(checkBars(s, 0)).toEqual([]);
 });

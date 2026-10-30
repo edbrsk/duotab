@@ -1,6 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import type { EditPosition } from '../protocol';
+import { finishEdit } from './finish';
 import { type IdSource, idSource } from './ids';
 import { barOf, beatOf, type Direction, staffOf, voiceOf } from './position';
 
@@ -16,6 +17,10 @@ export function setFret(score: Score, at: EditPosition, fret: number, settings =
   const existing = beat.notes.find((n) => n.string === at.string);
   if (existing) {
     existing.fret = fret;
+    // A tie would take the fret of the note it ties from.
+    existing.isTieDestination = false;
+    // alphaTab draws and plays a natural harmonic at its harmonic value.
+    if (existing.harmonicType === alphaTab.model.HarmonicType.Natural) existing.harmonicValue = fret;
   } else {
     const note = new Note();
     note.id = idSource(score).note();
@@ -24,7 +29,7 @@ export function setFret(score: Score, at: EditPosition, fret: number, settings =
     beat.addNote(note);
   }
   beat.isEmpty = false;
-  score.finish(settings);
+  finishEdit(score, at, settings);
   return at;
 }
 
@@ -43,7 +48,7 @@ export function deleteNote(score: Score, at: EditPosition, settings = defaultSet
     if (beat.graceType !== alphaTab.model.GraceType.None && beat.notes.length === 0) {
       removeBeat(score, at, beat);
     }
-    score.finish(settings);
+    finishEdit(score, at, settings);
     return at;
   }
   if (!beat.isRest || beat.isEmpty) return at;
@@ -51,7 +56,7 @@ export function deleteNote(score: Score, at: EditPosition, settings = defaultSet
   const voice = voiceOf(score, at);
   if (voice.beats.length > 1) {
     removeBeat(score, at, beat);
-    score.finish(settings);
+    finishEdit(score, at, settings);
     return { ...at, beat: Math.min(at.beat, voice.beats.length - 1) };
   }
   if (at.voice === 0) {
@@ -62,7 +67,7 @@ export function deleteNote(score: Score, at: EditPosition, settings = defaultSet
   } else {
     beat.isEmpty = true;
   }
-  score.finish(settings);
+  finishEdit(score, at, settings);
   return { ...at, beat: 0 };
 }
 
@@ -84,7 +89,7 @@ export function setDuration(
   beat.duration = duration;
   beat.dots = dots;
   beat.isEmpty = false;
-  score.finish(settings);
+  finishEdit(score, at, settings);
   return at;
 }
 
@@ -92,14 +97,14 @@ export function setRest(score: Score, at: EditPosition, settings = defaultSettin
   const beat = beatOf(score, at);
   for (const note of [...beat.notes]) beat.removeNote(note);
   beat.isEmpty = false;
-  score.finish(settings);
+  finishEdit(score, at, settings);
   return at;
 }
 
 export function selectVoice(score: Score, at: EditPosition, voice: number, settings = defaultSettings): EditPosition {
   const target = { ...at, voice, beat: 0 };
   ensureVoice(score, target);
-  score.finish(settings);
+  finishEdit(score, at, settings);
   return target;
 }
 
@@ -115,7 +120,7 @@ export function move(score: Score, at: EditPosition, direction: Direction, setti
       if (at.bar === 0) return at;
       const previous = { ...at, bar: at.bar - 1 };
       ensureVoice(score, previous);
-      score.finish(settings);
+      finishEdit(score, at, settings);
       return { ...previous, beat: voiceOf(score, previous).beats.length - 1 };
     }
     case 'right': {
@@ -130,19 +135,20 @@ export function move(score: Score, at: EditPosition, direction: Direction, setti
         rest.id = idSource(score).beat();
         rest.duration = beatOf(score, at).duration;
         voice.addBeat(rest);
-        score.finish(settings);
+        finishEdit(score, at, settings);
         return { ...at, beat: at.beat + 1 };
       }
       if (at.bar === score.masterBars.length - 1) appendBar(score, settings);
       const next = { ...at, bar: at.bar + 1, beat: 0 };
       ensureVoice(score, next);
-      score.finish(settings);
+      finishEdit(score, at, settings);
       return next;
     }
   }
 }
 
-const voiceTicks = (voice: alphaTab.model.Voice) => voice.beats.reduce((t, b) => t + b.playbackDuration, 0);
+// Display time: a grace note takes its playback time from the beat before it, which can be in the bar before.
+const voiceTicks = (voice: alphaTab.model.Voice) => voice.beats.reduce((t, b) => t + b.displayDuration, 0);
 
 function emptyVoice(ids: IdSource): alphaTab.model.Voice {
   const voice = new Voice();

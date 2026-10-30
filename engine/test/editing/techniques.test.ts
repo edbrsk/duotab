@@ -11,8 +11,9 @@ import {
   toggleTechnique,
   tupletAt,
 } from '../../src/editing/techniques';
+import { deleteNote, selectVoice, setDuration, setFret } from '../../src/editing/operations';
 import type { EditPosition, TechniqueId } from '../../src/protocol';
-import { lineOfEighths, score } from '../fixtures';
+import { lineOfEighths, score, twoGuitarsAndDrums } from '../fixtures';
 
 const at = (bar: number, beat: number, string = 1, voice = 0): EditPosition => ({ track: 0, bar, voice, beat, string });
 let s: alphaTab.model.Score;
@@ -175,4 +176,73 @@ test('every technique survives the .gp round-trip', () => {
   const bytes = new alphaTab.exporter.Gp7Exporter().export(s, settings);
   const reloaded = alphaTab.importer.ScoreLoader.loadScoreFromBytes(bytes, settings);
   expect(read(reloaded)).toEqual(read(s));
+});
+
+const fermataBeats = (song: alphaTab.model.Score, bar: number, voice = 0) =>
+  song.tracks[0].staves[0].bars[bar].voices[voice].beats.filter((b) => b.fermata !== null).map((b) => b.index);
+
+test('a fermata comes off when another track has a beat at the same time', () => {
+  s = score(twoGuitarsAndDrums);
+  toggleTechnique(s, at(0, 0), 'fermata');
+  toggleTechnique(s, at(0, 0), 'fermata');
+  s.finish(new alphaTab.Settings());
+  expect(activeTechniques(s, at(0, 0))).not.toContain('fermata');
+  expect(s.masterBars[0].fermata?.size ?? 0).toBe(0);
+});
+
+test('a fermata comes off when another voice has a beat at the same time', () => {
+  selectVoice(s, at(0, 0), 1);
+  toggleTechnique(s, at(0, 0), 'fermata');
+  toggleTechnique(s, at(0, 0), 'fermata');
+  s.finish(new alphaTab.Settings());
+  expect(fermataBeats(s, 0)).toEqual([]);
+});
+
+test('a fermata stays on its beat when an earlier beat changes length', () => {
+  toggleTechnique(s, at(0, 3, 4), 'fermata');
+  setDuration(s, at(0, 0), alphaTab.model.Duration.Quarter, 0);
+  expect(fermataBeats(s, 0)).toEqual([3]);
+  expect([...s.masterBars[0].fermata!.keys()]).toEqual([1920]);
+});
+
+test('editing another voice keeps the fermatas of the first', () => {
+  toggleTechnique(s, at(0, 2, 4), 'fermata');
+  selectVoice(s, at(0, 0), 1);
+  setFret(s, at(0, 0, 1, 1), 3);
+  expect(fermataBeats(s, 0)).toEqual([2]);
+});
+
+test('a tie whose origin is deleted ties to the note before it, as the copy does', () => {
+  toggleTechnique(s, at(0, 5, 4), 'tie');
+  deleteNote(s, at(0, 4, 4));
+  expect(note(0, 5, 4)!.tieOrigin).toBe(note(0, 3, 4));
+  expect(note(0, 5, 4)!.fret).toBe(7);
+});
+
+test('a slide and a hammer-on link to a note entered between', () => {
+  toggleTechnique(s, at(0, 0, 4), 'slide');
+  toggleTechnique(s, at(0, 2, 4), 'hammerPull');
+  deleteNote(s, at(0, 1, 4));
+  deleteNote(s, at(0, 3, 4));
+  expect(note(0, 0, 4)!.slideTarget).toBe(note(0, 2, 4));
+  expect(note(0, 2, 4)!.hammerPullDestination).toBe(note(0, 4, 4));
+  setFret(s, at(0, 1, 4), 6);
+  setFret(s, at(0, 3, 4), 6);
+  expect(note(0, 0, 4)!.slideTarget).toBe(note(0, 1, 4));
+  expect(note(0, 2, 4)!.slideOrigin).toBeNull();
+  expect(note(0, 2, 4)!.hammerPullDestination).toBe(note(0, 3, 4));
+  expect(note(0, 4, 4)!.hammerPullOrigin).toBeNull();
+});
+
+test('a natural harmonic follows a new fret', () => {
+  toggleTechnique(s, at(0, 0, 4), 'naturalHarmonic');
+  setFret(s, at(0, 0, 4), 12);
+  expect(note(0, 0, 4)!.harmonicValue).toBe(12);
+});
+
+test('typing a fret on a tied note takes off the tie', () => {
+  toggleTechnique(s, at(0, 5, 4), 'tie');
+  setFret(s, at(0, 5, 4), 3);
+  expect(note(0, 5, 4)!.fret).toBe(3);
+  expect(activeTechniques(s, at(0, 5, 4))).not.toContain('tie');
 });

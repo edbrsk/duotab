@@ -1,6 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import type { Dynamic, EditPosition, TechniqueId, Tuplet } from '../protocol';
+import { finishEdit } from './finish';
 import { idSource } from './ids';
 import { beatOf, voiceOf } from './position';
 
@@ -73,27 +74,15 @@ const pick = (value: alphaTab.model.PickStroke) =>
 const crescendo = (value: alphaTab.model.CrescendoType) =>
   beatField((b) => b.crescendo, (b, v) => (b.crescendo = v), value, CrescendoType.None);
 
-// alphaTab links these to their neighbour in score.finish, and only fills a
-// link that is unset, so turning one off or on clears both ends.
 const TECHNIQUES: Record<TechniqueId, Technique> = {
   hammerPull: {
     level: 'note',
     get: (n) => n.isHammerPullOrigin,
     set: (n, on) => {
-      if (n.hammerPullDestination) n.hammerPullDestination.hammerPullOrigin = null;
-      n.hammerPullDestination = null;
       n.isHammerPullOrigin = on;
     },
   },
-  slide: {
-    level: 'note',
-    get: (n) => n.slideOutType === SlideOutType.Shift,
-    set: (n, on) => {
-      if (n.slideTarget) n.slideTarget.slideOrigin = null;
-      n.slideTarget = null;
-      n.slideOutType = on ? SlideOutType.Shift : SlideOutType.None;
-    },
-  },
+  slide: noteField((n) => n.slideOutType, (n, v) => (n.slideOutType = v), SlideOutType.Shift, SlideOutType.None),
   bend: {
     level: 'note',
     get: (n) => n.bendType === BendType.Bend,
@@ -116,8 +105,6 @@ const TECHNIQUES: Record<TechniqueId, Technique> = {
     level: 'note',
     get: (n) => n.isTieDestination,
     set: (n, on) => {
-      if (n.tieOrigin) n.tieOrigin.tieDestination = null;
-      n.tieOrigin = null;
       n.isTieDestination = on;
     },
   },
@@ -152,9 +139,16 @@ const TECHNIQUES: Record<TechniqueId, Technique> = {
     level: 'beat',
     get: (b) => b.fermata !== null,
     set: (b, on) => {
-      // The bar holds fermatas by tick; score.finish copies them onto its beats.
-      b.voice.bar.masterBar.fermata?.delete(b.playbackStart);
-      b.fermata = null;
+      // score.finish copies the bar's fermata onto every beat at its tick, in every track.
+      const masterBar = b.voice.bar.masterBar;
+      masterBar.fermata?.delete(b.playbackStart);
+      for (const track of masterBar.score.tracks) {
+        for (const staff of track.staves) {
+          for (const voice of staff.bars[masterBar.index].voices) {
+            for (const beat of voice.beats) if (beat.playbackStart === b.playbackStart) beat.fermata = null;
+          }
+        }
+      }
       if (on) {
         b.fermata = new Fermata();
         b.fermata.type = FermataType.Medium;
@@ -180,7 +174,7 @@ export function toggleTechnique(score: Score, at: EditPosition, id: TechniqueId,
     if (!note) return at;
     technique.set(note, !technique.get(note));
   }
-  score.finish(settings);
+  finishEdit(score, at, settings);
   return at;
 }
 
@@ -207,7 +201,7 @@ export function setDynamic(score: Score, at: EditPosition, dynamic: Dynamic, set
     beat.dynamics = value;
     beat = beat.nextBeat;
   }
-  score.finish(settings);
+  finishEdit(score, at, settings);
   return at;
 }
 
@@ -220,7 +214,7 @@ const TUPLETS: Record<Tuplet, [number, number]> = { 1: [-1, -1], 3: [3, 2], 5: [
 export function setTuplet(score: Score, at: EditPosition, tuplet: Tuplet, settings = defaultSettings): EditPosition {
   const beat = beatOf(score, at);
   [beat.tupletNumerator, beat.tupletDenominator] = TUPLETS[tuplet];
-  score.finish(settings);
+  finishEdit(score, at, settings);
   return at;
 }
 
@@ -250,6 +244,6 @@ export function addGrace(score: Score, at: EditPosition, settings = defaultSetti
   const voice = voiceOf(score, at);
   grace.voice = voice;
   voice.beats.splice(at.beat, 0, grace);
-  score.finish(settings);
+  finishEdit(score, at, settings);
   return at;
 }

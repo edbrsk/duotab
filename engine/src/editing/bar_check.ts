@@ -11,7 +11,8 @@ export function checkBars(score: alphaTab.model.Score, track: number): BarIssue[
     for (const voice of bar.voices) {
       // A voice made only of empty beats is unused, as in Guitar Pro.
       if (voice.beats.every((b) => b.isEmpty)) continue;
-      const ticks = voice.beats.reduce((t, b) => t + b.playbackDuration, 0);
+      // A grace note takes its playback time from the beat before it, which can be in the bar before.
+      const ticks = voice.beats.reduce((t, b) => t + b.displayDuration, 0);
       if (ticks !== expected) issues.push({ bar: bar.index, voice: voice.index, ticksOff: ticks - expected });
     }
   }

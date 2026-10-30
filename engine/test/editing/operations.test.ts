@@ -182,3 +182,9 @@ test('deleting the only note of a grace beat removes the grace beat', () => {
   expect(voice(0).beats.map((b) => b.graceType)).toEqual([0, 0, 0, 0, 0, 0]);
   expect(voice(0).beats[2].notes.map((n) => n.fret)).toEqual([5]);
 });
+
+test('a grace note at the start of the next bar does not make this bar look short', () => {
+  s = score(lineOfEighths);
+  addGrace(s, at(1, 0, 1));
+  expect(move(s, at(0, 5, 4), 'right')).toEqual(at(1, 0, 4));
+});

@@ -8,11 +8,7 @@ import { activeTechniques, addGrace, setDynamic, setTuplet, toggleTechnique } fr
 
 type Score = alphaTab.model.Score;
 
-/**
- * Every beat of the staff: value, rest or empty, grace, tuplet, dynamic,
- * techniques and notes. Comparing it before and after tells a real change
- * from a no-op.
- */
+/** Comparing it before and after a command tells a real change from a no-op. */
 const shape = (score: Score, at: EditPosition) => {
   const staff = staffOf(score, at);
   return staff.bars
@@ -21,7 +17,7 @@ const shape = (score: Score, at: EditPosition) => {
         .map((voice) =>
           voice.beats
             .map((b) => {
-              const value = `${b.duration}.${b.dots}${b.isEmpty ? 'e' : ''}g${b.graceType}t${b.tupletNumerator}d${b.dynamics}`;
+              const value = `${b.duration}.${b.dots}${b.isEmpty ? 'e' : ''}g${b.graceType}t${b.tupletNumerator}:${b.tupletDenominator}d${b.dynamics}`;
               const position = { ...at, bar: bar.index, voice: voice.index, beat: b.index };
               const notes = b.notes.map((n) => `${n.string}/${n.fret}${activeTechniques(score, { ...position, string: n.string })}`);
               // String 0 has no note, so it lists only the beat techniques.
