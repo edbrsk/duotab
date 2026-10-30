@@ -209,32 +209,41 @@ class EditorCubit extends Cubit<EditorState> {
   Future<void> retune(int track, List<int> tuning, {int octave = 0}) =>
       command(RetuneTrack(track, tuning, octave));
 
+  var _rerunning = false;
+
   /// Undoes the last retune and runs it again an octave up or down, from the
-  /// song as it was before it.
+  /// song as it was before it. One at a time, and only once the undo is done:
+  /// a second undo would take back the edit before the retune.
   Future<void> retuneOctave(int delta) async {
     final report = state.retune;
-    if (report == null) return;
+    if (report == null || _rerunning) return;
     final octave = report.octave + delta;
     if (octave < minOctave || octave > maxOctave) return;
-    await undo();
-    await retune(report.track, report.tuning, octave: octave);
+    _rerunning = true;
+    try {
+      if (!await _apply(engine.undo)) return;
+      await retune(report.track, report.tuning, octave: octave);
+    } finally {
+      _rerunning = false;
+    }
   }
 
   Future<void> _atCursor(EditCommand edit) async {
     if (state.position != null) await command(edit);
   }
 
-  Future<void> _apply(Future<EditState> Function() request) async {
+  /// Whether the reply came back and changed the song.
+  Future<bool> _apply(Future<EditState> Function() request) async {
     final openId = _openId;
     final EditState reply;
     try {
       reply = await request();
     } on Object catch (e) {
       debugPrint('EditorCubit: $e');
-      return;
+      return false;
     }
     // A reply that arrives after another song opened belongs to the old one.
-    if (openId != _openId || isClosed) return;
+    if (openId != _openId || isClosed) return false;
     emit(
       EditorState(
         position: reply.position,
@@ -268,6 +277,7 @@ class EditorCubit extends Cubit<EditorState> {
       score.applyEdit(reply.song, drawnTrack: reply.drawnTrack);
       _edited.add(null);
     }
+    return reply.edited;
   }
 
   @override

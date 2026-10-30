@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/design/design_tokens.dart';
 import '../../l10n/app_localizations.dart';
 import 'tuning_fields.dart';
+import 'tuning_presets.dart';
 
 /// Picks a track's new tuning; pops it, or null when cancelled.
 class RetuneDialog extends StatefulWidget {
@@ -22,7 +23,11 @@ class RetuneDialog extends StatefulWidget {
 }
 
 class _RetuneDialogState extends State<RetuneDialog> {
-  late var _tuning = [...widget.tuning];
+  // What the fields show, which is the first 6-string preset for a tuning
+  // they cannot show.
+  late var _tuning = TuningFields.fits(widget.tuning)
+      ? [...widget.tuning]
+      : [...tuningPresets(6).first.tuning];
 
   @override
   Widget build(BuildContext context) {

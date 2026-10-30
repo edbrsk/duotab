@@ -44,6 +44,16 @@ class TuningFields extends StatefulWidget {
 
   const TuningFields({required this.onChanged, this.initial, super.key});
 
+  /// Whether the fields can show [tuning]: 6–8 strings, each within the
+  /// octave either side of the preset that a custom string's dropdown spans.
+  static bool fits(List<int> tuning) {
+    if (!const [6, 7, 8].contains(tuning.length)) return false;
+    final base = tuningPresets(tuning.length).first.tuning;
+    return [
+      for (final (i, note) in tuning.indexed) (note - base[i]).abs() <= 12,
+    ].every((ok) => ok);
+  }
+
   @override
   State<TuningFields> createState() => _TuningFieldsState();
 }
@@ -59,22 +69,13 @@ class _TuningFieldsState extends State<TuningFields> {
   void initState() {
     super.initState();
     final initial = widget.initial;
-    if (initial == null || !_fits(initial)) return;
+    if (initial == null || !TuningFields.fits(initial)) return;
     _strings = initial.length;
     _tuning = [...initial];
     _preset = tuningPresets(_strings)
         .where((p) => listEquals(p.tuning, initial))
         .firstOrNull
         ?.name;
-  }
-
-  /// A custom string's dropdown spans an octave either side of the preset.
-  static bool _fits(List<int> tuning) {
-    if (!const [6, 7, 8].contains(tuning.length)) return false;
-    final base = tuningPresets(tuning.length).first.tuning;
-    return [
-      for (final (i, note) in tuning.indexed) (note - base[i]).abs() <= 12,
-    ].every((ok) => ok);
   }
 
   void _changed() => widget.onChanged([..._tuning]);

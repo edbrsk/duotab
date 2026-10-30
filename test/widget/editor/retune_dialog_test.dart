@@ -66,4 +66,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(await result, isNull);
   });
+
+  testWidgets('a tuning the fields cannot show retunes to what they show', (
+    tester,
+  ) async {
+    final result = await open(tester, const [43, 38, 33, 28]);
+    expect(find.text('Standard E'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Retune'));
+    await tester.pumpAndSettle();
+    expect(await result, [64, 59, 55, 50, 45, 40]);
+  });
 }

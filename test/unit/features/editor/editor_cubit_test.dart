@@ -421,6 +421,22 @@ void main() {
       verifyNever(() => engine.edit(any()));
     });
 
+    test('a double tap on an octave button reruns once', () async {
+      await editor.retune(1, e);
+      clearInteractions(engine);
+      await Future.wait([editor.retuneOctave(1), editor.retuneOctave(1)]);
+      verify(() => engine.undo()).called(1);
+      verify(() => engine.edit(const RetuneTrack(1, e, 1))).called(1);
+    });
+
+    test('a failed undo stops the rerun', () async {
+      await editor.retune(1, e);
+      clearInteractions(engine);
+      when(() => engine.undo()).thenThrow(const EngineException('busy'));
+      await editor.retuneOctave(1);
+      verifyNever(() => engine.edit(any()));
+    });
+
     test('an edit without a report clears it', () async {
       await editor.retune(1, e);
       await editor.renameTrack(1, 'Lead');
