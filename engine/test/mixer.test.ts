@@ -202,3 +202,59 @@ test("a removed track's mix is dropped", async () => {
   tracks.splice(2, 1);
   await expect(mixer.regenerate()).resolves.toBeUndefined();
 });
+
+test('the baked level is taken when the MIDI is made', async () => {
+  const { mixerApi, calls, tracks } = fakeApi([29]);
+  const mixer = new Mixer(mixerApi);
+  const regenerated = mixer.regenerate();
+  // A level set while the MIDI is still loading was not in it.
+  tracks[0].playbackInfo.volume = 4;
+  await regenerated;
+  calls.length = 0;
+  await mixer.apply([mix(4)]);
+  expect(calls.find((c) => c.startsWith('volume'))).toBe(`volume 0 ${(32 / 96) ** 3}`);
+});
+
+test('a load that makes MIDI twice restores after the second', async () => {
+  const { api, mixerApi } = fakeApi([29]);
+  const handlers: (() => void)[] = [];
+  api.midiLoaded = {
+    on(handler: () => void) {
+      handlers.push(handler);
+      return () => handlers.splice(handlers.indexOf(handler), 1);
+    },
+  };
+  // alphaTab moves the position back when each MIDI arrives, the second later.
+  let loads = 0;
+  api.loadMidiForScore = () => {
+    const arrive = () => {
+      api.tickPosition = 0;
+      [...handlers].forEach((h) => h());
+    };
+    if (loads++ === 0) queueMicrotask(arrive);
+    else setTimeout(arrive, 0);
+  };
+  api.tickPosition = 1234;
+  const mixer = new Mixer(mixerApi);
+  await mixer.regenerate(() => {
+    mixerApi.loadMidiForScore();
+    mixerApi.loadMidiForScore();
+  });
+  await new Promise((r) => setTimeout(r, 10));
+  expect(api.tickPosition).toBe(1234);
+});
+
+test('resuming after new MIDI plays no count-in', async () => {
+  const { api, mixerApi } = fakeApi([29]);
+  const withCountIn = Object.assign(api, { countInVolume: 1 });
+  const counts: number[] = [];
+  const play = api.play.bind(api);
+  api.play();
+  withCountIn.play = () => {
+    counts.push(withCountIn.countInVolume);
+    play();
+  };
+  await new Mixer(mixerApi).regenerate();
+  expect(counts).toEqual([0]);
+  expect(withCountIn.countInVolume).toBe(1);
+});

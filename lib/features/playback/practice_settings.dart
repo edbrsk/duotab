@@ -7,6 +7,10 @@ class TrackPractice {
 
   /// Null for tracks that are not guitar.
   final Tone? tone;
+
+  /// The owner chose [tone]; otherwise it is worked out again on each open,
+  /// from the file or the default tone.
+  final bool toneChosen;
   final bool showNotation;
   final bool showTab;
 
@@ -17,6 +21,7 @@ class TrackPractice {
     this.mute = false,
     this.solo = false,
     this.tone,
+    this.toneChosen = false,
     this.showNotation = true,
     this.showTab = true,
     this.volume,
@@ -26,6 +31,7 @@ class TrackPractice {
     bool? mute,
     bool? solo,
     Tone? tone,
+    bool? toneChosen,
     bool? showNotation,
     bool? showTab,
     int? volume,
@@ -33,6 +39,7 @@ class TrackPractice {
     mute: mute ?? this.mute,
     solo: solo ?? this.solo,
     tone: tone ?? this.tone,
+    toneChosen: toneChosen ?? this.toneChosen,
     showNotation: showNotation ?? this.showNotation,
     showTab: showTab ?? this.showTab,
     volume: volume ?? this.volume,
@@ -42,6 +49,7 @@ class TrackPractice {
     'mute': mute,
     'solo': solo,
     'tone': tone?.name,
+    'toneChosen': toneChosen,
     'showNotation': showNotation,
     'showTab': showTab,
     'volume': volume,
@@ -51,6 +59,8 @@ class TrackPractice {
     mute: json['mute'] == true,
     solo: json['solo'] == true,
     tone: Tone.values.where((t) => t.name == json['tone']).firstOrNull,
+    // Tones saved before the choice was recorded may have been chosen.
+    toneChosen: json['toneChosen'] as bool? ?? json['tone'] != null,
     showNotation: json['showNotation'] != false,
     showTab: json['showTab'] != false,
     volume: json['volume'] as int?,

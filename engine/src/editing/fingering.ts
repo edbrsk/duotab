@@ -1,7 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import { finishEdit } from './finish';
-import { isGuitar } from './tracks';
+import { isGuitar, nearestGuitar } from './tracks';
 
 type Score = alphaTab.model.Score;
 type Bar = alphaTab.model.Bar;
@@ -111,6 +111,11 @@ function fallbackString(bar: Bar, beat: Beat, pitch: number, tuning: number[], t
     return found;
   };
   return below(true) ?? below(false) ?? 1;
+}
+
+/** The unplayable notes of the track the app draws first, the first guitar track. */
+export function drawnUnplayable(score: Score, marks: Map<number, NoteMark[]>): number {
+  return marks.get(nearestGuitar(score, 0))?.length ?? 0;
 }
 
 const pianoPitch = (note: Note) => note.octave * 12 + note.tone;

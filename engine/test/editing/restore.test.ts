@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import { carryPlaybackSettings, rangeAfterTap } from '../../src/editing/restore';
+import { carryPlaybackSettings, rangeAfterRestore, rangeAfterTap } from '../../src/editing/restore';
 import { score, twoGuitarsAndDrums } from '../fixtures';
 
 test('a restored song keeps the tones and staves chosen since', () => {
@@ -40,4 +40,11 @@ test('a restored song keeps each track its tone, volume and staves, matched by c
   expect([restored.tracks[0].playbackInfo.program, restored.tracks[0].playbackInfo.volume]).toEqual([30, 5]);
   expect(restored.tracks[1].staves[0].showTablature).toBe(false);
   expect(restored.tracks[0].staves[0].showTablature).toBe(true);
+});
+
+test('an undo that moves the bars clears the loop', () => {
+  const range = { startTick: 3840, endTick: 7680 };
+  expect(rangeAfterRestore([0, 3840, 7680], [0, 3840, 7680], range)).toBe(range);
+  expect(rangeAfterRestore([0, 3840, 7680], [0, 2880, 6720], range)).toBeNull();
+  expect(rangeAfterRestore([0, 3840], [0, 3840, 7680], null)).toBeNull();
 });

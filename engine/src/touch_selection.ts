@@ -9,6 +9,8 @@ type Deps<B> = {
   select(start: B, end: B): void;
   /** The finished selection, once the finger lifts. */
   commit?(start: B, end: B): void;
+  /** False while the selection may only change when the finger lifts. */
+  live?(): boolean;
   delayMs?: number;
   slopPx?: number;
 };
@@ -41,7 +43,7 @@ export class LongPressSelection<B extends { absolutePlaybackStart: number }> {
       if (!beat) return this.cancel();
       this.start = beat;
       this.current = beat;
-      this.emit();
+      if (this.deps.live?.() ?? true) this.emit();
     }, this.delayMs);
   }
 
@@ -53,7 +55,7 @@ export class LongPressSelection<B extends { absolutePlaybackStart: number }> {
       const beat = this.deps.beatAt(point.clientX, point.clientY);
       if (beat && beat !== this.current) {
         this.current = beat;
-        this.emit();
+        if (this.deps.live?.() ?? true) this.emit();
       }
       return;
     }

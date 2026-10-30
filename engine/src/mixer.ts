@@ -16,6 +16,7 @@ export interface MixerApi {
   play(): unknown;
   pause(): void;
   loadMidiForScore(): void;
+  countInVolume?: number;
   changeTrackMute(tracks: MixerTrack[], mute: boolean): void;
   changeTrackSolo(tracks: MixerTrack[], solo: boolean): void;
   /** A multiplier on the volume the MIDI was made with. */
@@ -35,11 +36,13 @@ export class Mixer {
   /** The volume each track's current MIDI was made with. */
   private readonly baked = new WeakMap<MixerTrack, number>();
   private readonly factors = new WeakMap<MixerTrack, number>();
+  /** The volumes the MIDI being made was made with, until it arrives. */
+  private making: Map<MixerTrack, number> | null = null;
 
   constructor(private readonly api: MixerApi) {
     api.midiLoaded.on(() => {
       for (const track of api.score?.tracks ?? []) {
-        this.baked.set(track, track.playbackInfo.volume);
+        this.baked.set(track, this.making?.get(track) ?? track.playbackInfo.volume);
         // The player keeps a channel's mix volume across MIDI loads.
         this.factors.set(track, Number.NaN);
       }
@@ -85,7 +88,8 @@ export class Mixer {
 
   /**
    * New MIDI for the song, keeping position, playing state, loop and mix.
-   * `load` must lead to one `midiLoaded`; replacing the score (undo) loads its own.
+   * `load` may make MIDI more than once (alphaTab's renderScore of a new score
+   * does); the position goes back after the last.
    */
   async regenerate(load: () => void = () => this.api.loadMidiForScore()): Promise<void> {
     const api = this.api;
@@ -94,20 +98,43 @@ export class Mixer {
     const range = api.playbackRange;
     const looping = api.isLooping;
     if (wasPlaying) api.pause();
-    const loaded = new Promise<void>((resolve) => {
-      const off = api.midiLoaded.on(() => {
-        off();
-        resolve();
-      });
+    this.making = new Map((api.score?.tracks ?? []).map((t) => [t, t.playbackInfo.volume]));
+    let made = 0;
+    let arrived = 0;
+    let done: () => void = () => {};
+    const loaded = new Promise<void>((resolve) => (done = resolve));
+    const off = api.midiLoaded.on(() => {
+      arrived++;
+      if (arrived >= made) done();
     });
-    load();
+    // alphaTab calls loadMidiForScore on itself, so counting the calls counts the loads.
+    const real = api.loadMidiForScore;
+    api.loadMidiForScore = () => {
+      made++;
+      real.call(api);
+    };
+    try {
+      load();
+    } finally {
+      api.loadMidiForScore = real;
+    }
+    if (made === 0) made = 1;
+    if (arrived >= made) done();
     await loaded;
+    off();
+    this.making = null;
     // Setting a range seeks to its start, so the position goes back last.
     api.playbackRange = range;
     api.isLooping = looping;
     api.tickPosition = tick;
     this.send();
-    if (wasPlaying) api.play();
+    if (wasPlaying) {
+      // Playback resumes where it was; a count-in belongs to a fresh start.
+      const countIn = api.countInVolume;
+      if (countIn !== undefined) api.countInVolume = 0;
+      api.play();
+      if (countIn !== undefined) api.countInVolume = countIn;
+    }
   }
 
   private send(): void {

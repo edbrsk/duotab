@@ -24,3 +24,8 @@ type Range = { startTick: number; endTick: number };
 export function rangeAfterTap<R extends Range>(range: R | null, tick: number): R | null {
   return range && tick >= range.startTick && tick < range.endTick ? range : null;
 }
+
+/** A loop survives undo or redo only while every bar starts where it did. */
+export function rangeAfterRestore<R extends Range>(before: number[], after: number[], range: R | null): R | null {
+  return range && before.length === after.length && before.every((tick, i) => tick === after[i]) ? range : null;
+}

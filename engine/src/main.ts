@@ -6,9 +6,9 @@ import { hitTest } from './editing/hit_test';
 import { drawAfterTrackEdit } from './editing/track_render';
 import { newSong } from './editing/new_song';
 import { drawOverlay } from './editing/overlay';
-import { carryPlaybackSettings, rangeAfterTap } from './editing/restore';
+import { carryPlaybackSettings, rangeAfterRestore, rangeAfterTap } from './editing/restore';
 import { EditSession } from './editing/session';
-import { fingerUnstrung, type NoteMark } from './editing/fingering';
+import { drawnUnplayable, fingerUnstrung, type NoteMark } from './editing/fingering';
 import { isGuitar } from './editing/tracks';
 import type {
   EditPayload,
@@ -35,7 +35,9 @@ import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
 import { LongPressSelection } from './touch_selection';
 import { fileGp, filePdf } from './file_export';
+import { OpenState } from './open_state';
 import { printPages } from './print_pages';
+import { nextRender } from './render_wait';
 
 declare global {
   interface Window {
@@ -70,8 +72,7 @@ const api = new alphaTab.AlphaTabApi(document.getElementById('score')!, settings
 api.renderFinished.on(() => post({ event: 'rendered', payload: {} }));
 api.error.on((e) => post({ event: 'error', payload: { message: String(e?.message ?? e) } }));
 
-let pendingOpen: { resolve: (score: alphaTab.model.Score) => void; reject: (e: unknown) => void } | null =
-  null;
+const opens = new OpenState();
 api.playerStateChanged.on((e) =>
   post({ event: 'playerState', payload: { playing: e.state === alphaTab.synth.PlayerState.Playing } }),
 );
@@ -104,6 +105,8 @@ const touchSelection = new LongPressSelection<alphaTab.model.Beat>({
     api.tickPosition = range.startTick;
   },
   commit: postRange,
+  // Setting alphaTab's range seeks to its start, so while playing it waits for the release.
+  live: () => api.playerState !== alphaTab.synth.PlayerState.Playing,
 });
 scoreElement.addEventListener('touchstart', (e) => touchSelection.touchStart(e), { passive: true });
 scoreElement.addEventListener('touchmove', (e) => touchSelection.touchMove(e), { passive: false });
@@ -168,9 +171,7 @@ function base64(bytes: Uint8Array): string {
 
 /** Shows a new score object and waits until alphaTab has taken it in. */
 function showScore(score: alphaTab.model.Score, tracks: number[]): Promise<alphaTab.model.Score> {
-  const loaded = new Promise<alphaTab.model.Score>((resolve, reject) => {
-    pendingOpen = { resolve, reject };
-  });
+  const loaded = opens.wait({ fromFile: false });
   api.renderScore(score, tracks);
   return loaded;
 }
@@ -210,24 +211,19 @@ function whenPlayerReady(): Promise<void> {
   });
 }
 
-// Set by `open`: only a file's own staff flags are replaced, before alphaTab's
-// first render of it; a score restored by undo keeps the owner's choice.
-let fromFile = false;
 /** What fingering on the last open could not place, per track. */
 let openedMarks = new Map<number, NoteMark[]>();
+// Only a file's own staff flags are replaced, before alphaTab's first render
+// of it; a score restored by undo keeps the owner's choice.
 api.scoreLoaded.on((score) => {
-  if (fromFile) {
+  // Fingered before alphaTab makes the MIDI and draws, which follow this event;
+  // the open awaiting the score resumes after this handler.
+  if (opens.loaded(score)) {
     openedMarks = fingerUnstrung(score, settings);
     showNotationAndTab(score);
   }
-  fromFile = false;
-  pendingOpen?.resolve(score);
-  pendingOpen = null;
 });
-api.error.on((e) => {
-  pendingOpen?.reject(e);
-  pendingOpen = null;
-});
+api.error.on((e) => opens.failed(e));
 
 async function fetchBytes(path: string): Promise<Uint8Array> {
   const response = await fetch(songUrl(path));
@@ -246,13 +242,22 @@ function startSong() {
   api.playbackRange = null;
 }
 
+const barStarts = (score: alphaTab.model.Score) => score.masterBars.map((m) => m.start);
+
 async function restore(score: alphaTab.model.Score | null): Promise<EditState> {
   if (!score) return editState(false);
   carryPlaybackSettings(api.score!, score);
+  // A loop over bars that moved would now cover others.
+  const range = api.playbackRange;
+  const keptRange = rangeAfterRestore(barStarts(api.score!), barStarts(score), range);
   // An undone track edit can leave the drawn index pointing elsewhere.
   session.restored(score, api.score!);
   const track = session.track;
   await mixer.regenerate(() => api.renderScore(score, [track]));
+  if (range && !keptRange) {
+    api.playbackRange = null;
+    postRange();
+  }
   return editState(true);
 }
 
@@ -267,25 +272,24 @@ async function run(request: Request): Promise<unknown> {
     case 'open': {
       const { path } = request.payload as PathPayload;
       const bytes = await fetchBytes(path);
-      const loaded = new Promise<alphaTab.model.Score>((resolve, reject) => {
-        pendingOpen = { resolve, reject };
-      });
+      const loaded = opens.wait({ fromFile: true });
       openCount++;
-      fromFile = true;
       api.load(bytes, []);
       const score = await loaded;
       startSong();
       session.open(score, 0, fileName(path).replace(/\.[^.]+$/, ''), openedMarks);
       redrawOverlay();
-      const unplayable = [...openedMarks.values()].reduce((sum, marks) => sum + marks.length, 0);
-      return describeOpened(score, fileName(path), unplayable);
+      return describeOpened(score, fileName(path), drawnUnplayable(score, openedMarks));
     }
     case 'renderTrack': {
       const { index } = request.payload as RenderTrackPayload;
       const track = api.score?.tracks[index];
       if (!track) throw new Error(`no track ${index}`);
+      // A seek right after scrolls the layout, which must be the new track's.
+      const drawn = nextRender(api.postRenderFinished);
       api.renderTracks([track]);
       session.drawTrack(api.score!, index);
+      await drawn;
       return {};
     }
     case 'play':

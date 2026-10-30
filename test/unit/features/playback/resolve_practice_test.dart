@@ -43,7 +43,9 @@ void main() {
       drumsAndTwoGuitars,
       const PracticeSettings(
         speed: 0.5,
-        tracks: {1: TrackPractice(mute: true, tone: Tone.clean)},
+        tracks: {
+          1: TrackPractice(mute: true, tone: Tone.clean, toneChosen: true),
+        },
       ),
       Tone.highGain,
     );
@@ -85,5 +87,60 @@ void main() {
     expect(resolvePractice(song, null, Tone.clean).tracks[0]!.volume, 9);
     const saved = PracticeSettings(tracks: {0: TrackPractice(volume: 3)});
     expect(resolvePractice(song, saved, Tone.clean).tracks[0]!.volume, 3);
+  });
+
+  test('a default tone change reaches tracks left at the default', () {
+    final left = resolvePractice(
+      song([(TrackKind.guitar, 0)]),
+      const PracticeSettings(tracks: {0: TrackPractice(tone: Tone.clean)}),
+      Tone.overdrive,
+    );
+    expect(left.tracks[0]!.tone, Tone.overdrive);
+    final chosen = resolvePractice(
+      song([(TrackKind.guitar, 0)]),
+      const PracticeSettings(
+        tracks: {0: TrackPractice(tone: Tone.clean, toneChosen: true)},
+      ),
+      Tone.overdrive,
+    );
+    expect(chosen.tracks[0]!.tone, Tone.clean);
+  });
+
+  test('a tone saved before the choice was recorded counts as chosen', () {
+    expect(TrackPractice.fromJson({'tone': 'clean'}).toneChosen, isTrue);
+    expect(
+      TrackPractice.fromJson({'tone': 'clean', 'toneChosen': false}).toneChosen,
+      isFalse,
+    );
+    expect(TrackPractice.fromJson({}).toneChosen, isFalse);
+  });
+
+  test('a stored speed or range outside the song is dropped on load', () {
+    const bars = SongSummary(
+      title: 'S',
+      tracks: [],
+      bars: [
+        BarInfo(index: 0, startTick: 0, startMs: 0, tempo: 120),
+        BarInfo(index: 1, startTick: 3840, startMs: 2000, tempo: 120),
+      ],
+    );
+    final p = resolvePractice(
+      bars,
+      const PracticeSettings(
+        speed: 3,
+        range: PlaybackRange(startTick: 9000, endTick: 12000),
+      ),
+      Tone.clean,
+    );
+    expect(p.speed, 1.5);
+    expect(p.range, isNull);
+    final kept = resolvePractice(
+      bars,
+      const PracticeSettings(
+        range: PlaybackRange(startTick: 960, endTick: 4800),
+      ),
+      Tone.clean,
+    );
+    expect(kept.range, isNotNull);
   });
 }

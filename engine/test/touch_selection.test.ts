@@ -80,3 +80,21 @@ test('the selection is committed once, when the finger lifts', () => {
   selection.touchEnd(end());
   expect(committed).toEqual([['b0', 'b2']]);
 });
+
+test('dragging a loop during playback selects only on release', () => {
+  selection = new LongPressSelection<FakeBeat>({
+    beatAt: (x) => beatAt(x),
+    select: (start, finish) => selected.push([start.name, finish.name]),
+    commit: (start, finish) => committed.push([start.name, finish.name]),
+    // Setting alphaTab's range seeks, so while playing it waits for the release.
+    live: () => false,
+  });
+  selection.touchStart(touch(50));
+  vi.advanceTimersByTime(400);
+  selection.touchMove(touch(150));
+  selection.touchMove(touch(250));
+  expect(selected).toEqual([]);
+  selection.touchEnd(end());
+  expect(selected).toEqual([['b0', 'b2']]);
+  expect(committed).toEqual([['b0', 'b2']]);
+});

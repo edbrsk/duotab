@@ -187,7 +187,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   Future<void> setSpeed(double speed) async {
     if (!_practiceReady) return;
     // 5% steps; dividing a whole number of steps gives the exact literal.
-    final value = (speed.clamp(0.25, 1.5) * 20).round() / 20;
+    final value = (speed.clamp(minSpeed, maxSpeed) * 20).round() / 20;
     await Future.wait([
       _updatePractice(state.practice.copyWith(speed: value)),
       _send(() => engine.setSpeed(value)),
@@ -234,7 +234,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
       _updateTrack(track, (p) => p.copyWith(solo: on));
 
   Future<void> setTone(int track, Tone tone) =>
-      _updateTrack(track, (p) => p.copyWith(tone: tone));
+      _updateTrack(track, (p) => p.copyWith(tone: tone, toneChosen: true));
 
   Future<void> setStaffView(
     int track, {

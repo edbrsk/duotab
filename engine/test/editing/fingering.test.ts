@@ -1,7 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 import { expect, test } from 'vitest';
 
-import { fingerUnstrung, positionCost } from '../../src/editing/fingering';
+import { drawnUnplayable, fingerUnstrung, positionCost } from '../../src/editing/fingering';
 import { pitchesOnly, score, twoGuitarsAndDrums } from '../fixtures';
 
 const placed = (song: alphaTab.model.Score, bar: number) =>
@@ -84,4 +84,10 @@ ${tex}`);
     expect(new Set(chord.notes.map((n) => n.string)).size).toBe(2);
     expect(chord.notes.find((n) => n.isTieDestination)!.tieOrigin).not.toBeNull();
   }
+});
+
+test('the fingering message counts only the drawn track', () => {
+  const marks = new Map([[1, [{ bar: 0, voice: 0, beat: 0, string: 1, kind: 'unplayable' as const }]]]);
+  expect(drawnUnplayable(score(twoGuitarsAndDrums), marks)).toBe(0);
+  expect(drawnUnplayable(score(twoGuitarsAndDrums), new Map([[0, marks.get(1)!]]))).toBe(1);
 });
