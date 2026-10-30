@@ -34,6 +34,7 @@ class _ExportButtonState extends State<ExportButton> {
     try {
       await widget.onExport(format, anchor);
     } on Object catch (e) {
+      debugPrint('ExportButton: export failed: $e');
       messenger.showSnackBar(
         SnackBar(content: Text(exportFailureMessage(l10n, e))),
       );

@@ -289,6 +289,7 @@ class _SongTileState extends State<_SongTile> {
     try {
       await widget.onExport(format, anchor);
     } on Object catch (e) {
+      debugPrint('LibraryPage: export failed: $e');
       messenger.showSnackBar(
         SnackBar(content: Text(exportFailureMessage(l10n, e))),
       );
