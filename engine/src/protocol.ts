@@ -125,6 +125,22 @@ export type BendKind = 'bend' | 'bendRelease' | 'prebend' | 'prebendRelease';
 /** `amount` in quarter tones: 1 is ¼ tone, 4 a full bend, 12 three tones. */
 export type Bend = { kind: BendKind; amount: number };
 
+export type Clef = 'treble' | 'bass';
+
+export type BarProperties = {
+  numerator: number;
+  denominator: number;
+  /** −7 (seven flats) to 7 (seven sharps). */
+  key: number;
+  minor: boolean;
+  /** Null for a clef the palette doesn't offer. */
+  clef: Clef | null;
+  /** In force at the bar's start. */
+  tempo: number;
+  /** The bar has its own tempo marking; always true for the first bar. */
+  tempoChange: boolean;
+};
+
 export type EditCommand =
   | { op: 'setFret'; fret: number }
   | { op: 'deleteNote' }

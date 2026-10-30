@@ -53,7 +53,7 @@ Plans 1–4's Global Constraints all apply. In addition:
   - **Time signature:** numerator 1–32; denominator 1, 2, 4, 8, 16 or 32. The palette's presets are 2/4, 3/4, 4/4, 5/4, 6/8, 7/8, 9/8 and 12/8.
   - **Tempo:** 30–300 BPM, the same range as New song. A tempo marking sits at the start of its bar (`ratioPosition` 0). The first bar always has a tempo, and setting it also sets `score.tempo`.
   - **Key signature:** −7 to 7 (flats to sharps), plus major or minor.
-  - **Clef:** `treble8vb` (G2 with 8vb, the guitar's), `treble` (G2) or `bass` (F4). Any other clef reads as null.
+  - **Clef:** `treble` (G2, the guitar's; the staff's display transposition puts guitar notation an octave above the sound) or `bass` (F4). Any other clef reads as null.
 - **Insert** puts a new bar before the cursor bar, in every track. It takes the cursor bar's time signature, key signature and clef, and is filled with rests (voice 0 fitting rests, the other voices unused). Inserted before the first bar, it takes over the first bar's tempo marking.
 - **Delete** removes the cursor bar from every track. A tempo marking on the deleted bar moves to the next bar unless that bar has its own. The song's only bar is never deleted.
 - **Copy** takes the bars of the loop selection when the cursor bar is inside it, and otherwise the cursor bar, from the cursor track. The clipboard survives opening another song.
@@ -79,7 +79,7 @@ Plans 1–4's Global Constraints all apply. In addition:
 
 **Interfaces:**
 - Produces (protocol):
-  - `type Clef = 'treble8vb' | 'treble' | 'bass'`;
+  - `type Clef = 'treble' | 'bass'`;
   - `type BarProperties = { numerator: number; denominator: number; key: number; minor: boolean; clef: Clef | null; tempo: number; tempoChange: boolean }`, where `tempo` is the BPM in force at the bar's start, and `tempoChange` is true when this bar has its own marking (always true for bar 0).
 - Produces (engine), in `bars.ts`. Each setter changes `score` in place, ends with `finishEdit` and returns the cursor position:
   - `setTimeSignature(score, at, numerator, denominator)`, which throws `time signature 0/4 out of range` for values outside the limits;
@@ -97,7 +97,7 @@ Plans 1–4's Global Constraints all apply. In addition:
   - **`bars of rests refill to the new time signature`:** after the change above, bars 1 and 2 are each one rest group adding up to 2880 ticks, and `checkBars` reports nothing for them.
   - **`a tempo marking sets that bar on`:** `setTempo(at(2,0), 140)` gives `barProperties(at(2,0))` `{ tempo: 140, tempoChange: true }`, and bar 1 reads 100 with `tempoChange: false`. `setTempo(at(2,0), null)` puts bar 2 back to 100. `setTempo(at(0,0), 90)` sets `score.tempo` to 90.
   - **`a key signature goes on every track`:** `setKeySignature(at(1,0), -3, true)` makes bars 1–2 of both tracks −3 minor, and bar 0 stays C.
-  - **`a clef goes on the cursor track only`:** `setClef(at(1,0), 'bass')` makes track 0's bars 1–2 F4 Regular, and track 1 stays G2 8vb. `barProperties` reads `bass`.
+  - **`a clef goes on the cursor track only`:** `setClef(at(1,0), 'bass')` makes track 0's bars 1–2 F4 Regular, and track 1 keeps its clef. `barProperties` reads `bass`.
   - **`out-of-range values are refused`:** 0/4, 4/3, 33/4, tempo 20, tempo 301, key 8.
   - **`bar properties survive the .gp round-trip`:** all four properties set on bar 2, exported with `Gp7Exporter` and reloaded, read the same `barProperties`.
 
@@ -252,7 +252,7 @@ Expected: FAIL: `../../src/editing/bar_structure` not found.
 
   | Chip | Label | Opens |
   |---|---|---|
-  | Clef | `Smufl.gClef8vb` U+E052, `Smufl.gClef` U+E050 or `Smufl.fClef` U+E062, as the bar's clef | a menu of the three clefs |
+  | Clef | `Smufl.gClef` U+E050 or `Smufl.fClef` U+E062, as the bar's clef | a menu of the two clefs |
   | Time signature | the bar's value as text, e.g. `6/8` | a menu with the eight presets as chips, plus a Custom row: numerator −/+ (1–32) and denominator chips 2, 4, 8, 16. Each change sends `setTimeSignature`. |
   | Key signature | the key's name, e.g. `E♭` or `Cm` | a menu with 15 key chips in circle-of-fifths order and a Major/Minor toggle. Each choice sends `setKeySignature`. |
   | Tempo | `♩ = 120` | a dialog with a BPM field (30–300, Set disabled outside the range), Set, Cancel, and Remove tempo change, which is disabled on bar 0 or when `!barTempoChange` |

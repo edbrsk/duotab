@@ -37,6 +37,14 @@ export const lineOfEighths = String.raw`\title "Line"
 \track "G" \tuning E4 B3 G3 D3 A2 E2
 5.3.8 7.3.8 5.3.8 7.3.8 5.3.4 5.3.4 | 0.6.4 0.6.4 0.6.4 0.6.4`;
 
+export const twoTracksThreeBars = String.raw`\title "Bars"
+\tempo 100
+.
+\track "A" \tuning E4 B3 G3 D3 A2 E2
+\ts 4 4 0.6.4 2.6.4 3.6.4 5.6.4 | r.1 | r.1
+\track "B" \tuning E4 B3 G3 D3 A2 E2
+\ts 4 4 0.6.4 2.6.4 3.6.4 5.6.4 | r.1 | r.1`;
+
 export function score(alphaTex: string): alphaTab.model.Score {
   const importer = new alphaTab.importer.AlphaTexImporter();
   importer.initFromString(alphaTex, new alphaTab.Settings());
