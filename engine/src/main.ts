@@ -1,6 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import { Mixer } from './mixer';
+import { movesTicks } from './editing/commands';
 import { hitTest } from './editing/hit_test';
 import { newSong } from './editing/new_song';
 import { drawOverlay } from './editing/overlay';
@@ -123,6 +124,17 @@ scoreElement.addEventListener('click', (e) => {
   seekToBeat(hit);
   post({ event: 'tapped', payload: { position: { ...hit, string: hit.string ?? session.position?.string ?? 1 } } });
 });
+
+/** The master-bar indexes the loop covers, for copying the looped bars. */
+function loopBars(): { from: number; to: number } | null {
+  const range = api.playbackRange;
+  const bars = api.tickCache?.masterBars;
+  if (!range || !bars) return null;
+  const at = (tick: number) => bars.find((b) => b.start <= tick && tick < b.end)?.masterBar.index;
+  const from = at(range.startTick);
+  const to = at(range.endTick);
+  return from === undefined || to === undefined ? null : { from: Math.min(from, to), to: Math.max(from, to) };
+}
 
 /** Playback follows a tap, as in Guitar Pro; a loop survives a tap inside it. */
 function seekToBeat(at: { bar: number; voice: number; beat: number }) {
@@ -294,8 +306,12 @@ async function run(request: Request): Promise<unknown> {
     case 'edit': {
       if (!api.score) throw new Error('no song open');
       const { command } = request.payload as EditPayload;
-      const result = session.command(api.score, command);
+      const result = session.command(api.score, command, loopBars());
       if (result.edited) {
+        if (movesTicks(command) && api.playbackRange) {
+          api.playbackRange = null;
+          postRange();
+        }
         api.render();
         // The title is not in the MIDI.
         if (command.op !== 'setTitle') await mixer.regenerate();

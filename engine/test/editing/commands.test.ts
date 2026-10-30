@@ -1,9 +1,10 @@
+import * as alphaTab from '@coderline/alphatab';
 import { expect, test } from 'vitest';
 
-import { runCommand } from '../../src/editing/commands';
+import { movesTicks, runCommand } from '../../src/editing/commands';
 import { History } from '../../src/editing/history';
 import type { EditPosition } from '../../src/protocol';
-import { fourQuarters, lineOfEighths, score } from '../fixtures';
+import { fourQuarters, lineOfEighths, score, twoTracksThreeBars } from '../fixtures';
 
 const start: EditPosition = { track: 0, bar: 0, voice: 0, beat: 0, string: 1 };
 
@@ -103,4 +104,46 @@ test('the same title is not an edit', () => {
   const history = new History();
   expect(runCommand(s, start, { op: 'setTitle', title: 'Edit' }, history).edited).toBe(false);
   expect(history.canUndo).toBe(false);
+});
+
+test('bar commands are edits and undo', async () => {
+  for (const command of [
+    { op: 'setTimeSignature', numerator: 3, denominator: 4 },
+    { op: 'setTempo', bpm: 140 },
+    { op: 'setKeySignature', key: 2, minor: false },
+    { op: 'setClef', clef: 'bass' },
+    { op: 'insertBar' },
+    { op: 'deleteBar' },
+  ] as const) {
+    const s = score(twoTracksThreeBars);
+    const before = alphaTab.model.JsonConverter.scoreToJson(s);
+    const history = new History();
+    expect(runCommand(s, { ...start, bar: 1 }, command, history).edited, command.op).toBe(true);
+    const undone = (await history.undo(s))!;
+    expect(alphaTab.model.JsonConverter.scoreToJson(undone), command.op).toBe(before);
+  }
+});
+
+test('undo brings back a deleted bar', async () => {
+  const s = score(twoTracksThreeBars);
+  const history = new History();
+  runCommand(s, start, { op: 'deleteBar' }, history);
+  expect(s.masterBars).toHaveLength(2);
+  const undone = (await history.undo(s))!;
+  expect(undone.masterBars).toHaveLength(3);
+  expect(undone.tracks[0].staves[0].bars[0].voices[0].beats[1].notes[0].fret).toBe(2);
+});
+
+test('setting the same time signature is not an edit', () => {
+  const s = score(twoTracksThreeBars);
+  const history = new History();
+  expect(runCommand(s, start, { op: 'setTimeSignature', numerator: 4, denominator: 4 }, history).edited).toBe(false);
+  expect(history.canUndo).toBe(false);
+});
+
+test('bar edits that move ticks clear the loop', () => {
+  const moving = ['insertBar', 'deleteBar', 'setTimeSignature', 'pasteBars'];
+  for (const op of ['setFret', 'setTempo', 'setKeySignature', 'setClef', 'copyBars', ...moving]) {
+    expect(movesTicks({ op } as never), op).toBe(moving.includes(op));
+  }
 });

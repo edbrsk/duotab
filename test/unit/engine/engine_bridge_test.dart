@@ -91,6 +91,16 @@ void main() {
           'hasNote': true,
           'bend': {'kind': 'bendRelease', 'amount': 6},
         },
+        'bar': {
+          'numerator': 6,
+          'denominator': 8,
+          'key': -3,
+          'minor': true,
+          'clef': 'bass',
+          'tempo': 140,
+          'tempoChange': true,
+        },
+        'canPaste': true,
       },
     });
     final s = await state;
@@ -101,6 +111,11 @@ void main() {
     expect(s.hasNote, isTrue);
     expect(s.bendKind, 'bendRelease');
     expect(s.bendAmount, 6);
+    expect(
+      [s.barNumerator, s.barDenominator, s.barKey, s.barMinor, s.barClef],
+      [6, 8, -3, true, 'bass'],
+    );
+    expect([s.barTempo, s.barTempoChange, s.canPaste], [140, true, true]);
     expect(s.position!.bar, 2);
     expect(s.position!.string, 3);
     expect(s.issues.single.ticksOff, -480);

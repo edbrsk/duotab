@@ -1,6 +1,8 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import type { EditCommand, EditPosition } from '../protocol';
+import { type Clipboard, deleteBar, insertBar, pasteBars } from './bar_structure';
+import { setClef, setKeySignature, setTempo, setTimeSignature } from './bars';
 import { History } from './history';
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from './operations';
 import { clampPosition, staffOf } from './position';
@@ -12,8 +14,10 @@ type Score = alphaTab.model.Score;
 const shape = (score: Score, at: EditPosition) => {
   const staff = staffOf(score, at);
   return `${score.title}|${staff.bars
-    .map((bar) =>
-      bar.voices
+    .map((bar) => {
+      const master = bar.masterBar;
+      const tempo = master.tempoAutomations.map((a) => `${a.ratioPosition}@${a.value}`);
+      return `${master.timeSignatureNumerator}/${master.timeSignatureDenominator}T${tempo}K${bar.keySignature}${bar.keySignatureType}C${bar.clef}${bar.clefOttava}:${bar.voices
         .map((voice) =>
           voice.beats
             .map((b) => {
@@ -28,10 +32,14 @@ const shape = (score: Score, at: EditPosition) => {
             })
             .join(' '),
         )
-        .join(','),
-    )
+        .join(',')}`;
+    })
     .join('|')}`;
 };
+
+/** Edits that shift the song's ticks, after which a loop would cover other bars. */
+export const movesTicks = (command: EditCommand) =>
+  command.op === 'insertBar' || command.op === 'deleteBar' || command.op === 'setTimeSignature' || command.op === 'pasteBars';
 
 /**
  * One edit command on the song. A step goes into `history` only when the song
@@ -44,6 +52,7 @@ export function runCommand(
   command: EditCommand,
   history: History,
   settings = new alphaTab.Settings(),
+  clipboard: Clipboard | null = null,
 ): { position: EditPosition; edited: boolean } {
   if (command.op === 'place') return { position: clampPosition(score, command.position), edited: false };
 
@@ -77,6 +86,22 @@ export function runCommand(
         return addGrace(score, at, settings);
       case 'setBend':
         return setBend(score, at, command.bend, settings);
+      case 'setTimeSignature':
+        return setTimeSignature(score, at, command.numerator, command.denominator, settings);
+      case 'setTempo':
+        return setTempo(score, at, command.bpm, settings);
+      case 'setKeySignature':
+        return setKeySignature(score, at, command.key, command.minor, settings);
+      case 'setClef':
+        return setClef(score, at, command.clef, settings);
+      case 'insertBar':
+        return insertBar(score, at, settings);
+      case 'deleteBar':
+        return deleteBar(score, at, settings);
+      case 'pasteBars':
+        return clipboard ? pasteBars(score, at, clipboard, settings) : at;
+      case 'copyBars':
+        return at;
       case 'setTitle':
         score.title = command.title.trim();
         return at;

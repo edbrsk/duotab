@@ -275,6 +275,22 @@ class EditState {
   /// In quarter tones, 1–12.
   final int bendAmount;
 
+  /// The cursor bar's properties, as the engine's `BarProperties`.
+  final int barNumerator;
+  final int barDenominator;
+
+  /// −7 (seven flats) to 7 (seven sharps).
+  final int barKey;
+  final bool barMinor;
+
+  /// `treble` or `bass`; null for a clef the palette doesn't offer.
+  final String? barClef;
+  final int barTempo;
+
+  /// The bar has its own tempo marking; always true for the first bar.
+  final bool barTempoChange;
+  final bool canPaste;
+
   const EditState({
     required this.position,
     required this.issues,
@@ -290,11 +306,20 @@ class EditState {
     this.hasNote = false,
     this.bendKind,
     this.bendAmount = 4,
+    this.barNumerator = 4,
+    this.barDenominator = 4,
+    this.barKey = 0,
+    this.barMinor = false,
+    this.barClef,
+    this.barTempo = 120,
+    this.barTempoChange = false,
+    this.canPaste = false,
   });
 
   factory EditState.fromJson(Map<String, dynamic> json) {
     final beat = json['beat'] as Map<String, dynamic>?;
     final bend = beat?['bend'] as Map<String, dynamic>?;
+    final bar = json['bar'] as Map<String, dynamic>?;
     return EditState(
       position: switch (json['position']) {
         final Map<String, dynamic> p => EditPosition.fromJson(p),
@@ -319,6 +344,14 @@ class EditState {
       hasNote: beat?['hasNote'] as bool? ?? false,
       bendKind: bend?['kind'] as String?,
       bendAmount: bend?['amount'] as int? ?? 4,
+      barNumerator: bar?['numerator'] as int? ?? 4,
+      barDenominator: bar?['denominator'] as int? ?? 4,
+      barKey: bar?['key'] as int? ?? 0,
+      barMinor: bar?['minor'] as bool? ?? false,
+      barClef: bar?['clef'] as String?,
+      barTempo: (bar?['tempo'] as num?)?.round() ?? 120,
+      barTempoChange: bar?['tempoChange'] as bool? ?? false,
+      canPaste: json['canPaste'] as bool? ?? false,
     );
   }
 }
@@ -458,6 +491,83 @@ class SetTitle extends EditCommand {
 
   @override
   Map<String, Object> toJson() => {'op': 'setTitle', 'title': title};
+}
+
+class SetTimeSignature extends EditCommand {
+  final int numerator;
+  final int denominator;
+
+  const SetTimeSignature(this.numerator, this.denominator);
+
+  @override
+  Map<String, Object> toJson() => {
+    'op': 'setTimeSignature',
+    'numerator': numerator,
+    'denominator': denominator,
+  };
+}
+
+class SetTempo extends EditCommand {
+  /// Null removes the bar's tempo marking.
+  final int? bpm;
+
+  const SetTempo(this.bpm);
+
+  @override
+  Map<String, Object?> toJson() => {'op': 'setTempo', 'bpm': bpm};
+}
+
+class SetKeySignature extends EditCommand {
+  /// −7 (seven flats) to 7 (seven sharps).
+  final int key;
+  final bool minor;
+
+  const SetKeySignature(this.key, {required this.minor});
+
+  @override
+  Map<String, Object> toJson() => {
+    'op': 'setKeySignature',
+    'key': key,
+    'minor': minor,
+  };
+}
+
+class SetClef extends EditCommand {
+  /// `treble` or `bass`.
+  final String clef;
+
+  const SetClef(this.clef);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'setClef', 'clef': clef};
+}
+
+class InsertBar extends EditCommand {
+  const InsertBar();
+
+  @override
+  Map<String, Object> toJson() => {'op': 'insertBar'};
+}
+
+class DeleteBar extends EditCommand {
+  const DeleteBar();
+
+  @override
+  Map<String, Object> toJson() => {'op': 'deleteBar'};
+}
+
+class CopyBars extends EditCommand {
+  const CopyBars();
+
+  @override
+  Map<String, Object> toJson() => {'op': 'copyBars'};
+}
+
+class PasteBars extends EditCommand {
+  const PasteBars();
+
+  @override
+  Map<String, Object> toJson() => {'op': 'pasteBars'};
 }
 
 class Place extends EditCommand {

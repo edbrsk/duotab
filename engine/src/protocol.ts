@@ -155,7 +155,17 @@ export type EditCommand =
   | { op: 'addGrace' }
   | { op: 'setBend'; bend: Bend | null }
   /** Needs no cursor. */
-  | { op: 'setTitle'; title: string };
+  | { op: 'setTitle'; title: string }
+  | { op: 'setTimeSignature'; numerator: number; denominator: number }
+  /** Null removes the bar's tempo marking. */
+  | { op: 'setTempo'; bpm: number | null }
+  | { op: 'setKeySignature'; key: number; minor: boolean }
+  | { op: 'setClef'; clef: Clef }
+  | { op: 'insertBar' }
+  | { op: 'deleteBar' }
+  /** The loop's bars when the cursor is inside the loop, else the cursor bar. */
+  | { op: 'copyBars' }
+  | { op: 'pasteBars' };
 
 export type EditPayload = { command: EditCommand };
 
@@ -182,6 +192,9 @@ export type EditState = {
     /** Null also for a bend shape outside the four kinds. */
     bend: Bend | null;
   } | null;
+  /** Null without a cursor. */
+  bar: BarProperties | null;
+  canPaste: boolean;
 };
 
 /** Posted for a tap on the drawn track. */

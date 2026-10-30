@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 
 import { setDuration } from '../../src/editing/operations';
 import { EditSession } from '../../src/editing/session';
-import { fourQuarters, lineOfEighths, score, twoGuitarsAndDrums } from '../fixtures';
+import { fourQuarters, lineOfEighths, score, twoGuitarsAndDrums, twoTracksThreeBars } from '../fixtures';
 
 test("opening a song checks its bars and clears the cursor and history", async () => {
   const s = score(fourQuarters);
@@ -78,4 +78,41 @@ test('the title changes without a cursor', () => {
   expect(session.command(s, { op: 'setTitle', title: 'Riff' })).toEqual({ edited: true });
   expect(session.position).toBeNull();
   expect(session.state(s, true).song.title).toBe('Riff');
+});
+
+test('the state tells the bar and whether paste can run', () => {
+  const s = score(twoTracksThreeBars);
+  const session = new EditSession();
+  session.open(s, 0);
+  session.command(s, { op: 'place', position: { track: 0, bar: 1, voice: 0, beat: 0, string: 1 } });
+  expect(session.state(s, false).bar).toEqual({
+    numerator: 4,
+    denominator: 4,
+    key: 0,
+    minor: false,
+    clef: 'treble',
+    tempo: 100,
+    tempoChange: false,
+  });
+  expect(session.state(s, false).canPaste).toBe(false);
+  expect(session.command(s, { op: 'copyBars' })).toEqual({ edited: false });
+  expect(session.state(s, false).canPaste).toBe(true);
+  expect(new EditSession().state(s, false).bar).toBeNull();
+});
+
+test("copy takes the loop's bars when the cursor is inside them", () => {
+  const s = score(twoTracksThreeBars);
+  const session = new EditSession();
+  session.open(s, 0);
+  session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 1 } });
+  session.command(s, { op: 'copyBars' }, { from: 0, to: 1 });
+  session.command(s, { op: 'place', position: { track: 0, bar: 2, voice: 0, beat: 0, string: 1 } });
+  expect(session.command(s, { op: 'pasteBars' })).toEqual({ edited: true });
+  expect(s.masterBars).toHaveLength(4);
+  expect(s.tracks[0].staves[0].bars[2].voices[0].beats.map((b) => b.notes[0]?.fret)).toEqual([0, 2, 3, 5]);
+  session.command(s, { op: 'place', position: { track: 0, bar: 3, voice: 0, beat: 0, string: 1 } });
+  session.command(s, { op: 'copyBars' }, { from: 0, to: 1 });
+  session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 1 } });
+  session.command(s, { op: 'pasteBars' });
+  expect(s.masterBars).toHaveLength(4);
 });
