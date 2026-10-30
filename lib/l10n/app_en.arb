@@ -141,6 +141,39 @@
   "deleteBar": "Delete bar",
   "copyBars": "Copy bars",
   "pasteBars": "Paste bars",
+  "repeatStart": "Repeat start",
+  "repeatEnd": "Repeat end",
+  "playTimes": "Play {count} times",
+  "@playTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noRepeat": "No repeat",
+  "alternateEnding": "Alternate ending",
+  "endingN": "Ending {number}",
+  "@endingN": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "directions": "Directions",
+  "targets": "Targets",
+  "jumps": "Jumps",
+  "segno": "Segno",
+  "coda": "Coda",
+  "fine": "Fine",
+  "daCapo": "Da capo",
+  "daCapoAlFine": "Da capo al fine",
+  "daCapoAlCoda": "Da capo al coda",
+  "dalSegno": "Dal segno",
+  "dalSegnoAlFine": "Dal segno al fine",
+  "dalSegnoAlCoda": "Dal segno al coda",
+  "toCoda": "To coda",
   "accidentals": "Accidentals",
   "doubleFlat": "Double flat",
   "flat": "Flat",

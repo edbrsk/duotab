@@ -646,6 +646,120 @@ abstract class AppLocalizations {
   /// **'Paste bars'**
   String get pasteBars;
 
+  /// No description provided for @repeatStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat start'**
+  String get repeatStart;
+
+  /// No description provided for @repeatEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat end'**
+  String get repeatEnd;
+
+  /// No description provided for @playTimes.
+  ///
+  /// In en, this message translates to:
+  /// **'Play {count} times'**
+  String playTimes(int count);
+
+  /// No description provided for @noRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'No repeat'**
+  String get noRepeat;
+
+  /// No description provided for @alternateEnding.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternate ending'**
+  String get alternateEnding;
+
+  /// No description provided for @endingN.
+  ///
+  /// In en, this message translates to:
+  /// **'Ending {number}'**
+  String endingN(int number);
+
+  /// No description provided for @directions.
+  ///
+  /// In en, this message translates to:
+  /// **'Directions'**
+  String get directions;
+
+  /// No description provided for @targets.
+  ///
+  /// In en, this message translates to:
+  /// **'Targets'**
+  String get targets;
+
+  /// No description provided for @jumps.
+  ///
+  /// In en, this message translates to:
+  /// **'Jumps'**
+  String get jumps;
+
+  /// No description provided for @segno.
+  ///
+  /// In en, this message translates to:
+  /// **'Segno'**
+  String get segno;
+
+  /// No description provided for @coda.
+  ///
+  /// In en, this message translates to:
+  /// **'Coda'**
+  String get coda;
+
+  /// No description provided for @fine.
+  ///
+  /// In en, this message translates to:
+  /// **'Fine'**
+  String get fine;
+
+  /// No description provided for @daCapo.
+  ///
+  /// In en, this message translates to:
+  /// **'Da capo'**
+  String get daCapo;
+
+  /// No description provided for @daCapoAlFine.
+  ///
+  /// In en, this message translates to:
+  /// **'Da capo al fine'**
+  String get daCapoAlFine;
+
+  /// No description provided for @daCapoAlCoda.
+  ///
+  /// In en, this message translates to:
+  /// **'Da capo al coda'**
+  String get daCapoAlCoda;
+
+  /// No description provided for @dalSegno.
+  ///
+  /// In en, this message translates to:
+  /// **'Dal segno'**
+  String get dalSegno;
+
+  /// No description provided for @dalSegnoAlFine.
+  ///
+  /// In en, this message translates to:
+  /// **'Dal segno al fine'**
+  String get dalSegnoAlFine;
+
+  /// No description provided for @dalSegnoAlCoda.
+  ///
+  /// In en, this message translates to:
+  /// **'Dal segno al coda'**
+  String get dalSegnoAlCoda;
+
+  /// No description provided for @toCoda.
+  ///
+  /// In en, this message translates to:
+  /// **'To coda'**
+  String get toCoda;
+
   /// No description provided for @accidentals.
   ///
   /// In en, this message translates to:

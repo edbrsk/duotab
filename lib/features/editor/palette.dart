@@ -179,6 +179,10 @@ class Palette extends StatelessWidget {
               TimeSignatureChip(),
               KeySignatureChip(),
               TempoChip(),
+              RepeatStartChip(),
+              RepeatEndChip(),
+              EndingsChip(),
+              DirectionsChip(),
             ],
           ),
           PaletteGroup(

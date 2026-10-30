@@ -15,7 +15,10 @@ const _at = EditPosition(track: 0, bar: 0, voice: 0, beat: 0, string: 1);
 void main() {
   late _Editor editor;
 
-  setUpAll(() => registerFallbackValue(const SetRest()));
+  setUpAll(() {
+    registerFallbackValue(const SetRest());
+    registerFallbackValue(<int>[]);
+  });
 
   setUp(() {
     editor = _Editor();
@@ -38,6 +41,10 @@ void main() {
     when(() => editor.deleteBar()).thenAnswer((_) async {});
     when(() => editor.copyBars()).thenAnswer((_) async {});
     when(() => editor.pasteBars()).thenAnswer((_) async {});
+    when(() => editor.toggleRepeatStart()).thenAnswer((_) async {});
+    when(() => editor.setRepeatEnd(any())).thenAnswer((_) async {});
+    when(() => editor.setEndings(any())).thenAnswer((_) async {});
+    when(() => editor.toggleDirection(any())).thenAnswer((_) async {});
   });
 
   Future<void> pump(WidgetTester tester, EditorState state) async {
@@ -148,5 +155,42 @@ void main() {
           .onPressed,
       isNull,
     );
+  });
+
+  testWidgets('a repeat count sets the repeat end, and No repeat removes it', (
+    tester,
+  ) async {
+    await pump(tester, const EditorState(position: _at, repeatCount: 2));
+    await tester.tap(find.byTooltip('Repeat end'));
+    await tester.pumpAndSettle();
+    expect(chip(tester, 'Play 2 times').selected, isTrue);
+    await tester.tap(find.text('×3'));
+    verify(() => editor.setRepeatEnd(3)).called(1);
+    await tester.tap(find.text('No repeat'));
+    verify(() => editor.setRepeatEnd(0)).called(1);
+  });
+
+  testWidgets('ending chips add and remove endings', (tester) async {
+    await pump(tester, const EditorState(position: _at, endings: [1]));
+    expect(find.text('1.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Alternate ending'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Ending 2'));
+    verify(() => editor.setEndings([1, 2])).called(1);
+    await tester.tap(find.byTooltip('Ending 1'));
+    verify(() => editor.setEndings([])).called(1);
+  });
+
+  testWidgets("direction chips toggle and show the bar's directions", (
+    tester,
+  ) async {
+    await pump(tester, const EditorState(position: _at, directions: {'segno'}));
+    expect(chip(tester, 'Directions').selected, isTrue);
+    await tester.tap(find.byTooltip('Directions'));
+    await tester.pumpAndSettle();
+    expect(chip(tester, 'Segno').selected, isTrue);
+    expect(chip(tester, 'Coda').selected, isFalse);
+    await tester.tap(find.text('D.S. al Coda'));
+    verify(() => editor.toggleDirection('dalSegnoAlCoda')).called(1);
   });
 }

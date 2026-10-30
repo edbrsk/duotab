@@ -300,6 +300,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pasteBars => 'Paste bars';
 
   @override
+  String get repeatStart => 'Repeat start';
+
+  @override
+  String get repeatEnd => 'Repeat end';
+
+  @override
+  String playTimes(int count) {
+    return 'Play $count times';
+  }
+
+  @override
+  String get noRepeat => 'No repeat';
+
+  @override
+  String get alternateEnding => 'Alternate ending';
+
+  @override
+  String endingN(int number) {
+    return 'Ending $number';
+  }
+
+  @override
+  String get directions => 'Directions';
+
+  @override
+  String get targets => 'Targets';
+
+  @override
+  String get jumps => 'Jumps';
+
+  @override
+  String get segno => 'Segno';
+
+  @override
+  String get coda => 'Coda';
+
+  @override
+  String get fine => 'Fine';
+
+  @override
+  String get daCapo => 'Da capo';
+
+  @override
+  String get daCapoAlFine => 'Da capo al fine';
+
+  @override
+  String get daCapoAlCoda => 'Da capo al coda';
+
+  @override
+  String get dalSegno => 'Dal segno';
+
+  @override
+  String get dalSegnoAlFine => 'Dal segno al fine';
+
+  @override
+  String get dalSegnoAlCoda => 'Dal segno al coda';
+
+  @override
+  String get toCoda => 'To coda';
+
+  @override
   String get accidentals => 'Accidentals';
 
   @override

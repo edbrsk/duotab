@@ -59,4 +59,9 @@ abstract final class Smufl {
 
   static const gClef = '\u{E050}';
   static const fClef = '\u{E062}';
+
+  static const repeatLeft = '\u{E040}';
+  static const repeatRight = '\u{E041}';
+  static const segno = '\u{E047}';
+  static const coda = '\u{E048}';
 }

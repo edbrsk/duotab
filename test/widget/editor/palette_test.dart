@@ -15,7 +15,10 @@ const _at = EditPosition(track: 0, bar: 0, voice: 0, beat: 0, string: 1);
 void main() {
   late _Editor editor;
 
-  setUpAll(() => registerFallbackValue(const SetRest()));
+  setUpAll(() {
+    registerFallbackValue(const SetRest());
+    registerFallbackValue(<int>[]);
+  });
 
   setUp(() {
     editor = _Editor();
@@ -38,6 +41,10 @@ void main() {
     when(() => editor.deleteBar()).thenAnswer((_) async {});
     when(() => editor.copyBars()).thenAnswer((_) async {});
     when(() => editor.pasteBars()).thenAnswer((_) async {});
+    when(() => editor.toggleRepeatStart()).thenAnswer((_) async {});
+    when(() => editor.setRepeatEnd(any())).thenAnswer((_) async {});
+    when(() => editor.setEndings(any())).thenAnswer((_) async {});
+    when(() => editor.toggleDirection(any())).thenAnswer((_) async {});
   });
 
   Future<void> pump(WidgetTester tester, EditorState state) async {
@@ -322,5 +329,24 @@ void main() {
     verify(() => editor.deleteBar()).called(1);
     verify(() => editor.copyBars()).called(1);
     verify(() => editor.pasteBars()).called(1);
+  });
+
+  testWidgets('the structure chips need a cursor', (tester) async {
+    await pump(tester, const EditorState());
+    for (final tooltip in [
+      'Repeat start',
+      'Repeat end',
+      'Alternate ending',
+      'Directions',
+    ]) {
+      expect(chip(tester, tooltip).onSelected, isNull, reason: tooltip);
+    }
+  });
+
+  testWidgets('repeat start toggles and shows its state', (tester) async {
+    await pump(tester, const EditorState(position: _at, repeatStart: true));
+    expect(chip(tester, 'Repeat start').selected, isTrue);
+    await tester.tap(find.byTooltip('Repeat start'));
+    verify(() => editor.toggleRepeatStart()).called(1);
   });
 }

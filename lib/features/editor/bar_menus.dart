@@ -323,3 +323,150 @@ class _TempoDialogState extends State<_TempoDialog> {
     );
   }
 }
+
+class RepeatStartChip extends StatelessWidget {
+  const RepeatStartChip({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final editor = context.read<EditorCubit>();
+    final state = context.watch<EditorCubit>().state;
+    return PaletteChip(
+      tooltip: AppLocalizations.of(context)!.repeatStart,
+      label: const PaletteGlyph(Smufl.repeatLeft),
+      selected: state.repeatStart,
+      onSelected: state.position != null ? editor.toggleRepeatStart : null,
+    );
+  }
+}
+
+class RepeatEndChip extends StatelessWidget {
+  const RepeatEndChip({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final editor = context.read<EditorCubit>();
+    final state = context.watch<EditorCubit>().state;
+    return _MenuChip(
+      tooltip: l10n.repeatEnd,
+      label: const PaletteGlyph(Smufl.repeatRight),
+      enabled: state.position != null,
+      menu: (_) => [
+        _wrap([
+          for (var count = 2; count <= 8; count++)
+            PaletteChip(
+              tooltip: l10n.playTimes(count),
+              label: PaletteText('×$count'),
+              selected: state.repeatCount == count,
+              onSelected: () => editor.setRepeatEnd(count),
+            ),
+        ]),
+        const SizedBox(height: Spacing.sm),
+        TextButton(
+          onPressed: state.repeatCount == 0
+              ? null
+              : () => editor.setRepeatEnd(0),
+          child: Text(l10n.noRepeat),
+        ),
+      ],
+    );
+  }
+}
+
+class EndingsChip extends StatelessWidget {
+  const EndingsChip({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final editor = context.read<EditorCubit>();
+    final state = context.watch<EditorCubit>().state;
+    final endings = state.endings;
+    return _MenuChip(
+      tooltip: l10n.alternateEnding,
+      label: PaletteText(
+        endings.isEmpty ? '1.' : endings.map((e) => '$e.').join(),
+      ),
+      enabled: state.position != null,
+      menu: (_) => [
+        _wrap([
+          for (var ending = 1; ending <= 8; ending++)
+            PaletteChip(
+              tooltip: l10n.endingN(ending),
+              label: PaletteText('$ending.'),
+              selected: endings.contains(ending),
+              onSelected: () => editor.setEndings(
+                endings.contains(ending)
+                    ? [...endings.where((e) => e != ending)]
+                    : ([...endings, ending]..sort()),
+              ),
+            ),
+        ]),
+      ],
+    );
+  }
+}
+
+class DirectionsChip extends StatelessWidget {
+  const DirectionsChip({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final editor = context.read<EditorCubit>();
+    final state = context.watch<EditorCubit>().state;
+    final targets = [
+      ('segno', l10n.segno, const PaletteGlyph(Smufl.segno)),
+      ('coda', l10n.coda, const PaletteGlyph(Smufl.coda)),
+      ('fine', l10n.fine, const PaletteText('Fine')),
+    ];
+    final jumps = [
+      ('daCapo', l10n.daCapo, 'D.C.'),
+      ('daCapoAlFine', l10n.daCapoAlFine, 'D.C. al Fine'),
+      ('daCapoAlCoda', l10n.daCapoAlCoda, 'D.C. al Coda'),
+      ('dalSegno', l10n.dalSegno, 'D.S.'),
+      ('dalSegnoAlFine', l10n.dalSegnoAlFine, 'D.S. al Fine'),
+      ('dalSegnoAlCoda', l10n.dalSegnoAlCoda, 'D.S. al Coda'),
+      ('toCoda', l10n.toCoda, 'To Coda'),
+    ];
+    PaletteChip direction(String id, String name, Widget label) => PaletteChip(
+      tooltip: name,
+      label: label,
+      selected: state.directions.contains(id),
+      onSelected: () => editor.toggleDirection(id),
+    );
+    return MenuAnchor(
+      menuChildren: [
+        Padding(
+          padding: const EdgeInsets.all(Spacing.sm),
+          child: SizedBox(
+            width: _menuWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _heading(context, l10n.targets),
+                _wrap([
+                  for (final (id, name, label) in targets)
+                    direction(id, name, label),
+                ]),
+                const SizedBox(height: Spacing.sm),
+                _heading(context, l10n.jumps),
+                _wrap([
+                  for (final (id, name, label) in jumps)
+                    direction(id, name, PaletteText(label)),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ],
+      builder: (context, controller, _) => PaletteChip(
+        tooltip: l10n.directions,
+        label: const PaletteGlyph(Smufl.segno),
+        selected: state.directions.isNotEmpty,
+        onSelected: state.position != null ? controller.open : null,
+      ),
+    );
+  }
+}
