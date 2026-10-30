@@ -4,7 +4,7 @@ import { expect, test } from 'vitest';
 import { movesTicks, runCommand } from '../../src/editing/commands';
 import { History } from '../../src/editing/history';
 import type { EditCommand, EditPosition } from '../../src/protocol';
-import { fourQuarters, lineOfEighths, score, sixBars, twoTracksThreeBars } from '../fixtures';
+import { fourQuarters, guitarsAndDrums, lineOfEighths, score, sixBars, twoTracksThreeBars } from '../fixtures';
 
 const start: EditPosition = { track: 0, bar: 0, voice: 0, beat: 0, string: 1 };
 
@@ -167,4 +167,19 @@ test('structure commands are edits and undo', async () => {
 
 test('structure commands move ticks', () => {
   for (const command of structureCommands) expect(movesTicks(command), command.op).toBe(true);
+});
+
+test('a track edit is an edit and undoes', async () => {
+  for (const command of [
+    { op: 'addTrack', tuning: [64, 59, 55, 50, 45, 40], program: 27 },
+    { op: 'removeTrack', track: 1 },
+    { op: 'moveTrack', track: 1, to: 0 },
+    { op: 'renameTrack', track: 0, name: 'Lead' },
+  ] satisfies EditCommand[]) {
+    const s = score(guitarsAndDrums);
+    const before = alphaTab.model.JsonConverter.scoreToJson(s);
+    const history = new History();
+    expect(runCommand(s, start, command, history).edited, command.op).toBe(true);
+    expect(alphaTab.model.JsonConverter.scoreToJson((await history.undo(s))!), command.op).toBe(before);
+  }
 });

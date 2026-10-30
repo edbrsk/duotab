@@ -50,6 +50,17 @@ export const sixBars = String.raw`\title "Form"
 \track "G" \tuning E4 B3 G3 D3 A2 E2
 0.6.1 | 1.6.1 | 2.6.1 | 3.6.1 | 4.6.1 | 5.6.1`;
 
+// alphaTex reads no tuning on a track after a percussion one, so drums come last.
+export const guitarsAndDrums = String.raw`\title "Band"
+.
+\track "Guitar A" \tuning E4 B3 G3 D3 A2 E2
+0.6.1 | \ts 3 4 3.6.2{d} | \ts 4 4 \ro \rc 2 5.6.1
+\track "Guitar B" \tuning E4 B3 G3 D3 A2 E2 B1
+0.7.1 | r.2{d} | r.1
+\track "Drums" \instrument percussion
+\articulation defaults
+42.1 | 42.2{d} | 42.1`;
+
 export function score(alphaTex: string): alphaTab.model.Score {
   const importer = new alphaTab.importer.AlphaTexImporter();
   importer.initFromString(alphaTex, new alphaTab.Settings());

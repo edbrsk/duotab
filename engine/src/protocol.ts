@@ -197,7 +197,12 @@ export type EditCommand =
   | { op: 'setRepeatEnd'; count: number }
   /** Adds or removes one ending, 1–8. */
   | { op: 'toggleEnding'; ending: number }
-  | { op: 'toggleDirection'; direction: DirectionId };
+  | { op: 'toggleDirection'; direction: DirectionId }
+  /** Track edits need no cursor. */
+  | { op: 'addTrack'; tuning: number[]; program: number }
+  | { op: 'removeTrack'; track: number }
+  | { op: 'moveTrack'; track: number; to: number }
+  | { op: 'renameTrack'; track: number; name: string };
 
 export type EditPayload = { command: EditCommand };
 
@@ -229,6 +234,8 @@ export type EditState = {
   /** Null without a cursor. */
   structure: Structure | null;
   canPaste: boolean;
+  /** The track the engine draws, which track edits can change. */
+  drawnTrack: number;
 };
 
 /** Posted for a tap on the drawn track. */

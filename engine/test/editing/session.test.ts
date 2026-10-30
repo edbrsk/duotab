@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 
 import { setDuration } from '../../src/editing/operations';
 import { EditSession } from '../../src/editing/session';
-import { fourQuarters, lineOfEighths, score, sixBars, twoGuitarsAndDrums, twoTracksThreeBars } from '../fixtures';
+import { fourQuarters, guitarsAndDrums, lineOfEighths, score, sixBars, twoGuitarsAndDrums, twoTracksThreeBars } from '../fixtures';
 
 test("opening a song checks its bars and clears the cursor and history", async () => {
   const s = score(fourQuarters);
@@ -126,4 +126,13 @@ test("the state tells the bar's structure", () => {
   session.command(s, { op: 'setRepeatEnd', count: 2 });
   session.command(s, { op: 'toggleDirection', direction: 'fine' });
   expect(session.state(s, true).structure).toEqual({ repeatStart: false, repeatCount: 2, endings: [], directions: ['fine'] });
+});
+
+test('track commands need no cursor', () => {
+  const s = score(guitarsAndDrums);
+  const session = new EditSession();
+  session.open(s, 0);
+  expect(session.command(s, { op: 'addTrack', tuning: [64, 59, 55, 50, 45, 40], program: 27 })).toEqual({ edited: true });
+  expect(session.state(s, true).drawnTrack).toBe(3);
+  expect(session.position).toBeNull();
 });

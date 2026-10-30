@@ -5,6 +5,7 @@ import { type Clipboard, deleteBar, insertBar, pasteBars } from './bar_structure
 import { setClef, setKeySignature, setTempo, setTimeSignature } from './bars';
 import { History } from './history';
 import { setRepeatEnd, toggleDirection, toggleEnding, toggleRepeatStart } from './structure';
+import { addTrack, moveTrack, removeTrack, renameTrack } from './tracks';
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from './operations';
 import { clampPosition, staffOf } from './position';
 import { activeTechniques, addGrace, bendAt, setBend, setDynamic, setTuplet, toggleTechnique } from './techniques';
@@ -13,8 +14,9 @@ type Score = alphaTab.model.Score;
 
 /** Comparing it before and after a command tells a real change from a no-op. */
 const shape = (score: Score, at: EditPosition) => {
-  const staff = staffOf(score, at);
-  return `${score.title}|${staff.bars
+  const staff = staffOf(score, { ...at, track: Math.min(at.track, score.tracks.length - 1) });
+  const tracks = score.tracks.map((t) => `${t.name}:${t.staves[0].tuning}:${t.playbackInfo.primaryChannel}`);
+  return `${score.title}|${tracks}|${staff.bars
     .map((bar) => {
       const master = bar.masterBar;
       const tempo = master.tempoAutomations.map((a) => `${a.ratioPosition}@${a.value}`);
@@ -49,7 +51,12 @@ const MOVING_OPS = new Set<EditCommand['op']>([
   'setRepeatEnd',
   'toggleEnding',
   'toggleDirection',
+  'addTrack',
+  'removeTrack',
+  'moveTrack',
 ]);
+
+export const TRACK_OPS = new Set<EditCommand['op']>(['addTrack', 'removeTrack', 'moveTrack', 'renameTrack']);
 
 export const movesTicks = (command: EditCommand) => MOVING_OPS.has(command.op);
 
@@ -122,6 +129,18 @@ export function runCommand(
         return toggleEnding(score, at, command.ending, settings);
       case 'toggleDirection':
         return toggleDirection(score, at, command.direction, settings);
+      case 'addTrack':
+        addTrack(score, command, settings);
+        return at;
+      case 'removeTrack':
+        removeTrack(score, command.track, settings);
+        return at;
+      case 'moveTrack':
+        moveTrack(score, command.track, command.to, settings);
+        return at;
+      case 'renameTrack':
+        renameTrack(score, command.track, command.name, settings);
+        return at;
       case 'setTitle':
         score.title = command.title.trim();
         return at;

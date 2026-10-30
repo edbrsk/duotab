@@ -5,8 +5,9 @@ import { describeOpened } from '../summary';
 import { checkBars } from './bar_check';
 import { type Clipboard, copyBars } from './bar_structure';
 import { barProperties } from './bars';
-import { runCommand } from './commands';
+import { runCommand, TRACK_OPS } from './commands';
 import { structureAt } from './structure';
+import { isGuitar, nearestGuitar } from './tracks';
 import { History } from './history';
 import { beatOf, clampPosition } from './position';
 import { activeTechniques, bendAt, dynamicAt, tupletAt } from './techniques';
@@ -53,6 +54,7 @@ export class EditSession {
       const at = this.position ?? { track: this.track, bar: 0, voice: 0, beat: 0, string: 1 };
       return { edited: runCommand(score, at, command, this.history, this.settings).edited };
     }
+    if (TRACK_OPS.has(command.op)) return this.trackCommand(score, command);
     if (!this.position) throw new Error('no cursor');
     if (command.op === 'copyBars') {
       const { bar } = this.position;
@@ -66,8 +68,30 @@ export class EditSession {
     return { edited: result.edited };
   }
 
+  /** An added track becomes drawn; otherwise the drawn track stays drawn, or the nearest guitar track when it goes. */
+  private trackCommand(score: Score, command: EditCommand): { edited: boolean } {
+    const drawn = score.tracks[this.track];
+    const at = this.position ?? { track: this.track, bar: 0, voice: 0, beat: 0, string: 1 };
+    const { edited } = runCommand(score, at, command, this.history, this.settings);
+    if (!edited) return { edited };
+    const index = command.op === 'addTrack' ? -1 : score.tracks.indexOf(drawn);
+    if (index >= 0) {
+      this.track = index;
+      if (this.position) this.position = { ...this.position, track: index };
+    } else {
+      this.track = command.op === 'addTrack' ? score.tracks.length - 1 : nearestGuitar(score, this.track);
+      this.position = null;
+    }
+    this.issues = checkBars(score, this.track);
+    return { edited };
+  }
+
   /** After undo or redo replaced the score. */
   restored(score: Score): void {
+    if (!score.tracks[this.track] || !isGuitar(score.tracks[this.track])) {
+      this.track = nearestGuitar(score, Math.min(this.track, score.tracks.length - 1));
+      this.position = null;
+    }
     if (this.position) this.position = clampPosition(score, this.position);
     this.issues = checkBars(score, this.track);
   }
@@ -97,6 +121,7 @@ export class EditSession {
       bar: at ? barProperties(score, at) : null,
       structure: at ? structureAt(score, at) : null,
       canPaste: this.clipboard !== null,
+      drawnTrack: this.track,
     };
   }
 }

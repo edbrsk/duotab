@@ -1,7 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import { Mixer } from './mixer';
-import { movesTicks } from './editing/commands';
+import { movesTicks, TRACK_OPS } from './editing/commands';
 import { hitTest } from './editing/hit_test';
 import { newSong } from './editing/new_song';
 import { drawOverlay } from './editing/overlay';
@@ -234,9 +234,10 @@ function startSong() {
 async function restore(score: alphaTab.model.Score | null): Promise<EditState> {
   if (!score) return editState(false);
   carryPlaybackSettings(api.score!, score);
+  // An undone track edit can leave the drawn index pointing elsewhere.
+  session.restored(score);
   const track = session.track;
   await mixer.regenerate(() => api.renderScore(score, [track]));
-  session.restored(score);
   return editState(true);
 }
 
@@ -312,9 +313,14 @@ async function run(request: Request): Promise<unknown> {
           api.playbackRange = null;
           postRange();
         }
-        api.render();
-        // The title is not in the MIDI.
-        if (command.op !== 'setTitle') await mixer.regenerate();
+        if (TRACK_OPS.has(command.op)) {
+          const score = api.score;
+          await mixer.regenerate(() => api.renderScore(score, [session.track]));
+        } else {
+          api.render();
+          // The title is not in the MIDI.
+          if (command.op !== 'setTitle') await mixer.regenerate();
+        }
       }
       return editState(result.edited);
     }
