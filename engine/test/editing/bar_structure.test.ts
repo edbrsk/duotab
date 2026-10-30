@@ -6,7 +6,8 @@ import { barProperties, setClef, setKeySignature, setTempo, setTimeSignature } f
 import { selectVoice, setFret } from '../../src/editing/operations';
 import { toggleTechnique } from '../../src/editing/techniques';
 import type { EditPosition } from '../../src/protocol';
-import { score, twoGuitarsAndDrums, twoTracksThreeBars } from '../fixtures';
+import { playOrder, setEndings, setRepeatEnd, structureAt, toggleDirection, toggleRepeatStart } from '../../src/editing/structure';
+import { score, sixBars, twoGuitarsAndDrums, twoTracksThreeBars } from '../fixtures';
 
 const at = (bar: number, beat = 0, string = 1, track = 0, voice = 0): EditPosition => ({ track, bar, voice, beat, string });
 let s: alphaTab.model.Score;
@@ -181,4 +182,77 @@ test('an inserted bar keeps the triplet feel', () => {
   for (const m of s.masterBars) m.tripletFeel = alphaTab.model.TripletFeel.Triplet8th;
   insertBar(s, at(1));
   expect(s.masterBars.map((m) => m.tripletFeel)).toEqual(Array(4).fill(alphaTab.model.TripletFeel.Triplet8th));
+});
+
+const section = (marker: string) => {
+  const value = new alphaTab.model.Section();
+  value.marker = marker;
+  value.text = marker;
+  return value;
+};
+
+test("deleting the bars at a repeat's edges keeps the repeat", () => {
+  s = score(sixBars);
+  toggleRepeatStart(s, at(1));
+  setRepeatEnd(s, at(3), 2);
+  deleteBar(s, at(1));
+  expect(structureAt(s, at(1)).repeatStart).toBe(true);
+  expect(playOrder(s)).toEqual([0, 1, 2, 1, 2, 3, 4]);
+  s = score(sixBars);
+  toggleRepeatStart(s, at(1));
+  setRepeatEnd(s, at(3), 2);
+  deleteBar(s, at(3));
+  expect(structureAt(s, at(2)).repeatCount).toBe(2);
+  expect(playOrder(s)).toEqual([0, 1, 2, 1, 2, 3, 4]);
+});
+
+test('a one-bar repeat goes with its bar', () => {
+  s = score(sixBars);
+  toggleRepeatStart(s, at(2));
+  setRepeatEnd(s, at(2), 2);
+  deleteBar(s, at(2));
+  expect(s.masterBars.map((_, i) => structureAt(s, at(i))).some((x) => x.repeatStart || x.repeatCount)).toBe(false);
+});
+
+test('deleting a bar keeps its marks', () => {
+  s = score(sixBars);
+  toggleDirection(s, at(2), 'segno');
+  s.masterBars[2].section = section('A');
+  toggleDirection(s, at(4), 'dalSegno');
+  deleteBar(s, at(2));
+  expect(structureAt(s, at(2)).directions).toEqual(['segno']);
+  expect(s.masterBars[2].section?.marker).toBe('A');
+  deleteBar(s, at(3));
+  expect(structureAt(s, at(2)).directions).toEqual(['segno', 'dalSegno']);
+});
+
+test('a carried mark never replaces one already there', () => {
+  s = score(sixBars);
+  s.masterBars[2].section = section('A');
+  s.masterBars[3].section = section('B');
+  toggleDirection(s, at(3), 'daCapo');
+  toggleDirection(s, at(4), 'dalSegno');
+  deleteBar(s, at(2));
+  expect(s.masterBars[2].section?.marker).toBe('B');
+  deleteBar(s, at(3));
+  expect(structureAt(s, at(2)).directions).toEqual(['daCapo']);
+});
+
+test('a bar inserted inside an ending joins it', () => {
+  s = score(sixBars);
+  setEndings(s, at(2), [1]);
+  setEndings(s, at(3), [1]);
+  insertBar(s, at(3));
+  expect(structureAt(s, at(3)).endings).toEqual([1]);
+  insertBar(s, at(2));
+  expect(structureAt(s, at(2)).endings).toEqual([]);
+});
+
+test('an inserted bar takes no repeat or direction', () => {
+  s = score(sixBars);
+  toggleRepeatStart(s, at(2));
+  toggleDirection(s, at(2), 'segno');
+  insertBar(s, at(2));
+  expect(structureAt(s, at(2))).toEqual({ repeatStart: false, repeatCount: 0, endings: [], directions: [] });
+  expect(structureAt(s, at(3))).toMatchObject({ repeatStart: true, directions: ['segno'] });
 });

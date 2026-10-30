@@ -27,6 +27,11 @@ export function insertBar(score: Score, at: EditPosition, settings = defaultSett
   masterBar.timeSignatureDenominator = next.timeSignatureDenominator;
   masterBar.timeSignatureCommon = next.timeSignatureCommon;
   masterBar.tripletFeel = next.tripletFeel;
+  const previous = score.masterBars[index - 1];
+  // Inside a multi-bar ending, the new bar belongs to it.
+  if (previous && previous.alternateEndings !== 0 && previous.alternateEndings === next.alternateEndings) {
+    masterBar.alternateEndings = next.alternateEndings;
+  }
   if (index === 0) {
     masterBar.tempoAutomations = next.tempoAutomations.filter((a) => a.ratioPosition === 0);
     next.tempoAutomations = next.tempoAutomations.filter((a) => a.ratioPosition !== 0);
@@ -56,6 +61,29 @@ export function insertBar(score: Score, at: EditPosition, settings = defaultSett
   return cursor;
 }
 
+const isJump = (direction: alphaTab.model.Direction) => alphaTab.model.Direction[direction].startsWith('Jump');
+
+/**
+ * Keeps the song's form when `removed` goes: what opens a passage moves to
+ * the next bar, what closes one to the previous bar, never over a mark that
+ * bar has. A repeat that both opens and closes on `removed` goes with it.
+ */
+function carryForm(removed: MasterBar, previous: MasterBar | undefined, next: MasterBar | undefined): void {
+  const oneBarRepeat = removed.isRepeatStart && removed.isRepeatEnd;
+  if (next && removed.isRepeatStart && !oneBarRepeat) next.isRepeatStart = true;
+  if (previous && removed.isRepeatEnd && !oneBarRepeat && !previous.isRepeatEnd) {
+    previous.repeatCount = removed.repeatCount;
+  }
+  if (next && removed.section && !next.section) next.section = removed.section;
+  for (const direction of removed.directions ?? []) {
+    if (!isJump(direction)) {
+      next?.addDirection(direction);
+    } else if (previous && ![...(previous.directions ?? [])].some(isJump)) {
+      previous.addDirection(direction);
+    }
+  }
+}
+
 /** Removes the cursor bar from every track; its tempo carries on in the next bar. */
 export function deleteBar(score: Score, at: EditPosition, settings = defaultSettings): EditPosition {
   if (score.masterBars.length === 1) return at;
@@ -66,6 +94,7 @@ export function deleteBar(score: Score, at: EditPosition, settings = defaultSett
   if (last && next && !markingOf(next)) {
     next.tempoAutomations.unshift(Automation.buildTempoAutomation(false, 0, last.value, 2));
   }
+  carryForm(removed, score.masterBars[index - 1], next);
   score.masterBars.splice(index, 1);
   for (const track of score.tracks) {
     for (const staff of track.staves) staff.bars.splice(index, 1);
