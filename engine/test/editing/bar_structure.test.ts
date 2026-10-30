@@ -140,3 +140,45 @@ test('the clipboard survives another song', () => {
   pasteBars(s, at(2, 0, 1, 1), clipboard);
   expect(frets(1, 2)).toEqual(['1/0', '1/2', '1/3', '1/5']);
 });
+
+const linked = (bars: string) => score(String.raw`\title "Links"
+.
+\track "A" \tuning E4 B3 G3 D3 A2 E2
+r.1 | r.1 | r.1
+\track "B" \tuning E4 B3 G3 D3 A2 E2
+${bars}`);
+
+test('bars that start with a tie, slide or hammer-on from the bar before paste', () => {
+  for (const content of ['3.6.1 | -.6.1 | r.1', '3.6{sl}.1 | 5.6.1 | r.1', '3.6{h}.1 | 5.6.1 | r.1']) {
+    s = linked(content);
+    const clipboard = copyBars(s, 1, 1, 1);
+    expect(() => pasteBars(s, at(2, 0, 1, 1), clipboard), content).not.toThrow();
+    expect(bars(1)[2].voices[0].beats[0].notes, content).toHaveLength(1);
+  }
+});
+
+test('insert and delete relink ties in the other tracks', () => {
+  s = linked('3.6.1 | -.6.1 | 5.6.1');
+  deleteBar(s, at(0));
+  const note = bars(1)[0].voices[0].beats[0].notes[0];
+  expect(note.tieOrigin).toBeNull();
+  expect(note.isTieDestination).toBe(false);
+});
+
+test('pasted chord names come with their chords', () => {
+  const chord = new alphaTab.model.Chord();
+  chord.name = 'C';
+  chord.strings = [0, 1, 0, 2, 3, -1];
+  bars(0)[0].staff.addChord('c0', chord);
+  bars(0)[0].voices[0].beats[0].chordId = 'c0';
+  s.finish(new alphaTab.Settings());
+  const clipboard = copyBars(s, 0, 0, 0);
+  pasteBars(s, at(2, 0, 1, 1), clipboard);
+  expect(bars(1)[2].voices[0].beats[0].chord?.name).toBe('C');
+});
+
+test('an inserted bar keeps the triplet feel', () => {
+  for (const m of s.masterBars) m.tripletFeel = alphaTab.model.TripletFeel.Triplet8th;
+  insertBar(s, at(1));
+  expect(s.masterBars.map((m) => m.tripletFeel)).toEqual(Array(4).fill(alphaTab.model.TripletFeel.Triplet8th));
+});

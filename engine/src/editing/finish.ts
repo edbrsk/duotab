@@ -13,7 +13,8 @@ export function finishEdit(score: Score, at: EditPosition, settings: alphaTab.Se
   // never clears the arcs drawn for them, so a link to a deleted note, past a
   // new one or turned off would survive; a re-import rebuilds them all from
   // the flags.
-  for (const bar of staff.bars) {
+  // Every staff, as inserting or deleting a bar moves all of them.
+  for (const bar of score.tracks.flatMap((t) => t.staves.flatMap((st) => st.bars))) {
     for (const voice of bar.voices) {
       for (const beat of voice.beats) {
         beat.isEffectSlurOrigin = false;

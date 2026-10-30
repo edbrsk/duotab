@@ -26,6 +26,7 @@ export function insertBar(score: Score, at: EditPosition, settings = defaultSett
   masterBar.timeSignatureNumerator = next.timeSignatureNumerator;
   masterBar.timeSignatureDenominator = next.timeSignatureDenominator;
   masterBar.timeSignatureCommon = next.timeSignatureCommon;
+  masterBar.tripletFeel = next.tripletFeel;
   if (index === 0) {
     masterBar.tempoAutomations = next.tempoAutomations.filter((a) => a.ratioPosition === 0);
     next.tempoAutomations = next.tempoAutomations.filter((a) => a.ratioPosition !== 0);
@@ -77,12 +78,37 @@ export function deleteBar(score: Score, at: EditPosition, settings = defaultSett
   return cursor;
 }
 
+/** The chord's id in `staff`, adding it there under a free id when the id means another chord. */
+function chordIn(staff: alphaTab.model.Staff, chord: alphaTab.model.Chord | null, id: string): string | null {
+  if (!chord) return null;
+  const same = (other: alphaTab.model.Chord | undefined) =>
+    other?.name === chord.name && other.strings.join() === chord.strings.join();
+  let free = id;
+  for (let n = 2; staff.chords?.has(free); n++) {
+    if (same(staff.chords.get(free))) return free;
+    free = `${id}-${n}`;
+  }
+  staff.addChord(free, chord);
+  return free;
+}
+
 export function copyBars(score: Score, track: number, from: number, to: number): Clipboard {
   const song = JSON.parse(JsonConverter.scoreToJson(score));
   song.masterbars = song.masterbars.slice(from, to + 1);
   const copied = song.tracks[track];
   copied.staves = [{ ...copied.staves[0], bars: copied.staves[0].bars.slice(from, to + 1) }];
   song.tracks = [copied];
+  // A link to a note outside the copied bars would fail to load; the flags
+  // alone rebuild the links when pasted.
+  for (const bar of copied.staves[0].bars) {
+    for (const voice of bar.voices) {
+      for (const beat of voice.beats) {
+        for (const note of beat.notes) {
+          for (const key of Object.keys(note)) if (key.endsWith('noteid')) delete note[key];
+        }
+      }
+    }
+  }
   return { json: JSON.stringify(song), bars: to - from + 1 };
 }
 
@@ -91,7 +117,8 @@ export function copyBars(score: Score, track: number, from: number, to: number):
  * on; the bars keep their own time signature, tempo, key and clef.
  */
 export function pasteBars(score: Score, at: EditPosition, clipboard: Clipboard, settings = defaultSettings): EditPosition {
-  const source = JsonConverter.jsonToScore(clipboard.json, settings).tracks[0].staves[0].bars;
+  const sourceStaff = JsonConverter.jsonToScore(clipboard.json, settings).tracks[0].staves[0];
+  const source = sourceStaff.bars;
   while (score.masterBars.length < at.bar + source.length) appendBar(score, settings);
   const staff = staffOf(score, at);
   const strings = staff.tuning.length;
@@ -103,6 +130,7 @@ export function pasteBars(score: Score, at: EditPosition, clipboard: Clipboard, 
       voice.id = ids.voice();
       for (const beat of voice.beats) {
         beat.id = ids.beat();
+        if (beat.chordId !== null) beat.chordId = chordIn(staff, sourceStaff.chords?.get(beat.chordId) ?? null, beat.chordId);
         for (const note of [...beat.notes]) {
           if (note.string > strings) beat.removeNote(note);
           else note.id = ids.note();
