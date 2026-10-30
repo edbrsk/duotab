@@ -61,7 +61,11 @@ const accidental = (value: alphaTab.model.NoteAccidentalMode) =>
 
 const harmonic = (type: alphaTab.model.HarmonicType, value: (n: Note) => number): Technique => ({
   level: 'note',
-  get: (n) => n.harmonicType === type,
+  // Pinch, tapped, semi and feedback harmonics read as the palette's artificial one.
+  get: (n) =>
+    type === HarmonicType.Natural
+      ? n.harmonicType === type
+      : n.harmonicType !== HarmonicType.None && n.harmonicType !== HarmonicType.Natural,
   set: (n, on) => {
     n.harmonicType = on ? type : HarmonicType.None;
     n.harmonicValue = on ? value(n) : 0;
@@ -88,7 +92,14 @@ const TECHNIQUES: Record<TechniqueId, Technique> = {
     get: (n) => n.hasBend,
     set: (n, on) => applyBend(n, on ? { kind: 'bend', amount: 4 } : null),
   },
-  vibrato: noteField((n) => n.vibrato, (n, v) => (n.vibrato = v), VibratoType.Slight, VibratoType.None),
+  // A wide vibrato from a file reads as on; a tap takes it off.
+  vibrato: {
+    level: 'note',
+    get: (n) => n.vibrato !== VibratoType.None,
+    set: (n, on) => {
+      n.vibrato = on ? VibratoType.Slight : VibratoType.None;
+    },
+  },
   palmMute: noteFlag('isPalmMute'),
   letRing: noteFlag('isLetRing'),
   deadNote: noteFlag('isDead'),
@@ -128,7 +139,14 @@ const TECHNIQUES: Record<TechniqueId, Technique> = {
   },
   pickUp: pick(PickStroke.Up),
   pickDown: pick(PickStroke.Down),
-  tremolo: beatField((b) => b.tremoloSpeed, (b, v) => (b.tremoloSpeed = v), Duration.Sixteenth, null),
+  // Any tremolo speed from a file reads as on; a tap takes it off.
+  tremolo: {
+    level: 'beat',
+    get: (b) => b.tremoloSpeed !== null,
+    set: (b, on) => {
+      b.tremoloSpeed = on ? Duration.Sixteenth : null;
+    },
+  },
   fermata: {
     level: 'beat',
     get: (b) => b.fermata !== null,

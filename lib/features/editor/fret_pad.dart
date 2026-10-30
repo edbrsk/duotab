@@ -32,8 +32,13 @@ class _FretPadState extends State<FretPad> {
       editor.command(command);
     }
 
-    Widget digit(int d) =>
-        _Key(label: '$d', onPressed: () => send(SetFret(_entry.digit(d))));
+    Widget digit(int d) => _Key(
+      label: '$d',
+      onPressed: () {
+        final fret = _entry.digit(d);
+        send(SetFret(fret, combine: _entry.combined));
+      },
+    );
     Widget icon(IconData icon, String tooltip, EditCommand command) =>
         _Key(icon: icon, tooltip: tooltip, onPressed: () => send(command));
 
@@ -52,25 +57,30 @@ class _FretPadState extends State<FretPad> {
         icon(Icons.keyboard_arrow_down, l10n.stringDown, const Move('down')),
       ],
     ];
-    return IgnorePointer(
-      ignoring: !enabled,
-      child: Opacity(
-        opacity: enabled ? 1 : 0.4,
-        child: Column(
-          children: [
-            for (final row in rows)
-              Padding(
-                padding: const EdgeInsets.only(bottom: Spacing.xs),
-                child: Row(
-                  children: [
-                    for (final (i, key) in row.indexed) ...[
-                      if (i > 0) const SizedBox(width: Spacing.xs),
-                      Expanded(child: key),
+    // A digit after the cursor moves starts a new fret.
+    return BlocListener<EditorCubit, EditorState>(
+      listenWhen: (before, after) => before.position != after.position,
+      listener: (_, _) => _entry.reset(),
+      child: IgnorePointer(
+        ignoring: !enabled,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.4,
+          child: Column(
+            children: [
+              for (final row in rows)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Spacing.xs),
+                  child: Row(
+                    children: [
+                      for (final (i, key) in row.indexed) ...[
+                        if (i > 0) const SizedBox(width: Spacing.xs),
+                        Expanded(child: key),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

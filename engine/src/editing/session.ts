@@ -82,6 +82,7 @@ export class EditSession {
   /** An added track becomes drawn; otherwise the drawn track stays drawn, or the nearest guitar track when it goes. */
   private trackCommand(score: Score, command: EditCommand): { edited: boolean } {
     const drawn = score.tracks[this.track];
+    const strings = drawn.staves[0].tuning.length;
     const at = this.position ?? { track: this.track, bar: 0, voice: 0, beat: 0, string: 1 };
     const { edited, marks } = runCommand(score, at, command, this.history, this.settings);
     if (!edited) return { edited };
@@ -101,8 +102,12 @@ export class EditSession {
     const index = command.op === 'addTrack' ? -1 : score.tracks.indexOf(drawn);
     if (index >= 0) {
       this.track = index;
-      // A retune to fewer strings can take the cursor's string away.
-      if (this.position) this.position = clampPosition(score, { ...this.position, track: index });
+      if (this.position) {
+        // A retune matches strings from the top, so the cursor stays on its string.
+        const added = drawn.staves[0].tuning.length - strings;
+        const string = command.op === 'retune' ? this.position.string + added : this.position.string;
+        this.position = clampPosition(score, { ...this.position, track: index, string });
+      }
     } else {
       this.track = command.op === 'addTrack' ? score.tracks.length - 1 : nearestGuitar(score, this.track);
       this.position = null;

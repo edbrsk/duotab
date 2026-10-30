@@ -8,6 +8,9 @@ class FretEntry {
   int? _first;
   DateTime? _at;
 
+  /// The last digit completed a two-digit fret.
+  bool combined = false;
+
   FretEntry({
     this.window = const Duration(milliseconds: 800),
     this.now = DateTime.now,
@@ -21,14 +24,17 @@ class FretEntry {
     _at = time;
     if (first != null && quick && first * 10 + digit <= maxFret) {
       _first = null;
+      combined = true;
       return first * 10 + digit;
     }
     _first = digit == 1 || digit == 2 ? digit : null;
+    combined = false;
     return digit;
   }
 
   void reset() {
     _first = null;
     _at = null;
+    combined = false;
   }
 }

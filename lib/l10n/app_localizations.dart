@@ -1318,6 +1318,12 @@ abstract class AppLocalizations {
   /// **'Track name'**
   String get trackName;
 
+  /// No description provided for @otherClef.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get otherClef;
+
   /// No description provided for @muteShort.
   ///
   /// In en, this message translates to:

@@ -154,6 +154,8 @@ export function runCommand(
     }
   })();
   const edited = shape(score, at) !== shapeBefore;
-  if (edited) history.push(before);
+  // The first digit's step already holds the song as it was before both.
+  const combined = command.op === 'setFret' && command.combine === true;
+  if (edited && !combined) history.push(before);
   return { position, edited, marks };
 }

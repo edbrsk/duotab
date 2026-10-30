@@ -467,10 +467,18 @@ sealed class EditCommand {
 class SetFret extends EditCommand {
   final int fret;
 
-  const SetFret(this.fret);
+  /// The second digit of a two-digit fret, which shares the first digit's
+  /// undo step.
+  final bool combine;
+
+  const SetFret(this.fret, {this.combine = false});
 
   @override
-  Map<String, Object> toJson() => {'op': 'setFret', 'fret': fret};
+  Map<String, Object> toJson() => {
+    'op': 'setFret',
+    'fret': fret,
+    if (combine) 'combine': true,
+  };
 }
 
 class DeleteNote extends EditCommand {

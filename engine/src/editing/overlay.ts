@@ -3,7 +3,7 @@ import type * as alphaTab from '@coderline/alphatab';
 import type { BarIssue, EditPosition } from '../protocol';
 import type { NoteMark } from './fingering';
 import { describeOff } from './bar_check';
-import { layoutOf, tabLineY } from './hit_test';
+import { layoutOf, notationLines, tabLineY } from './hit_test';
 
 type Rect = { x: number; y: number; w: number; h: number };
 type Renderer = { boundsLookup: alphaTab.rendering.BoundsLookup | null };
@@ -16,11 +16,14 @@ export function cursorRect(renderer: Renderer, score: alphaTab.model.Score, at: 
   const beat = bar?.voices[at.voice]?.beats[at.beat];
   const lookup = renderer.boundsLookup;
   if (!bar || !beat || !lookup) return null;
-  const line = tabLineY(layoutOf(renderer), bar, at.string);
-  if (!line) return null;
   // An empty beat is not drawn; the cursor then sits at the start of its bar.
   const x = lookup.findBeat(beat)?.onNotesX ?? (lookup.findMasterBarByIndex(at.bar)?.realBounds.x ?? 0) + CURSOR_WIDTH;
-  return { x: x - CURSOR_WIDTH / 2, y: line.y - line.spacing / 2, w: CURSOR_WIDTH, h: line.spacing };
+  const line = tabLineY(layoutOf(renderer), bar, at.string);
+  if (line) return { x: x - CURSOR_WIDTH / 2, y: line.y - line.spacing / 2, w: CURSOR_WIDTH, h: line.spacing };
+  // With the tab hidden, the cursor marks the beat on the notation staff.
+  const staff = notationLines(layoutOf(renderer), bar);
+  if (!staff) return null;
+  return { x: x - CURSOR_WIDTH / 2, y: staff.top - staff.spacing / 2, w: CURSOR_WIDTH, h: staff.bottom - staff.top + staff.spacing };
 }
 
 export function issueRect(renderer: Renderer, bar: number): Rect | null {

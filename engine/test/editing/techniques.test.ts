@@ -311,3 +311,23 @@ test('turning a hammer-on off takes away its arc', () => {
   expect(beat(0, 0).isEffectSlurOrigin).toBe(false);
   expect(beat(0, 1).effectSlurOrigin).toBeNull();
 });
+
+test('imported technique variants read as on, and a tap clears them', () => {
+  const song = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+3.6{v}.4 3.6.4 3.6.4 3.6.4`);
+  const beats = song.tracks[0].staves[0].bars[0].voices[0].beats;
+  beats[0].notes[0].vibrato = alphaTab.model.VibratoType.Wide;
+  beats[1].tremoloSpeed = alphaTab.model.Duration.Eighth;
+  beats[2].notes[0].harmonicType = alphaTab.model.HarmonicType.Pinch;
+  const at = (beat: number) => ({ track: 0, bar: 0, voice: 0, beat, string: 1 });
+  expect(activeTechniques(song, at(0))).toContain('vibrato');
+  expect(activeTechniques(song, at(1))).toContain('tremolo');
+  expect(activeTechniques(song, at(2))).toContain('artificialHarmonic');
+
+  toggleTechnique(song, at(0), 'vibrato');
+  expect(song.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].vibrato).toBe(alphaTab.model.VibratoType.None);
+  toggleTechnique(song, at(0), 'vibrato');
+  expect(song.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].vibrato).toBe(alphaTab.model.VibratoType.Slight);
+  toggleTechnique(song, at(2), 'artificialHarmonic');
+  expect(song.tracks[0].staves[0].bars[0].voices[0].beats[2].notes[0].harmonicType).toBe(alphaTab.model.HarmonicType.None);
+});

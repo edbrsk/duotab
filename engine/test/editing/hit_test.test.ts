@@ -119,3 +119,22 @@ test('mark rects sit on their tab string like the cursor', () => {
   expect(rects).toEqual([{ rect: cursorRect(renderer, song, at), kind: 'moved' }]);
   expect(rects[0].rect).not.toBeNull();
 });
+
+test('with tab hidden the cursor shows on the notation and a tap keeps the string', async () => {
+  const settings = new alphaTab.Settings();
+  settings.core.engine = 'svg';
+  settings.core.enableLazyLoading = false;
+  settings.display.staveProfile = alphaTab.StaveProfile.Default;
+  const notationOnly = score(fourQuarters);
+  notationOnly.tracks[0].staves[0].showTablature = false;
+  const r = new alphaTab.rendering.ScoreRenderer(settings);
+  r.width = 800;
+  await new Promise<void>((resolve) => {
+    r.renderFinished.on(() => resolve());
+    r.renderScore(notationOnly, [0]);
+  });
+  const rect = cursorRect(r, notationOnly, { track: 0, bar: 0, voice: 0, beat: 1, string: 3 });
+  expect(rect).not.toBeNull();
+  const bounds = r.boundsLookup!.staffSystems[0].bars[0].bars[0].beats[1];
+  expect(hitTest(r, 0, 0, bounds.onNotesX, rect!.y + rect!.h / 2)?.string).toBeNull();
+});

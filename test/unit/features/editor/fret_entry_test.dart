@@ -46,4 +46,13 @@ void main() {
       ..reset();
     expect(after(100, 2), 2);
   });
+
+  test('a second quick digit says it completes the first', () {
+    entry.digit(1);
+    expect(entry.combined, isFalse);
+    expect(after(300, 2), 12);
+    expect(entry.combined, isTrue);
+    after(300, 3);
+    expect(entry.combined, isFalse);
+  });
 }

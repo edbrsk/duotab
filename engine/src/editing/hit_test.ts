@@ -43,13 +43,13 @@ export function hitTest(renderer: Renderer, track: number, voice: number, x: num
   return { track, bar: bar.index, voice, beat, string: stringAt(layoutOf(renderer), bar, y) };
 }
 
-/** The tab staff drawing `bar`, with its line positions in layout coordinates. */
-function tabStaff(layout: unknown, bar: alphaTab.model.Bar) {
+/** The staff of kind `staffId` drawing `bar`, with its line positions in layout coordinates. */
+function staffOf(layout: unknown, bar: alphaTab.model.Bar, staffId: 'tab' | 'score') {
   const systems = (layout as { _systems?: StaffSystem[] })._systems ?? [];
   for (const system of systems) {
     for (const group of system.staves) {
       for (const staff of group.staves) {
-        if (staff.staffId !== 'tab') continue;
+        if (staff.staffId !== staffId) continue;
         const renderer = staff.barRenderers.find((r) => r.bar === bar);
         if (!renderer) continue;
         // alphaTab paints a system and builds its bounds offset by its topPadding.
@@ -60,6 +60,14 @@ function tabStaff(layout: unknown, bar: alphaTab.model.Bar) {
     }
   }
   return null;
+}
+
+const tabStaff = (layout: unknown, bar: alphaTab.model.Bar) => staffOf(layout, bar, 'tab');
+
+/** The top and bottom lines of the notation staff drawing `bar`. */
+export function notationLines(layout: unknown, bar: alphaTab.model.Bar): { top: number; bottom: number; spacing: number } | null {
+  const staff = staffOf(layout, bar, 'score');
+  return staff ? { top: staff.lineY(0), bottom: staff.lineY(staff.lines - 1), spacing: staff.spacing } : null;
 }
 
 // The top line is the highest string, which alphaTab numbers last.

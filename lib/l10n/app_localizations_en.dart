@@ -683,6 +683,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trackName => 'Track name';
 
   @override
+  String get otherClef => 'Other';
+
+  @override
   String get muteShort => 'M';
 
   @override

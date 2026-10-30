@@ -193,8 +193,31 @@ test('a retune to fewer strings keeps the cursor on a real string', () => {
   session.open(s, 0);
   session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 7 } });
   session.command(s, { op: 'retune', track: 0, tuning: E_STANDARD, octave: 0 });
-  expect(session.position!.string).toBeLessThanOrEqual(6);
+  expect(session.position!.string).toBe(6);
   expect(session.position!.track).toBe(0);
+});
+
+test('a retune to more strings keeps the cursor on the same physical string', () => {
+  const s = score(fourQuarters);
+  const session = new EditSession();
+  session.open(s, 0);
+  session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 6 } });
+  session.command(s, { op: 'retune', track: 0, tuning: [64, 59, 55, 50, 45, 40, 35], octave: 0 });
+  expect(session.position!.string).toBe(7);
+});
+
+test('two digits make one fret and one undo step', async () => {
+  const s = score(fourQuarters);
+  const session = new EditSession();
+  session.open(s, 0);
+  const at = { track: 0, bar: 0, voice: 0, beat: 0, string: 6 };
+  session.command(s, { op: 'place', position: at });
+  const before = alphaTab.model.JsonConverter.scoreToJson(s);
+  session.command(s, { op: 'setFret', fret: 1 });
+  session.command(s, { op: 'setFret', fret: 12, combine: true });
+  const restored = await session.history.undo(s);
+  expect(alphaTab.model.JsonConverter.scoreToJson(restored!)).toBe(before);
+  expect(session.history.canUndo).toBe(false);
 });
 
 test('opening with fingering marks keeps them until the next edit', () => {

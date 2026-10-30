@@ -170,7 +170,8 @@ export type Structure = {
 };
 
 export type EditCommand =
-  | { op: 'setFret'; fret: number }
+  /** `combine`: the second digit of a two-digit fret, which shares the first digit's undo step. */
+  | { op: 'setFret'; fret: number; combine?: boolean }
   | { op: 'deleteNote' }
   | { op: 'setDuration'; duration: number; dots: number }
   | { op: 'setRest' }

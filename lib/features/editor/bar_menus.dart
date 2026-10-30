@@ -85,7 +85,10 @@ class ClefChip extends StatelessWidget {
     };
     return _MenuChip(
       tooltip: l10n.clef,
-      label: PaletteGlyph(state.barClef == 'bass' ? Smufl.fClef : Smufl.gClef),
+      // A clef the palette doesn't offer would read as treble.
+      label: state.position != null && state.barClef == null
+          ? PaletteText(l10n.otherClef)
+          : PaletteGlyph(state.barClef == 'bass' ? Smufl.fClef : Smufl.gClef),
       enabled: state.position != null,
       menu: (_) => [
         _wrap([

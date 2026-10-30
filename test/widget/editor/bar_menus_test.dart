@@ -108,6 +108,16 @@ void main() {
     verify(() => editor.setKeySignature(-3, minor: true)).called(1);
   });
 
+  testWidgets("a clef the palette doesn't offer shows a neutral label", (
+    tester,
+  ) async {
+    await pump(tester, const EditorState(position: _at));
+    expect(
+      find.descendant(of: find.byTooltip('Clef'), matching: find.text('Other')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('a clef chip sets it', (tester) async {
     await pump(tester, const EditorState(position: _at, barClef: 'treble'));
     await tester.tap(find.byTooltip('Clef'));
