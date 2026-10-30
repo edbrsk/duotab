@@ -360,4 +360,71 @@ void main() {
       expect(score.state.selectedTrackIndex, 2);
     },
   );
+
+  group('retune', () {
+    const e = [64, 59, 55, 50, 45, 40];
+    EditState reply({RetuneReport? retune}) => EditState(
+      position: null,
+      issues: const [],
+      canUndo: true,
+      canRedo: false,
+      song: drumsAndTwoGuitars,
+      edited: true,
+      retune: retune,
+    );
+    RetuneReport report(int octave) => RetuneReport(
+      track: 1,
+      tuning: e,
+      octave: octave,
+      moved: 2,
+      unplayable: 1,
+    );
+
+    setUp(() {
+      when(() => engine.edit(any())).thenAnswer((invocation) async {
+        final command = invocation.positionalArguments.single as EditCommand;
+        return command is RetuneTrack
+            ? reply(retune: report(command.octave))
+            : reply();
+      });
+      when(() => engine.undo()).thenAnswer((_) async => reply());
+    });
+
+    test(
+      'retune sends the command without a cursor and keeps the report',
+      () async {
+        expect(editor.state.position, isNull);
+        await editor.retune(1, e);
+        verify(() => engine.edit(const RetuneTrack(1, e, 0))).called(1);
+        expect(editor.state.retune!.moved, 2);
+        expect(editor.state.retune!.unplayable, 1);
+      },
+    );
+
+    test('octave reruns retune from the original song', () async {
+      await editor.retune(1, e);
+
+      await editor.retuneOctave(1);
+      verifyInOrder([
+        () => engine.undo(),
+        () => engine.edit(const RetuneTrack(1, e, 1)),
+      ]);
+      expect(editor.state.retune!.octave, 1);
+
+      await editor.retuneOctave(1);
+      verify(() => engine.edit(const RetuneTrack(1, e, 2))).called(1);
+      expect(editor.state.retune!.octave, 2);
+
+      clearInteractions(engine);
+      await editor.retuneOctave(1);
+      verifyNever(() => engine.undo());
+      verifyNever(() => engine.edit(any()));
+    });
+
+    test('an edit without a report clears it', () async {
+      await editor.retune(1, e);
+      await editor.renameTrack(1, 'Lead');
+      expect(editor.state.retune, isNull);
+    });
+  });
 }

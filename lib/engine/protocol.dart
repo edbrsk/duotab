@@ -98,10 +98,14 @@ class SongSummary {
   /// Filled when the song is opened, empty in library summaries.
   final List<BarInfo> bars;
 
+  /// Notes automatic fingering on open could not place; 0 elsewhere.
+  final int unplayableNotes;
+
   const SongSummary({
     required this.title,
     required this.tracks,
     this.bars = const [],
+    this.unplayableNotes = 0,
   });
 
   factory SongSummary.fromJson(Map<String, dynamic> json) => SongSummary(
@@ -114,6 +118,7 @@ class SongSummary {
       for (final b in (json['bars'] as List<dynamic>?) ?? const [])
         BarInfo.fromJson(b as Map<String, dynamic>),
     ],
+    unplayableNotes: json['unplayableNotes'] as int? ?? 0,
   );
 
   List<TrackSummary> get guitarTracks =>
@@ -321,6 +326,9 @@ class EditState {
   /// The track the engine draws, which track edits can change.
   final int? drawnTrack;
 
+  /// After a retune, until the next edit, undo or redo.
+  final RetuneReport? retune;
+
   const EditState({
     required this.position,
     required this.issues,
@@ -349,6 +357,7 @@ class EditState {
     this.endings = const [],
     this.directions = const {},
     this.drawnTrack,
+    this.retune,
   });
 
   factory EditState.fromJson(Map<String, dynamic> json) {
@@ -399,8 +408,39 @@ class EditState {
           d as String,
       },
       drawnTrack: json['drawnTrack'] as int?,
+      retune: switch (json['retune']) {
+        final Map<String, dynamic> r => RetuneReport.fromJson(r),
+        _ => null,
+      },
     );
   }
+}
+
+/// What a retune moved to another string or could not place.
+class RetuneReport {
+  final int track;
+
+  /// MIDI note numbers of the open strings, top string first.
+  final List<int> tuning;
+  final int octave;
+  final int moved;
+  final int unplayable;
+
+  const RetuneReport({
+    required this.track,
+    required this.tuning,
+    required this.octave,
+    required this.moved,
+    required this.unplayable,
+  });
+
+  factory RetuneReport.fromJson(Map<String, dynamic> json) => RetuneReport(
+    track: json['track'] as int,
+    tuning: [for (final n in json['tuning'] as List<dynamic>) n as int],
+    octave: json['octave'] as int,
+    moved: json['moved'] as int,
+    unplayable: json['unplayable'] as int,
+  );
 }
 
 @immutable
@@ -703,6 +743,23 @@ class RenameTrack extends EditCommand {
     'op': 'renameTrack',
     'track': track,
     'name': name,
+  };
+}
+
+/// Keeps every pitch; [octave], −2 to 2, shifts them all.
+class RetuneTrack extends EditCommand {
+  final int track;
+  final List<int> tuning;
+  final int octave;
+
+  const RetuneTrack(this.track, this.tuning, this.octave);
+
+  @override
+  Map<String, Object> toJson() => {
+    'op': 'retune',
+    'track': track,
+    'tuning': tuning,
+    'octave': octave,
   };
 }
 

@@ -95,4 +95,42 @@ void main() {
     expect(song.bars, isEmpty);
     expect(song.tracks.single.barsWithNotes, isEmpty);
   });
+
+  test('retune serialises its track, tuning and octave', () {
+    expect(const RetuneTrack(1, [64, 59, 55, 50, 45, 40], -1).toJson(), {
+      'op': 'retune',
+      'track': 1,
+      'tuning': [64, 59, 55, 50, 45, 40],
+      'octave': -1,
+    });
+  });
+
+  test('the edit state reads the retune report', () {
+    final state = EditState.fromJson({
+      'position': null,
+      'issues': <Object>[],
+      'canUndo': true,
+      'canRedo': false,
+      'song': {'title': 'T', 'tracks': <Object>[], 'unplayableNotes': 3},
+      'edited': true,
+      'retune': {
+        'track': 0,
+        'tuning': [64, 59, 55, 50, 45, 40],
+        'octave': 1,
+        'moved': 12,
+        'unplayable': 3,
+      },
+    });
+    expect(state.retune!.track, 0);
+    expect(state.retune!.tuning, [64, 59, 55, 50, 45, 40]);
+    expect(state.retune!.octave, 1);
+    expect(state.retune!.moved, 12);
+    expect(state.retune!.unplayable, 3);
+    expect(state.song.unplayableNotes, 3);
+    expect(
+      SongSummary.fromJson({'title': 'T', 'tracks': <Object>[]})
+          .unplayableNotes,
+      0,
+    );
+  });
 }

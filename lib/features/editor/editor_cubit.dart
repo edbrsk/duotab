@@ -39,6 +39,9 @@ class EditorState {
   final List<int> endings;
   final Set<String> directions;
 
+  /// After a retune, until the next edit, undo or redo.
+  final RetuneReport? retune;
+
   const EditorState({
     this.position,
     this.issues = const [],
@@ -64,6 +67,7 @@ class EditorState {
     this.repeatCount = 0,
     this.endings = const [],
     this.directions = const {},
+    this.retune,
   });
 
   EditorState copyWith({int? duration, int? dots}) => EditorState(
@@ -91,8 +95,12 @@ class EditorState {
     repeatCount: repeatCount,
     endings: endings,
     directions: directions,
+    retune: retune,
   );
 }
+
+const minOctave = -2;
+const maxOctave = 2;
 
 class EditorCubit extends Cubit<EditorState> {
   final EngineBridge engine;
@@ -198,6 +206,20 @@ class EditorCubit extends Cubit<EditorState> {
 
   Future<void> setTitle(String title) => command(SetTitle(title));
 
+  Future<void> retune(int track, List<int> tuning, {int octave = 0}) =>
+      command(RetuneTrack(track, tuning, octave));
+
+  /// Undoes the last retune and runs it again an octave up or down, from the
+  /// song as it was before it.
+  Future<void> retuneOctave(int delta) async {
+    final report = state.retune;
+    if (report == null) return;
+    final octave = report.octave + delta;
+    if (octave < minOctave || octave > maxOctave) return;
+    await undo();
+    await retune(report.track, report.tuning, octave: octave);
+  }
+
   Future<void> _atCursor(EditCommand edit) async {
     if (state.position != null) await command(edit);
   }
@@ -239,6 +261,7 @@ class EditorCubit extends Cubit<EditorState> {
         repeatCount: reply.repeatCount,
         endings: reply.endings,
         directions: reply.directions,
+        retune: reply.retune,
       ),
     );
     if (reply.edited) {
