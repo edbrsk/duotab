@@ -153,7 +153,7 @@ export function move(score: Score, at: EditPosition, direction: Direction, setti
 // Display time: a grace note takes its playback time from the beat before it, which can be in the bar before.
 const voiceTicks = (voice: alphaTab.model.Voice) => voice.beats.reduce((t, b) => t + b.displayDuration, 0);
 
-function emptyVoice(ids: IdSource): alphaTab.model.Voice {
+export function emptyVoice(ids: IdSource): alphaTab.model.Voice {
   const voice = new Voice();
   voice.id = ids.voice();
   const empty = new Beat();

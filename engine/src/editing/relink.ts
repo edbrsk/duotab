@@ -28,6 +28,13 @@ export function relink(score: alphaTab.model.Score): void {
         bar.previousBar = staff.bars[index - 1] ?? null;
         bar.nextBar = staff.bars[index + 1] ?? null;
       }
+      // Voice.finish chains each bar's first beat to the bar before it, but
+      // never unlinks a removed bar from the ends of the staff.
+      for (const voice of staff.bars[0]?.voices ?? []) if (voice.beats[0]) voice.beats[0].previousBeat = null;
+      for (const voice of staff.bars.at(-1)?.voices ?? []) {
+        const last = voice.beats.at(-1);
+        if (last) last.nextBeat = null;
+      }
     }
   }
 }
