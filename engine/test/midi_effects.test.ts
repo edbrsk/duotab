@@ -1,12 +1,13 @@
 import * as alphaTab from '@coderline/alphatab';
 import { expect, test } from 'vitest';
 
-import { glideFinely, playEffectsUnderTremolo } from '../src/midi_effects';
+import { glideFinely, playEffectsUnderTremolo, startChannelsUnbent } from '../src/midi_effects';
 import { score } from './fixtures';
 
 // A subclass, so alphaTab's own generator stays for comparison.
 class Fixed extends alphaTab.midi.MidiFileGenerator {}
 playEffectsUnderTremolo(Fixed);
+startChannelsUnbent(Fixed);
 // alphaTab reads the step sizes from its own class, so both generators glide finely.
 glideFinely(alphaTab.midi.MidiFileGenerator);
 
@@ -48,10 +49,10 @@ function midiOf(s: alphaTab.model.Score, generator: typeof alphaTab.midi.MidiFil
  * adds the channel's pitch wheel to the note's own, and a note-off clears the
  * note's own (alphaTab 1.6.1 TinySoundFont).
  */
-function pitchCurve(s: alphaTab.model.Score, end: number, step = 120): (number | null)[] {
+function pitchCurve(s: alphaTab.model.Score, end: number, step = 120, wheelBefore = 8192): (number | null)[] {
   const events = midiOf(s);
   let range = 2;
-  let wheel = 8192;
+  let wheel = wheelBefore;
   const own = new Map<number, number>();
   const sounding = new Set<number>();
   const curve: (number | null)[] = [];
@@ -121,7 +122,8 @@ test('a note without tremolo or whammy plays as alphaTab makes it', () => {
 5.3{v}.4 7.3{b (0 4)}.4 9.3{sl}.4 7.3.4`);
   const lines = (generator: typeof alphaTab.midi.MidiFileGenerator) =>
     midiOf(plain(), generator).map((e) => `${e.tick} ${e.constructor.name} ${JSON.stringify(e)}`);
-  expect(lines(Fixed)).toEqual(lines(alphaTab.midi.MidiFileGenerator));
+  const unbent = (line: string) => line.startsWith('0 PitchBendEvent') && line.includes('"value":8192');
+  expect(lines(Fixed).filter((l) => !unbent(l))).toEqual(lines(alphaTab.midi.MidiFileGenerator));
 });
 
 test('a note after a dive starts at its own pitch', () => {
@@ -154,4 +156,19 @@ test('a dive glides in steps too small to hear', () => {
   const curve = pitchCurve(dive(true), 3 * BAR, 10) as number[];
   const steps = curve.slice(1).map((p, i) => Math.abs(p - curve[i]));
   expect(Math.max(...steps)).toBeLessThanOrEqual(0.05);
+});
+
+test('playing again after a stop mid-dive starts unbent', () => {
+  // Stop leaves the synth's channels as they were; only the song's own messages reset them.
+  const s = score(String.raw`\title "Again"
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2
+12.6.2 -.6.2`);
+  const beat = s.tracks[0].staves[0].bars[0].voices[0].beats[1];
+  beat.whammyBarType = alphaTab.model.WhammyType.Dive;
+  beat.addWhammyBarPoint(new alphaTab.model.BendPoint(0, 0));
+  beat.addWhammyBarPoint(new alphaTab.model.BendPoint(alphaTab.model.BendPoint.MaxPosition, -4));
+  s.finish(new alphaTab.Settings());
+  const curve = pitchCurve(s, BAR / 2, 120, 0);
+  for (const p of curve) expect(p).toBeCloseTo(0, 1);
 });

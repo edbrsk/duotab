@@ -147,3 +147,20 @@ export function glideFinely(generator: typeof alphaTab.midi.MidiFileGenerator): 
   steps.MinBreakpointsPerSemitone = 32;
   steps.MillisecondsPerBreakpoint = 10;
 }
+
+/**
+ * Starts every channel unbent. Stopping keeps the synth's channels as they
+ * were, and alphaTab's start of song sets no pitch, so playing again after
+ * stopping mid-dive would start at the dive's pitch.
+ */
+export function startChannelsUnbent(generator: typeof alphaTab.midi.MidiFileGenerator): void {
+  const proto = generator.prototype as unknown as {
+    _handler: { addBend: AddBend };
+    generateChannel(track: alphaTab.model.Track, channel: number, playbackInfo: unknown): void;
+  };
+  const { generateChannel } = proto;
+  proto.generateChannel = function (track, channel, playbackInfo) {
+    generateChannel.call(this, track, channel, playbackInfo);
+    this._handler.addBend(track.index, 0, channel, CENTRE);
+  };
+}
