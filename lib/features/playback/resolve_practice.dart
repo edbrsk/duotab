@@ -45,7 +45,7 @@ TrackPractice _resolveTrack(
   final volumeDb =
       practice.volumeDb ??
       switch (practice.legacyVolume) {
-        final legacy? => dbFromLegacyVolume(legacy, track.volume),
+        final legacy? => dbFromLegacyVolume(legacy),
         null => snapDb(track.volumeDb),
       };
   final pan = practice.pan ?? track.pan;

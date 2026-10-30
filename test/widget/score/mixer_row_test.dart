@@ -113,6 +113,25 @@ void main() {
     verify(() => playback.setPan(0, 0)).called(1);
   });
 
+  testWidgets('after a turn, the knob draws the pan it is given', (
+    tester,
+  ) async {
+    await pump(tester, const MixerRow(track: _guitar, volumeDb: 0, pan: 0));
+    final knob = find.byKey(const ValueKey('pan-0'));
+    final gesture = await tester.startGesture(tester.getCenter(knob));
+    for (var i = 0; i < 4; i++) {
+      await gesture.moveBy(const Offset(10, 0));
+      await tester.pump();
+    }
+    await gesture.up();
+    await tester.pump(kDoubleTapTimeout);
+    final paint = tester.widget<CustomPaint>(
+      find.descendant(of: knob, matching: find.byType(CustomPaint)),
+    );
+    // The row was built with pan 0, which the cubit would have changed.
+    expect((paint.painter! as dynamic).pan, 0);
+  });
+
   testWidgets('the meter follows the levels', (tester) async {
     await pump(tester, const MixerRow(track: _guitar, volumeDb: 0, pan: 0));
     levels.value = const Levels(tracks: [MeterLevel(-12, -20)]);

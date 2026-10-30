@@ -109,8 +109,6 @@ const mixer = new Mixer(api, (channel, pan) =>
   synth.worker?.postMessage({ cmd: 'duoscore.pan', channel, pan } satisfies PanMessage),
 );
 
-const LEVELS_EVERY_MS = 40;
-let levelsPosted = 0;
 function postSilence() {
   meter.clear();
   const tracks = (api.score?.tracks ?? []).map(() => null);
@@ -230,11 +228,8 @@ api.playerPositionChanged.on((e) => {
 
 function postLevels(time: number) {
   const tracks = api.score?.tracks.map((t) => t.playbackInfo) ?? [];
-  const levels = meter.release(time, tracks, { track: OUTPUT_GAIN, master: limiter.gain });
-  const now = performance.now();
-  if (!levels || now - levelsPosted < LEVELS_EVERY_MS) return;
-  levelsPosted = now;
-  post({ event: 'levels', payload: levels });
+  const levels = meter.release(time, tracks, { track: OUTPUT_GAIN, master: limiter.gain }, performance.now());
+  if (levels) post({ event: 'levels', payload: levels });
 }
 
 let openCount = 0;
@@ -300,6 +295,7 @@ function startSong() {
 async function restore(score: alphaTab.model.Score | null): Promise<EditState> {
   if (!score) return editState(false);
   carryPlaybackSettings(api.score!, score);
+  mixer.carry(score.tracks);
   // A loop over bars that moved would now cover others.
   const range = api.playbackRange;
   const keptRange = range && rangeAfterRestore(firstPassStarts(api.score!), firstPassStarts(score), range);

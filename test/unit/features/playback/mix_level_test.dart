@@ -35,9 +35,11 @@ void main() {
   });
 
   test('a legacy volume converts to the dB that sounds the same', () {
-    expect(dbFromLegacyVolume(12, 12), 0);
-    expect(dbFromLegacyVolume(6, 12), -18);
-    expect(dbFromLegacyVolume(0, 12), off);
+    // It played as MIDI volume 8 × volume; 0 dB plays as MIDI volume 96.
+    expect(dbFromLegacyVolume(12), 0);
+    expect(dbFromLegacyVolume(6), -18);
+    expect(dbFromLegacyVolume(15), 6);
+    expect(dbFromLegacyVolume(0), off);
   });
 
   test('a meter rises at once and falls 20 dB a second', () {

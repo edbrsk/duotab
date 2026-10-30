@@ -44,6 +44,11 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
   const channels = new Map<number, [number, number]>();
   const master: [number, number] = [0, 0];
   let scratch = new Float32Array(256);
+  // Each channel's voices summed over the block being synthesized: a chord's
+  // level is its strings together, not its loudest string.
+  const sums = new Map<number, Float32Array>();
+  const touched = new Set<number>();
+  let block: { offset: number; length: number } | null = null;
 
   const { channelSetPan, synthesize } = synthProto;
   synthProto.channelSetPan = function (this: Synth, channel, pan) {
@@ -57,26 +62,51 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
     const { render } = proto;
     proto.render = function (this: Voice, f, out, offset, frames, muted) {
       const length = frames * 2;
-      if (scratch.length < length) scratch = new Float32Array(length);
-      scratch.set(out.subarray(offset, offset + length));
-      render.call(this, f, out, offset, frames, muted);
-      let left = 0;
-      let right = 0;
-      for (let i = 0; i < length; i += 2) {
-        left = Math.max(left, Math.abs(out[offset + i] - scratch[i]));
-        right = Math.max(right, Math.abs(out[offset + i + 1] - scratch[i + 1]));
+      if (!block) {
+        render.call(this, f, out, offset, frames, muted);
+        return;
       }
-      if (left === 0 && right === 0) return;
-      const peak = channels.get(this.playingChannel) ?? [0, 0];
-      peak[0] = Math.max(peak[0], left);
-      peak[1] = Math.max(peak[1], right);
-      channels.set(this.playingChannel, peak);
+      if (scratch.length < length) scratch = new Float32Array(length);
+      for (let i = 0; i < length; i++) scratch[i] = out[offset + i];
+      render.call(this, f, out, offset, frames, muted);
+      let sum = sums.get(this.playingChannel);
+      if (!sum || sum.length < block.length) {
+        const grown = new Float32Array(block.length);
+        if (sum) grown.set(sum);
+        sums.set(this.playingChannel, (sum = grown));
+      }
+      const at = offset - block.offset;
+      for (let i = 0; i < length; i++) sum[at + i] += out[offset + i] - scratch[i];
+      touched.add(this.playingChannel);
     };
   };
 
   synthProto.synthesize = function (this: Synth, buffer, offset, frames) {
     synths.add(this);
-    const result = synthesize.call(this, buffer, offset, frames);
+    block = buffer ? { offset, length: frames * 2 } : null;
+    let result: unknown;
+    try {
+      result = synthesize.call(this, buffer, offset, frames);
+    } finally {
+      const length = block?.length ?? 0;
+      block = null;
+      for (const channel of touched) {
+        const sum = sums.get(channel)!;
+        let left = 0;
+        let right = 0;
+        for (let i = 0; i < length; i += 2) {
+          left = Math.max(left, Math.abs(sum[i]));
+          right = Math.max(right, Math.abs(sum[i + 1]));
+        }
+        sum.fill(0, 0, length);
+        if (left === 0 && right === 0) continue;
+        const peak = channels.get(channel) ?? [0, 0];
+        peak[0] = Math.max(peak[0], left);
+        peak[1] = Math.max(peak[1], right);
+        channels.set(channel, peak);
+      }
+      touched.clear();
+    }
     if (!voicesHooked && this._voices.length > 0) hookVoices(Object.getPrototypeOf(this._voices[0]) as Voice);
     if (buffer) {
       for (let i = offset; i < offset + frames * 2; i += 2) {

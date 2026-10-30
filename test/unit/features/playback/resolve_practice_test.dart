@@ -123,6 +123,20 @@ void main() {
     expect(legacy(0), double.negativeInfinity);
   });
 
+  test("a legacy volume keeps its sound whatever the file's level", () {
+    final song = SongSummary(title: 'S', tracks: [guitar(volume: 15)]);
+    final p = resolvePractice(
+      song,
+      PracticeSettings.fromJson({
+        'tracks': {
+          '0': {'volume': 15},
+        },
+      }),
+      Tone.clean,
+    );
+    expect(p.tracks[0]!.volumeDb, 6);
+  });
+
   test('a default tone change reaches tracks left at the default', () {
     final left = resolvePractice(
       song([(TrackKind.guitar, 0)]),

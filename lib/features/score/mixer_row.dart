@@ -412,7 +412,12 @@ class _PanKnobState extends State<_PanKnob> {
         _turned = pan;
         widget.onTurn(pan);
       },
-      onHorizontalDragEnd: (_) => widget.onTurnEnd(_turned ?? widget.pan),
+      onHorizontalDragEnd: (_) {
+        final pan = _turned ?? widget.pan;
+        // From here the knob draws the pan it is given.
+        setState(() => _turned = null);
+        widget.onTurnEnd(pan);
+      },
       onDoubleTap: () => widget.onTurnEnd(0),
       child: SizedBox.square(
         dimension: AccessibleSizes.minTouchTarget,

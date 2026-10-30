@@ -131,4 +131,10 @@ void main() {
     expect(loaded.tracks[0]!.pan, -0.5);
     expect(loaded.masterDb, -3);
   });
+
+  test('a master at −∞ saves, and the song keeps saving', () async {
+    const silent = PracticeSettings(masterDb: double.negativeInfinity);
+    await store.save('songs/c.gp', silent);
+    expect((await store.load('songs/c.gp'))!.masterDb, double.negativeInfinity);
+  });
 }

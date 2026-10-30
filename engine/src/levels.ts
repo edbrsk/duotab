@@ -22,6 +22,10 @@ const pair = (left: number, right: number, gain: number): [number, number] | nul
  */
 export class LevelMeter {
   private frames: LevelFrame[] = [];
+  private posted = Number.NEGATIVE_INFINITY;
+
+  /** Posts at most every `everyMs`; frames due in between wait for the next. */
+  constructor(private readonly everyMs = 40) {}
 
   add(frame: LevelFrame): void {
     this.frames.push(frame);
@@ -31,10 +35,12 @@ export class LevelMeter {
     this.frames = [];
   }
 
-  /** The loudest of the frames that have played by `time`, or null if none has. */
-  release(time: number, tracks: Channels[], gains: { track: number; master: number }): LevelsPayload | null {
+  /** The loudest of the frames that have played by `time`, or null if none has or it's too soon to post. */
+  release(time: number, tracks: Channels[], gains: { track: number; master: number }, now: number): LevelsPayload | null {
+    if (now - this.posted < this.everyMs) return null;
     const due = this.frames.filter((f) => f.time <= time);
     if (due.length === 0) return null;
+    this.posted = now;
     this.frames = this.frames.filter((f) => f.time > time);
     const peaks = new Map<number, [number, number]>();
     const master: [number, number] = [0, 0];

@@ -40,10 +40,9 @@ String panLabel(double pan) {
   return '${pan < 0 ? 'L' : 'R'}$amount';
 }
 
-/// A 0–16 practice volume as the dB that sounds the same: the synth cubes a
-/// level, so the ratio to the file's own level counts three times.
-double dbFromLegacyVolume(int volume, int fileVolume) {
+/// A 0–16 practice volume as the dB that sounds the same. It played as MIDI
+/// volume `8 × volume`, which the synth cubes, and 0 dB plays as 96.
+double dbFromLegacyVolume(int volume) {
   if (volume <= 0) return double.negativeInfinity;
-  final base = fileVolume > 0 ? fileVolume : 12;
-  return snapDb(60 * math.log(volume / base) / math.ln10);
+  return snapDb(60 * math.log(volume / 12) / math.ln10);
 }

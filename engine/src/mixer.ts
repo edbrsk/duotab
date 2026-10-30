@@ -158,6 +158,22 @@ export class Mixer {
     }
   }
 
+  /**
+   * Gives each mix to the track that replaces its own, as undo and redo
+   * rebuild every track. Tracks are matched by primary MIDI channel, as
+   * undo can move them.
+   */
+  carry(to: MixerTrack[]): void {
+    const unmatched = [...to];
+    for (const [track, mix] of [...this.mixes]) {
+      this.mixes.delete(track);
+      const at = unmatched.findIndex((t) => t.playbackInfo.primaryChannel === track.playbackInfo.primaryChannel);
+      if (at < 0) continue;
+      const [target] = unmatched.splice(at, 1);
+      this.mixes.set(target, { ...mix, index: to.indexOf(target) });
+    }
+  }
+
   /** Runs `run` with each mixed track's file volume and pan set to its fader and knob, as a file is written. */
   withFileLevels<T>(run: () => T): T {
     const kept = [...this.mixes].map(([track, mix]) => {

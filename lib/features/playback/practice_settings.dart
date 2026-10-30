@@ -63,10 +63,7 @@ class TrackPractice {
     'toneChosen': toneChosen,
     'showNotation': showNotation,
     'showTab': showTab,
-    'volumeDb': switch (volumeDb) {
-      final db? when !db.isFinite => '-inf',
-      final db => db,
-    },
+    'volumeDb': _dbToJson(volumeDb),
     'pan': pan,
   };
 
@@ -78,11 +75,7 @@ class TrackPractice {
     toneChosen: json['toneChosen'] as bool? ?? json['tone'] != null,
     showNotation: json['showNotation'] != false,
     showTab: json['showTab'] != false,
-    volumeDb: switch (json['volumeDb']) {
-      '-inf' => double.negativeInfinity,
-      final num db => db.toDouble(),
-      _ => null,
-    },
+    volumeDb: _dbFromJson(json['volumeDb']),
     pan: (json['pan'] as num?)?.toDouble(),
     legacyVolume: json['volume'] as int?,
   );
@@ -128,14 +121,14 @@ class PracticeSettings {
       for (final MapEntry(:key, :value) in tracks.entries)
         '$key': value.toJson(),
     },
-    'masterDb': masterDb,
+    'masterDb': _dbToJson(masterDb),
   };
 
   factory PracticeSettings.fromJson(Map<String, dynamic> json) =>
       PracticeSettings(
         speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
         looping: json['looping'] == true,
-        masterDb: (json['masterDb'] as num?)?.toDouble(),
+        masterDb: _dbFromJson(json['masterDb']),
         range: switch (json['range']) {
           final Map<String, dynamic> range => PlaybackRange.fromJson(range),
           _ => null,
@@ -149,3 +142,15 @@ class PracticeSettings {
         },
       );
 }
+
+/// JSON has no −∞, so it is kept as `"-inf"`.
+Object? _dbToJson(double? db) => switch (db) {
+  final db? when !db.isFinite => '-inf',
+  final db => db,
+};
+
+double? _dbFromJson(Object? json) => switch (json) {
+  '-inf' => double.negativeInfinity,
+  final num db => db.toDouble(),
+  _ => null,
+};

@@ -321,3 +321,17 @@ test('two regenerates at once keep playing from where they were', async () => {
   expect(api.tickPosition).toBe(5000);
   expect(api.playerState).toBe(alphaTab.synth.PlayerState.Playing);
 });
+
+test('an undo keeps the mixes on the tracks it brings back', async () => {
+  const { api, mixerApi, pan } = fakeApi([29]);
+  const mixer = new Mixer(mixerApi, pan);
+  await mixer.apply([mix(-6, 29, -1)]);
+  // Undo rebuilds the song: the same tracks, as new objects.
+  const restored: MixerTrack[] = api.score.tracks.map((t) => ({ playbackInfo: { ...t.playbackInfo } }));
+  mixer.carry(restored);
+  api.score = { tracks: restored };
+  await mixer.regenerate();
+  const written = mixer.withFileLevels(() => ({ ...restored[0].playbackInfo }));
+  expect(written.volume).toBeCloseTo(10.88, 6);
+  expect(written.balance).toBe(0);
+});

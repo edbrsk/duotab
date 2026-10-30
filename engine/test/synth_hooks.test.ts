@@ -29,9 +29,9 @@ beforeAll(() => {
   b = song.tracks[1].playbackInfo.primaryChannel;
 });
 
-function exporter(before?: (synth: Synth) => void) {
+function exporter(before?: (synth: Synth) => void, of: alphaTab.model.Score = song) {
   const midi = new alphaTab.midi.MidiFile();
-  new alphaTab.midi.MidiFileGenerator(song, new alphaTab.Settings(), new alphaTab.midi.AlphaSynthMidiFileHandler(midi)).generate();
+  new alphaTab.midi.MidiFileGenerator(of, new alphaTab.Settings(), new alphaTab.midi.AlphaSynthMidiFileHandler(midi)).generate();
   const options = new alphaTab.synth.AudioExportOptions();
   options.soundFonts = [bank];
   options.sampleRate = 44100;
@@ -89,4 +89,18 @@ test('the master is the mixed peak', () => {
   const { channels, master } = hooks.take();
   const loudest = Math.max(...channels.flatMap(([, left, right]) => [left, right]));
   expect(Math.max(...master)).toBeGreaterThanOrEqual(loudest - 1e-6);
+});
+
+test("a chord's level is its strings together", () => {
+  // The same A on two strings plays one sample twice, in phase.
+  const peak = (tex: string) => {
+    const s = score(String.raw`\title "A"
+.
+\track "A" \tuning E4 B3 G3 D3 A2 E2
+${tex}`);
+    exporter(undefined, s).render(300);
+    const channel = s.tracks[0].playbackInfo.primaryChannel;
+    return hooks.take().channels.find(([c]) => c === channel)![1];
+  };
+  expect(peak('(5.6 0.5).1')).toBeGreaterThan(1.5 * peak('5.6.1'));
 });
