@@ -179,6 +179,8 @@
   "undo": "Undo",
   "redo": "Redo",
   "songTitle": "Title",
+  "changeTitle": "Change title",
+  "save": "Save",
   "strings": "Strings",
   "custom": "Custom",
   "tempoBpm": "Tempo (BPM)",

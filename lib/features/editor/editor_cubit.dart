@@ -121,6 +121,8 @@ class EditorCubit extends Cubit<EditorState> {
   Future<void> setBend(String? kind, int amount) =>
       _atCursor(SetBend(kind, amount));
 
+  Future<void> setTitle(String title) => command(SetTitle(title));
+
   Future<void> _atCursor(EditCommand edit) async {
     if (state.position != null) await command(edit);
   }

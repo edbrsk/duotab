@@ -89,6 +89,24 @@ void main() {
     );
   });
 
+  testWidgets('tapping the title changes it', (tester) async {
+    when(() => editor.setTitle(any())).thenAnswer((_) async {});
+    await cubit.open('fixture.gp');
+    await pumpPage(tester);
+    await tester.tap(find.byTooltip('Change title'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      drumsAndTwoGuitars.title,
+    );
+    await tester.enterText(find.byType(TextField), 'Riff');
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    verify(() => editor.setTitle('Riff')).called(1);
+    expect(find.byType(TextField), findsNothing);
+  });
+
   testWidgets('says when a song has no guitar track', (tester) async {
     await cubit.open('beat.gp');
     await pumpPage(tester);

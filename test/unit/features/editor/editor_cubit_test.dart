@@ -209,4 +209,9 @@ void main() {
     await editor.setBend('bend', 4);
     verifyNever(() => engine.edit(any()));
   });
+
+  test('the title changes without a cursor', () async {
+    await editor.setTitle('Riff');
+    verify(() => engine.edit(const SetTitle('Riff'))).called(1);
+  });
 }

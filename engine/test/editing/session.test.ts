@@ -70,3 +70,12 @@ test('the state lists the techniques at the cursor', () => {
   session.command(s, { op: 'move', direction: 'up' });
   expect(session.state(s, false).beat).toMatchObject({ techniques: [], hasNote: false });
 });
+
+test('the title changes without a cursor', () => {
+  const s = score(fourQuarters);
+  const session = new EditSession();
+  session.open(s, 0);
+  expect(session.command(s, { op: 'setTitle', title: 'Riff' })).toEqual({ edited: true });
+  expect(session.position).toBeNull();
+  expect(session.state(s, true).song.title).toBe('Riff');
+});

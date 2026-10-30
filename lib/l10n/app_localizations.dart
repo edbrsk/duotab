@@ -832,6 +832,18 @@ abstract class AppLocalizations {
   /// **'Title'**
   String get songTitle;
 
+  /// No description provided for @changeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change title'**
+  String get changeTitle;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
   /// No description provided for @strings.
   ///
   /// In en, this message translates to:

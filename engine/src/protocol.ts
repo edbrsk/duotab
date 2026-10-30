@@ -137,7 +137,9 @@ export type EditCommand =
   | { op: 'setDynamic'; dynamic: Dynamic }
   | { op: 'setTuplet'; tuplet: Tuplet }
   | { op: 'addGrace' }
-  | { op: 'setBend'; bend: Bend | null };
+  | { op: 'setBend'; bend: Bend | null }
+  /** Needs no cursor. */
+  | { op: 'setTitle'; title: string };
 
 export type EditPayload = { command: EditCommand };
 

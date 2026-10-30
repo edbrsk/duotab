@@ -89,3 +89,18 @@ test('a technique toggle is an edit and can be undone', async () => {
   for (let i = 0; i < 4; i++) undone = (await history.undo(undone))!;
   expect(undone.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].isPalmMute).toBe(false);
 });
+
+test('a new title is an edit and can be undone', async () => {
+  const s = score(fourQuarters);
+  const history = new History();
+  expect(runCommand(s, start, { op: 'setTitle', title: '  Riff  ' }, history).edited).toBe(true);
+  expect(s.title).toBe('Riff');
+  expect((await history.undo(s))!.title).toBe('Edit');
+});
+
+test('the same title is not an edit', () => {
+  const s = score(fourQuarters);
+  const history = new History();
+  expect(runCommand(s, start, { op: 'setTitle', title: 'Edit' }, history).edited).toBe(false);
+  expect(history.canUndo).toBe(false);
+});

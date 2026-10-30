@@ -11,7 +11,7 @@ type Score = alphaTab.model.Score;
 /** Comparing it before and after a command tells a real change from a no-op. */
 const shape = (score: Score, at: EditPosition) => {
   const staff = staffOf(score, at);
-  return staff.bars
+  return `${score.title}|${staff.bars
     .map((bar) =>
       bar.voices
         .map((voice) =>
@@ -30,7 +30,7 @@ const shape = (score: Score, at: EditPosition) => {
         )
         .join(','),
     )
-    .join('|');
+    .join('|')}`;
 };
 
 /**
@@ -77,6 +77,9 @@ export function runCommand(
         return addGrace(score, at, settings);
       case 'setBend':
         return setBend(score, at, command.bend, settings);
+      case 'setTitle':
+        score.title = command.title.trim();
+        return at;
     }
   })();
   const edited = shape(score, at) !== shapeBefore;

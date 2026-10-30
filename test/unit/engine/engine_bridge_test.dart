@@ -161,6 +161,7 @@ void main() {
       'bend': {'kind': 'prebend', 'amount': 8},
     });
     expect(const SetBend(null, 4).toJson(), {'op': 'setBend', 'bend': null});
+    expect(const SetTitle('Riff').toJson(), {'op': 'setTitle', 'title': 'Riff'});
   });
 
   test('answers a request with the reply carrying the same id', () async {

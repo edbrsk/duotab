@@ -5,7 +5,9 @@ import '../../core/design/design_tokens.dart';
 import '../../engine/engine_host.dart';
 import '../../l10n/app_localizations.dart';
 import '../../presentation/workspace/workspace_layout.dart';
+import '../editor/editor_cubit.dart';
 import '../editor/palette.dart';
+import '../editor/title_dialog.dart';
 import '../playback/transport_bar.dart';
 import '../settings/settings_cubit.dart';
 import 'score_cubit.dart';
@@ -58,11 +60,26 @@ class ScorePage extends StatelessWidget {
                 top: MediaQuery.paddingOf(context).top + Spacing.sm,
                 bottom: Spacing.xs,
               ),
-              child: Text(
-                song.title,
-                style: textTheme.titleMedium?.copyWith(
-                  color: Colors.black87,
-                  fontFamily: 'Georgia',
+              child: Tooltip(
+                message: l10n.changeTitle,
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final editor = context.read<EditorCubit>();
+                    final title = await showDialog<String>(
+                      context: context,
+                      builder: (_) => TitleDialog(title: song.title),
+                    );
+                    if (title != null) await editor.setTitle(title);
+                  },
+                  iconAlignment: IconAlignment.end,
+                  icon: const Icon(Icons.edit, color: Colors.black38),
+                  label: Text(
+                    song.title,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: Colors.black87,
+                      fontFamily: 'Georgia',
+                    ),
+                  ),
                 ),
               ),
             ),

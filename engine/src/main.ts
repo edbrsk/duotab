@@ -297,7 +297,8 @@ async function run(request: Request): Promise<unknown> {
       const result = session.command(api.score, command);
       if (result.edited) {
         api.render();
-        await mixer.regenerate();
+        // The title is not in the MIDI.
+        if (command.op !== 'setTitle') await mixer.regenerate();
       }
       return editState(result.edited);
     }

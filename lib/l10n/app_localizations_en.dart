@@ -396,6 +396,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get songTitle => 'Title';
 
   @override
+  String get changeTitle => 'Change title';
+
+  @override
+  String get save => 'Save';
+
+  @override
   String get strings => 'Strings';
 
   @override

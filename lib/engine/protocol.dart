@@ -450,6 +450,16 @@ class SetBend extends EditCommand {
   };
 }
 
+/// Needs no cursor.
+class SetTitle extends EditCommand {
+  final String title;
+
+  const SetTitle(this.title);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'setTitle', 'title': title};
+}
+
 class Place extends EditCommand {
   final EditPosition position;
 

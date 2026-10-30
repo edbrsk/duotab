@@ -43,6 +43,10 @@ export class EditSession {
       this.position = clampPosition(score, { ...command.position, track: this.track });
       return { edited: false };
     }
+    if (command.op === 'setTitle') {
+      const at = this.position ?? { track: this.track, bar: 0, voice: 0, beat: 0, string: 1 };
+      return { edited: runCommand(score, at, command, this.history, this.settings).edited };
+    }
     if (!this.position) throw new Error('no cursor');
     const result = runCommand(score, this.position, command, this.history, this.settings);
     this.position = result.position;
