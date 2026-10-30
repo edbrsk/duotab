@@ -57,6 +57,7 @@ void main() {
     when(() => engine.stop()).thenAnswer((_) async {});
     when(() => engine.seekBar(any())).thenAnswer((_) async {});
     when(() => engine.setTracks(any())).thenAnswer((_) async {});
+    when(() => engine.setMaster(any())).thenAnswer((_) async {});
     when(() => engine.setStaves(any())).thenAnswer((_) async {});
     when(() => engine.setSpeed(any())).thenAnswer((_) async {});
     when(() => engine.setLooping(looping: any(named: 'looping')))
@@ -364,15 +365,76 @@ void main() {
     });
   });
 
-  test('setVolume sends and saves, and a preview only sends', () async {
+  test(
+    "setVolumeDb sends the track's dB and pan, and saves on release",
+    () async {
+      await openFixture();
+      await cubit.setVolumeDb(1, -6, save: false);
+      final mix = _sentMixes(engine).single;
+      expect([mix.volumeDb, mix.pan], [-6.0, 0.0]);
+      expect(cubit.state.practice.tracks[1]!.volumeDb, -6);
+      expect(
+        (await practice.load('fixture.gp'))?.tracks[1]?.volumeDb,
+        isNot(-6),
+      );
+      await cubit.setVolumeDb(1, -4.5);
+      expect((await practice.load('fixture.gp'))!.tracks[1]!.volumeDb, -4.5);
+    },
+  );
+
+  test('setPan saves on release', () async {
     await openFixture();
-    await cubit.setVolume(1, 6, save: false);
-    expect(_sentMixes(engine).single.volume, 6);
-    expect(cubit.state.practice.tracks[1]!.volume, 6);
-    expect((await practice.load('fixture.gp'))?.tracks[1]?.volume, isNot(6));
-    await cubit.setVolume(1, 4);
-    expect(_sentMixes(engine).single.volume, 4);
-    expect((await practice.load('fixture.gp'))!.tracks[1]!.volume, 4);
+    await cubit.setPan(1, -0.5, save: false);
+    expect(_sentMixes(engine).single.pan, -0.5);
+    expect((await practice.load('fixture.gp'))?.tracks[1]?.pan, isNot(-0.5));
+    await cubit.setPan(1, -0.5);
+    expect((await practice.load('fixture.gp'))!.tracks[1]!.pan, -0.5);
+  });
+
+  test('setMasterDb sends setMaster and saves', () async {
+    await openFixture();
+    await cubit.setMasterDb(-6);
+    verify(() => engine.setMaster(-6)).called(1);
+    expect((await practice.load('fixture.gp'))!.masterDb, -6);
+  });
+
+  test('opening a song sends its master', () async {
+    await openFixture();
+    verify(() => engine.setMaster(0)).called(1);
+  });
+
+  test('−∞ sends a null dB', () {
+    const mix = TrackMix(
+      index: 0,
+      mute: false,
+      solo: false,
+      program: 29,
+      volumeDb: double.negativeInfinity,
+      pan: 0,
+    );
+    expect(mix.toJson()['volumeDb'], isNull);
+  });
+
+  test('a levels event updates the meters without a new state', () async {
+    await openFixture();
+    final states = <PlaybackState>[];
+    final sub = cubit.stream.listen(states.add);
+    events.add(
+      const EngineEvent('levels', {
+        'tracks': [
+          [-12.0, -14.0],
+          null,
+          null,
+        ],
+        'master': [-10.0, -10.0],
+      }),
+    );
+    await pumpEventQueue();
+    await sub.cancel();
+    expect(states, isEmpty);
+    expect(cubit.levels.value!.tracks[0]!.left, -12);
+    expect(cubit.levels.value!.tracks[1], isNull);
+    expect(cubit.levels.value!.master!.right, -10);
   });
 
   test(
@@ -380,7 +442,7 @@ void main() {
     () async {
       await openFixture();
       await cubit.setTone(1, Tone.highGain);
-      await cubit.setVolume(2, 5);
+      await cubit.setVolumeDb(2, -6);
       clearInteractions(engine);
       final [drums, one, two] = drumsAndTwoGuitars.tracks;
       SongSummary song(List<TrackSummary> tracks) => SongSummary(
@@ -396,13 +458,13 @@ void main() {
       }
 
       await edit([two, drums, one]);
-      expect(cubit.state.practice.tracks[0]!.volume, 5);
+      expect(cubit.state.practice.tracks[0]!.volumeDb, -6);
       expect(cubit.state.practice.tracks[2]!.tone, Tone.highGain);
       expect(
         (await practice.load('fixture.gp'))!.tracks[2]!.tone,
         Tone.highGain,
       );
-      expect(_sentMixes(engine).map((m) => m.volume).first, 5);
+      expect(_sentMixes(engine).map((m) => m.volumeDb).first, -6);
 
       await edit([drums, one]);
       expect(cubit.state.practice.tracks[1]!.tone, Tone.highGain);
@@ -410,7 +472,7 @@ void main() {
 
       await edit([drums, one, two]);
       expect(cubit.state.practice.tracks[1]!.tone, Tone.highGain);
-      expect(cubit.state.practice.tracks[2]!.volume, 5);
+      expect(cubit.state.practice.tracks[2]!.volumeDb, -6);
     },
   );
 }

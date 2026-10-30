@@ -21,6 +21,12 @@ class TrackSummary {
   /// 0–16, Guitar Pro's track volume.
   final int volume;
 
+  /// The file's level; −∞ is [double.negativeInfinity].
+  final double volumeDb;
+
+  /// −1 full left … 1 full right.
+  final double pan;
+
   /// The primary MIDI channel, which tells the track apart when tracks move.
   final int channel;
 
@@ -35,6 +41,8 @@ class TrackSummary {
     required this.tuning,
     required this.midiProgram,
     this.volume = 12,
+    this.volumeDb = 0,
+    this.pan = 0,
     this.channel = 0,
     this.barsWithNotes = const [],
   });
@@ -47,6 +55,10 @@ class TrackSummary {
     tuning: (json['tuning'] as List<dynamic>?)?.cast<int>(),
     midiProgram: json['midiProgram'] as int,
     volume: json['volume'] as int? ?? 12,
+    volumeDb: json.containsKey('volumeDb')
+        ? (json['volumeDb'] as num?)?.toDouble() ?? double.negativeInfinity
+        : 0,
+    pan: (json['pan'] as num?)?.toDouble() ?? 0,
     channel: json['channel'] as int? ?? 0,
     barsWithNotes:
         (json['barsWithNotes'] as List<dynamic>?)?.cast<bool>() ?? const [],
@@ -101,11 +113,14 @@ class SongSummary {
   /// Notes automatic fingering on open could not place; 0 elsewhere.
   final int unplayableNotes;
 
+  final double masterDb;
+
   const SongSummary({
     required this.title,
     required this.tracks,
     this.bars = const [],
     this.unplayableNotes = 0,
+    this.masterDb = 0,
   });
 
   factory SongSummary.fromJson(Map<String, dynamic> json) => SongSummary(
@@ -119,6 +134,7 @@ class SongSummary {
         BarInfo.fromJson(b as Map<String, dynamic>),
     ],
     unplayableNotes: json['unplayableNotes'] as int? ?? 0,
+    masterDb: (json['masterDb'] as num?)?.toDouble() ?? 0,
   );
 
   List<TrackSummary> get guitarTracks =>
@@ -148,23 +164,28 @@ class TrackMix {
   /// 0-based General MIDI program.
   final int program;
 
-  /// 0–16.
-  final int volume;
+  /// −∞ is [double.negativeInfinity].
+  final double volumeDb;
+
+  /// −1 full left … 1 full right.
+  final double pan;
 
   const TrackMix({
     required this.index,
     required this.mute,
     required this.solo,
     required this.program,
-    required this.volume,
+    required this.volumeDb,
+    required this.pan,
   });
 
-  Map<String, Object> toJson() => {
+  Map<String, Object?> toJson() => {
     'index': index,
     'mute': mute,
     'solo': solo,
     'program': program,
-    'volume': volume,
+    'volumeDb': volumeDb.isFinite ? volumeDb : null,
+    'pan': pan,
   };
 }
 

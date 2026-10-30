@@ -72,7 +72,7 @@ void main() {
     when(() => editor.addTrack(any(), any())).thenAnswer((_) async {});
     when(() => editor.moveTrack(any(), any())).thenAnswer((_) async {});
     when(() => editor.removeTrack(any())).thenAnswer((_) async {});
-    when(() => playback.setVolume(any(), any(), save: any(named: 'save')))
+    when(() => playback.setVolumeDb(any(), any(), save: any(named: 'save')))
         .thenAnswer((_) async {});
     when(() => score.selectTrack(any())).thenAnswer((_) async {});
     when(() => playback.seekBar(any())).thenAnswer((_) async {});
@@ -242,7 +242,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key('barGrid')), findsNothing);
     expect(find.byType(Slider), findsNWidgets(3));
-    expect(find.text('75%'), findsNWidgets(3));
+    expect(find.text('81%'), findsNWidgets(3));
   });
 
   testWidgets('dragging a slider previews, and letting go saves', (
@@ -256,9 +256,9 @@ void main() {
       const Offset(-60, 0),
     );
     await tester.pump();
-    verify(() => playback.setVolume(2, any(), save: false))
+    verify(() => playback.setVolumeDb(2, any(), save: false))
         .called(greaterThan(0));
-    verify(() => playback.setVolume(2, any())).called(1);
+    verify(() => playback.setVolumeDb(2, any())).called(1);
   });
 
   testWidgets('add track asks for the tuning and adds it', (tester) async {

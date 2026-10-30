@@ -69,24 +69,58 @@ void main() {
     expect(p.tracks.keys, [0, 1, 2]);
   });
 
-  test("the volume resolves to the file's level", () {
-    const song = SongSummary(
+  TrackSummary guitar({int volume = 12, double volumeDb = 0, double pan = 0}) =>
+      TrackSummary(
+        index: 0,
+        name: 'G',
+        kind: TrackKind.guitar,
+        stringCount: 6,
+        tuning: const [64, 59, 55, 50, 45, 40],
+        midiProgram: 29,
+        volume: volume,
+        volumeDb: volumeDb,
+        pan: pan,
+      );
+
+  test("the file's levels when none are saved", () {
+    final song = SongSummary(
       title: 'S',
-      tracks: [
-        TrackSummary(
-          index: 0,
-          name: 'G',
-          kind: TrackKind.guitar,
-          stringCount: 6,
-          tuning: [64, 59, 55, 50, 45, 40],
-          midiProgram: 29,
-          volume: 9,
-        ),
-      ],
+      tracks: [guitar(volumeDb: -6.2, pan: -1)],
+      masterDb: -6,
     );
-    expect(resolvePractice(song, null, Tone.clean).tracks[0]!.volume, 9);
-    const saved = PracticeSettings(tracks: {0: TrackPractice(volume: 3)});
-    expect(resolvePractice(song, saved, Tone.clean).tracks[0]!.volume, 3);
+    final p = resolvePractice(song, null, Tone.clean);
+    expect(p.tracks[0]!.volumeDb, -6);
+    expect(p.tracks[0]!.pan, -1);
+    expect(p.masterDb, -6);
+  });
+
+  test('saved levels win over the file', () {
+    final song = SongSummary(title: 'S', tracks: [guitar(volumeDb: -6)]);
+    const saved = PracticeSettings(
+      masterDb: 3,
+      tracks: {0: TrackPractice(volumeDb: 2.5, pan: 0.5)},
+    );
+    final p = resolvePractice(song, saved, Tone.clean);
+    expect(
+      [p.tracks[0]!.volumeDb, p.tracks[0]!.pan, p.masterDb],
+      [2.5, 0.5, 3],
+    );
+  });
+
+  test('a legacy volume becomes the dB that sounds the same', () {
+    final song = SongSummary(title: 'S', tracks: [guitar()]);
+    double legacy(int volume) => resolvePractice(
+      song,
+      PracticeSettings.fromJson({
+        'tracks': {
+          '0': {'volume': volume},
+        },
+      }),
+      Tone.clean,
+    ).tracks[0]!.volumeDb!;
+    expect(legacy(12), 0);
+    expect(legacy(6), -18);
+    expect(legacy(0), double.negativeInfinity);
   });
 
   test('a default tone change reaches tracks left at the default', () {

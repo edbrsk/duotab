@@ -115,4 +115,20 @@ void main() {
     expect(await store.load('a.gp'), isNull);
     expect((await store.load('c.gp'))!.speed, 0.75);
   });
+
+  test('−∞ survives saving', () async {
+    await store.save(
+      'songs/b.gp',
+      const PracticeSettings(
+        masterDb: -3,
+        tracks: {
+          0: TrackPractice(volumeDb: double.negativeInfinity, pan: -0.5),
+        },
+      ),
+    );
+    final loaded = (await store.load('songs/b.gp'))!;
+    expect(loaded.tracks[0]!.volumeDb, double.negativeInfinity);
+    expect(loaded.tracks[0]!.pan, -0.5);
+    expect(loaded.masterDb, -3);
+  });
 }

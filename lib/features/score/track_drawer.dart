@@ -8,6 +8,7 @@ import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
 import '../../presentation/workspace/workspace_layout.dart';
 import '../editor/editor_cubit.dart';
+import '../playback/mix_level.dart';
 import '../playback/playback_cubit.dart';
 import '../playback/practice_settings.dart';
 import '../settings/settings_cubit.dart';
@@ -185,11 +186,15 @@ class _TrackDrawerState extends State<TrackDrawer> {
                               _VolumeRow(
                                 track: track,
                                 volume:
-                                    playback
-                                        .practice
-                                        .tracks[track.index]
-                                        ?.volume ??
-                                    track.volume,
+                                    (faderPosition(
+                                              playback
+                                                      .practice
+                                                      .tracks[track.index]
+                                                      ?.volumeDb ??
+                                                  track.volumeDb,
+                                            ) *
+                                            16)
+                                        .round(),
                               ),
                           ],
                         ),
@@ -397,9 +402,13 @@ class _VolumeRow extends StatelessWidget {
               divisions: 16,
               semanticFormatterCallback: (v) =>
                   '${AppLocalizations.of(context)!.volumeOf(track.name)}: ${(v / 16 * 100).round()}%',
-              onChanged: (v) =>
-                  playback.setVolume(track.index, v.round(), save: false),
-              onChangeEnd: (v) => playback.setVolume(track.index, v.round()),
+              onChanged: (v) => playback.setVolumeDb(
+                track.index,
+                dbAtPosition(v / 16),
+                save: false,
+              ),
+              onChangeEnd: (v) =>
+                  playback.setVolumeDb(track.index, dbAtPosition(v / 16)),
             ),
           ),
           SizedBox(

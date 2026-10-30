@@ -8,6 +8,8 @@ import '../../engine/engine_bridge.dart';
 import '../../engine/protocol.dart';
 import '../score/score_cubit.dart';
 import '../settings/settings_cubit.dart';
+import 'levels.dart';
+import 'mix_level.dart';
 import 'practice_moves.dart';
 import 'practice_settings.dart';
 import 'practice_store.dart';
@@ -46,6 +48,10 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   final SettingsCubit settings;
 
   late final StreamSubscription<EngineEvent> _events;
+
+  /// Outside the state: meters change many times a second, and only they redraw.
+  final _levels = ValueNotifier<Levels?>(null);
+  ValueListenable<Levels?> get levels => _levels;
   late final StreamSubscription<ScoreState> _songs;
   late final StreamSubscription<AppSettings> _settings;
   SongSummary? _song;
@@ -174,6 +180,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     ];
     for (final command in [
       () => engine.setTracks([for (final t in song.tracks) _mix(t)]),
+      () => engine.setMaster(resolved.masterDb ?? song.masterDb),
       if (hidden.isNotEmpty) () => engine.setStaves(hidden),
       () => engine.setSpeed(resolved.speed),
       () => engine.setLooping(looping: resolved.looping),
@@ -215,17 +222,28 @@ class PlaybackCubit extends Cubit<PlaybackState> {
       mute: p.mute,
       solo: p.solo,
       program: p.tone?.program ?? track.midiProgram,
-      volume: p.volume ?? track.volume,
+      volumeDb: p.volumeDb ?? snapDb(track.volumeDb),
+      pan: p.pan ?? track.pan,
     );
   }
 
-  /// [save] false while a slider moves: the level is heard, and saved on release.
-  Future<void> setVolume(int track, int volume, {bool save = true}) =>
-      _updateTrack(
-        track,
-        (p) => p.copyWith(volume: volume.clamp(0, 16)),
-        save: save,
-      );
+  /// [save] false while a fader moves: the level is heard, and saved on release.
+  Future<void> setVolumeDb(int track, double db, {bool save = true}) =>
+      _updateTrack(track, (p) => p.copyWith(volumeDb: db), save: save);
+
+  /// [save] false while a knob turns.
+  Future<void> setPan(int track, double pan, {bool save = true}) =>
+      _updateTrack(track, (p) => p.copyWith(pan: pan.clamp(-1, 1)), save: save);
+
+  /// [save] false while the master fader moves.
+  Future<void> setMasterDb(double db, {bool save = true}) async {
+    if (!_practiceReady) return;
+    final practice = state.practice.copyWith(masterDb: db);
+    await Future.wait([
+      if (save) _updatePractice(practice) else _show(practice),
+      _send(() => engine.setMaster(db)),
+    ]);
+  }
 
   Future<void> setMute(int track, {required bool on}) =>
       _updateTrack(track, (p) => p.copyWith(mute: on));
@@ -283,6 +301,8 @@ class PlaybackCubit extends Cubit<PlaybackState> {
         emit(state.copyWith(playing: event.payload['playing'] == true));
       case 'position':
         emit(state.copyWith(bar: event.payload['bar'] as int));
+      case 'levels':
+        _levels.value = Levels.fromJson(event.payload);
       case 'rangeChanged':
         final range = switch (event.payload['range']) {
           final Map<String, dynamic> json => PlaybackRange.fromJson(json),
@@ -320,6 +340,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
 
   @override
   Future<void> close() async {
+    if (!isClosed) _levels.dispose();
     hinge.removeListener(_onHingeChanged);
     await _settings.cancel();
     await _songs.cancel();

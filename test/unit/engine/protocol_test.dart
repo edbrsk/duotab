@@ -14,6 +14,8 @@ void main() {
           'tuning': [64, 59, 55, 50, 45, 40],
           'midiProgram': 29,
           'volume': 9,
+          'volumeDb': -6.0,
+          'pan': -1,
           'channel': 4,
         },
         {
@@ -43,6 +45,9 @@ void main() {
     ]);
     expect(song.tracks.first.tuning, [64, 59, 55, 50, 45, 40]);
     expect([song.tracks.first.volume, song.tracks.first.channel], [9, 4]);
+    expect([song.tracks.first.volumeDb, song.tracks.first.pan], [-6.0, -1.0]);
+    expect(song.tracks[1].volumeDb, 0);
+    expect(song.masterDb, 0);
     expect(song.tracks[1].stringCount, isNull);
     expect(song.guitarTracks.map((t) => t.name), ['Guitar 1']);
   });

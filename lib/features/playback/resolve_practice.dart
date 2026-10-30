@@ -1,4 +1,5 @@
 import '../../engine/protocol.dart';
+import 'mix_level.dart';
 import 'practice_settings.dart';
 import 'tone.dart';
 
@@ -23,6 +24,7 @@ PracticeSettings resolvePractice(
   return base.copyWith(
     speed: base.speed.clamp(minSpeed, maxSpeed),
     range: () => rangeFits ? range : null,
+    masterDb: base.masterDb ?? snapDb(song.masterDb),
     tracks: {
       for (final track in song.tracks)
         track.index: _resolveTrack(
@@ -40,13 +42,21 @@ TrackPractice _resolveTrack(
   Tone defaultTone,
 ) {
   final practice = saved ?? const TrackPractice();
+  final volumeDb =
+      practice.volumeDb ??
+      switch (practice.legacyVolume) {
+        final legacy? => dbFromLegacyVolume(legacy, track.volume),
+        null => snapDb(track.volumeDb),
+      };
+  final pan = practice.pan ?? track.pan;
   if (track.kind != TrackKind.guitar) {
     return TrackPractice(
       mute: practice.mute,
       solo: practice.solo,
       showNotation: practice.showNotation,
       showTab: practice.showTab,
-      volume: practice.volume ?? track.volume,
+      volumeDb: volumeDb,
+      pan: pan,
     );
   }
   return practice.copyWith(
@@ -54,6 +64,7 @@ TrackPractice _resolveTrack(
         (practice.toneChosen ? practice.tone : null) ??
         Tone.fromProgram(track.midiProgram) ??
         defaultTone,
-    volume: practice.volume ?? track.volume,
+    volumeDb: volumeDb,
+    pan: pan,
   );
 }

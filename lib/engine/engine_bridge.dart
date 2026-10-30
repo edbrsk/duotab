@@ -154,6 +154,10 @@ class EngineBridge {
     'tracks': [for (final t in tracks) t.toJson()],
   });
 
+  /// −∞ is [double.negativeInfinity].
+  Future<void> setMaster(double volumeDb) =>
+      _request('setMaster', {'volumeDb': volumeDb.isFinite ? volumeDb : null});
+
   /// Waits for the engine page to load, so the timeout also covers an engine
   /// that never starts.
   Future<Object?> _request(

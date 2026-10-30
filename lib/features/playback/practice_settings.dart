@@ -14,8 +14,14 @@ class TrackPractice {
   final bool showNotation;
   final bool showTab;
 
-  /// 0–16; null for the file's own level.
-  final int? volume;
+  /// Null for the file's own level; −∞ is [double.negativeInfinity].
+  final double? volumeDb;
+
+  /// −1…1; null for the file's own pan.
+  final double? pan;
+
+  /// A 0–16 volume saved before levels were in dB; resolving converts it.
+  final int? legacyVolume;
 
   const TrackPractice({
     this.mute = false,
@@ -24,7 +30,9 @@ class TrackPractice {
     this.toneChosen = false,
     this.showNotation = true,
     this.showTab = true,
-    this.volume,
+    this.volumeDb,
+    this.pan,
+    this.legacyVolume,
   });
 
   TrackPractice copyWith({
@@ -34,7 +42,8 @@ class TrackPractice {
     bool? toneChosen,
     bool? showNotation,
     bool? showTab,
-    int? volume,
+    double? volumeDb,
+    double? pan,
   }) => TrackPractice(
     mute: mute ?? this.mute,
     solo: solo ?? this.solo,
@@ -42,7 +51,9 @@ class TrackPractice {
     toneChosen: toneChosen ?? this.toneChosen,
     showNotation: showNotation ?? this.showNotation,
     showTab: showTab ?? this.showTab,
-    volume: volume ?? this.volume,
+    volumeDb: volumeDb ?? this.volumeDb,
+    pan: pan ?? this.pan,
+    legacyVolume: legacyVolume,
   );
 
   Map<String, Object?> toJson() => {
@@ -52,7 +63,11 @@ class TrackPractice {
     'toneChosen': toneChosen,
     'showNotation': showNotation,
     'showTab': showTab,
-    'volume': volume,
+    'volumeDb': switch (volumeDb) {
+      final db? when !db.isFinite => '-inf',
+      final db => db,
+    },
+    'pan': pan,
   };
 
   factory TrackPractice.fromJson(Map<String, dynamic> json) => TrackPractice(
@@ -63,7 +78,13 @@ class TrackPractice {
     toneChosen: json['toneChosen'] as bool? ?? json['tone'] != null,
     showNotation: json['showNotation'] != false,
     showTab: json['showTab'] != false,
-    volume: json['volume'] as int?,
+    volumeDb: switch (json['volumeDb']) {
+      '-inf' => double.negativeInfinity,
+      final num db => db.toDouble(),
+      _ => null,
+    },
+    pan: (json['pan'] as num?)?.toDouble(),
+    legacyVolume: json['volume'] as int?,
   );
 }
 
@@ -74,11 +95,15 @@ class PracticeSettings {
   final PlaybackRange? range;
   final Map<int, TrackPractice> tracks;
 
+  /// Null for the file's own master level.
+  final double? masterDb;
+
   const PracticeSettings({
     this.speed = 1.0,
     this.looping = false,
     this.range,
     this.tracks = const {},
+    this.masterDb,
   });
 
   PracticeSettings copyWith({
@@ -86,11 +111,13 @@ class PracticeSettings {
     bool? looping,
     PlaybackRange? Function()? range,
     Map<int, TrackPractice>? tracks,
+    double? masterDb,
   }) => PracticeSettings(
     speed: speed ?? this.speed,
     looping: looping ?? this.looping,
     range: range != null ? range() : this.range,
     tracks: tracks ?? this.tracks,
+    masterDb: masterDb ?? this.masterDb,
   );
 
   Map<String, Object?> toJson() => {
@@ -101,12 +128,14 @@ class PracticeSettings {
       for (final MapEntry(:key, :value) in tracks.entries)
         '$key': value.toJson(),
     },
+    'masterDb': masterDb,
   };
 
   factory PracticeSettings.fromJson(Map<String, dynamic> json) =>
       PracticeSettings(
         speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
         looping: json['looping'] == true,
+        masterDb: (json['masterDb'] as num?)?.toDouble(),
         range: switch (json['range']) {
           final Map<String, dynamic> range => PlaybackRange.fromJson(range),
           _ => null,

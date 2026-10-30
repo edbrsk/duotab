@@ -16,7 +16,7 @@ SongSummary _song(List<(String, int)> tracks) => SongSummary(
 
 void main() {
   const clean = TrackPractice(tone: Tone.clean);
-  const lead = TrackPractice(tone: Tone.highGain, volume: 6);
+  const lead = TrackPractice(tone: Tone.highGain, volumeDb: -6);
   final before = _song([('A', 0), ('B', 2), ('C', 4)]);
   final practice = {0: clean, 1: lead, 2: const TrackPractice(mute: true)};
 
