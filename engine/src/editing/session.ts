@@ -15,6 +15,9 @@ import { activeTechniques, bendAt, dynamicAt, tupletAt } from './techniques';
 
 type Score = alphaTab.model.Score;
 
+const samePosition = (a: EditPosition, b: EditPosition) =>
+  a.track === b.track && a.bar === b.bar && a.voice === b.voice && a.beat === b.beat && a.string === b.string;
+
 /** The cursor, the bar check and the undo history of the open song's drawn track. */
 export class EditSession {
   /** Null until the owner taps a string, so nothing edits a hidden position. */
@@ -24,6 +27,8 @@ export class EditSession {
   /** Notes the last retune, or fingering on open, moved or could not place, per track; until the next edit. */
   marks = new Map<number, NoteMark[]>();
   private report: RetuneReport | null = null;
+  /** Where the last command set a fret and made an undo step, for a second digit to join. */
+  private fretStep: EditPosition | null = null;
   readonly history: History;
   private name = '';
   /** Kept when another song opens, so bars can be copied between songs. */
@@ -36,6 +41,7 @@ export class EditSession {
   /** `name` names an untitled song, as the library does. */
   open(score: Score, track: number, name = score.title, marks = new Map<number, NoteMark[]>()): void {
     this.name = name;
+    this.fretStep = null;
     this.marks = marks;
     this.report = null;
     this.track = track;
@@ -70,7 +76,12 @@ export class EditSession {
       this.clipboard = copyBars(score, this.track, from, to);
       return { edited: false };
     }
-    const result = runCommand(score, this.position, command, this.history, this.settings, this.clipboard);
+    const joins =
+      command.op === 'setFret' && command.combine === true && this.fretStep !== null && samePosition(this.fretStep, this.position);
+    const sent = command.op === 'setFret' && !joins ? { ...command, combine: false } : command;
+    const result = runCommand(score, this.position, sent, this.history, this.settings, this.clipboard);
+    // Only a first digit that made its own step can be joined.
+    this.fretStep = command.op === 'setFret' && result.edited && !joins ? { ...this.position } : null;
     this.position = result.position;
     if (result.edited) {
       this.issues = checkBars(score, this.track);
@@ -119,6 +130,7 @@ export class EditSession {
   /** After undo or redo replaced `previous` with `score`; the drawn track, found by its channel, stays drawn. */
   restored(score: Score, previous?: Score): void {
     this.clearMarks();
+    this.fretStep = null;
     const channel = previous?.tracks[this.track]?.playbackInfo.primaryChannel;
     const same = score.tracks.findIndex((t) => t.playbackInfo.primaryChannel === channel);
     if (same >= 0 && isGuitar(score.tracks[same])) {

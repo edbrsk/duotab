@@ -155,15 +155,26 @@ final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamH
     ).setStreamHandler(self)
   }
 
-  func receive(_ urls: [URL]) {
-    for url in urls {
-      // A file that can't be staged is still reported, so Dart can say so.
-      guard let event = stage(url) ?? failure(url.lastPathComponent) else { continue }
-      if let eventSink {
-        eventSink(event)
-      } else {
-        pending.append(event)
+  /// Stages off the main thread: a coordinated read waits for iCloud to
+  /// download the file, which must not freeze the screen. `removingOriginals`
+  /// deletes each original once it is staged, as the picker's copies are.
+  func receive(_ urls: [URL], removingOriginals: Bool = false) {
+    Task.detached(priority: .userInitiated) {
+      for url in urls {
+        // A file that can't be staged is still reported, so Dart can say so.
+        let event = Self.stage(url) ?? Self.failure(url.lastPathComponent)
+        if removingOriginals { try? FileManager.default.removeItem(at: url) }
+        guard let event else { continue }
+        await IncomingFilesStreamHandler.shared.deliver(event)
       }
+    }
+  }
+
+  private func deliver(_ event: String) {
+    if let eventSink {
+      eventSink(event)
+    } else {
+      pending.append(event)
     }
   }
 
@@ -184,7 +195,7 @@ final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamH
   /// A JSON message for Dart: the original path, and a staged copy unless the
   /// file already lives in Documents (outside Documents/Inbox), in which case
   /// Dart opens it where it is. Dart decides what, if anything, to delete.
-  private func stage(_ url: URL) -> String? {
+  nonisolated private static func stage(_ url: URL) -> String? {
     let fileManager = FileManager.default
     guard
       let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first,
@@ -221,12 +232,12 @@ final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamH
     }
   }
 
-  private func failure(_ name: String) -> String? {
+  nonisolated private static func failure(_ name: String) -> String? {
     guard let data = try? JSONSerialization.data(withJSONObject: ["error": name]) else { return nil }
     return String(data: data, encoding: .utf8)
   }
 
-  private func message(original: String, staged: String?) -> String? {
+  nonisolated private static func message(original: String, staged: String?) -> String? {
     let payload: [String: Any] = ["original": original, "staged": staged ?? NSNull()]
     guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
     return String(data: data, encoding: .utf8)
@@ -279,9 +290,8 @@ final class SongPicker: NSObject, UIDocumentPickerDelegate {
   }
 
   func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-    IncomingFilesStreamHandler.shared.receive(urls)
-    // The picker's own copies; receive has staged its own.
-    urls.forEach { try? FileManager.default.removeItem(at: $0) }
+    // The picker's own copies go once receive has staged its own.
+    IncomingFilesStreamHandler.shared.receive(urls, removingOriginals: true)
     pending?(urls.count)
     pending = nil
   }

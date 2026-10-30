@@ -6,7 +6,7 @@ import { hitTest } from './editing/hit_test';
 import { drawAfterTrackEdit } from './editing/track_render';
 import { newSong } from './editing/new_song';
 import { drawOverlay } from './editing/overlay';
-import { carryPlaybackSettings, rangeAfterRestore, rangeAfterTap } from './editing/restore';
+import { carryPlaybackSettings, firstPassStarts, rangeAfterRestore, rangeAfterTap } from './editing/restore';
 import { EditSession } from './editing/session';
 import { drawnUnplayable, fingerUnstrung, type NoteMark } from './editing/fingering';
 import { isGuitar } from './editing/tracks';
@@ -217,12 +217,18 @@ let openedMarks = new Map<number, NoteMark[]>();
 // Only a file's own staff flags are replaced, before alphaTab's first render
 // of it; a score restored by undo keeps the owner's choice.
 api.scoreLoaded.on((score) => {
-  // Fingered before alphaTab makes the MIDI and draws, which follow this event;
-  // the open awaiting the score resumes after this handler.
-  if (opens.loaded(score)) {
-    openedMarks = fingerUnstrung(score, settings);
-    showNotationAndTab(score);
+  // Fingered before alphaTab makes the MIDI and draws, which follow this event.
+  if (opens.waitingFromFile) {
+    try {
+      openedMarks = fingerUnstrung(score, settings);
+      showNotationAndTab(score);
+    } catch (e) {
+      // alphaTab then stops loading this score; the open reports why.
+      opens.failed(e);
+      throw e;
+    }
   }
+  opens.loaded(score);
 });
 api.error.on((e) => opens.failed(e));
 
@@ -243,14 +249,12 @@ function startSong() {
   api.playbackRange = null;
 }
 
-const barStarts = (score: alphaTab.model.Score) => score.masterBars.map((m) => m.start);
-
 async function restore(score: alphaTab.model.Score | null): Promise<EditState> {
   if (!score) return editState(false);
   carryPlaybackSettings(api.score!, score);
   // A loop over bars that moved would now cover others.
   const range = api.playbackRange;
-  const keptRange = rangeAfterRestore(barStarts(api.score!), barStarts(score), range);
+  const keptRange = range && rangeAfterRestore(firstPassStarts(api.score!), firstPassStarts(score), range);
   // An undone track edit can leave the drawn index pointing elsewhere.
   session.restored(score, api.score!);
   const track = session.track;

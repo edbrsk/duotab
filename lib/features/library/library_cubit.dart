@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
 
@@ -114,9 +115,14 @@ class LibraryCubit extends Cubit<LibraryState> {
     final paths = summarized.map((e) => e.path).toSet();
     _cache.removeWhere((path, _) => !paths.contains(path));
     final sorted = paths.toList()..sort();
-    await owned.forgetMissing(
-      (path) => File(p.join(documents.path, path)).existsSync(),
-    );
+    try {
+      await owned.forgetMissing(
+        (path) => File(p.join(documents.path, path)).existsSync(),
+      );
+    } on Object catch (e) {
+      // The songs are still listed; the record is cleaned up next time.
+      debugPrint('LibraryCubit: could not update the app-made files: $e');
+    }
     final ownedPaths = await owned.all();
     // Once, for copies made before the app recorded them: a match by name
     // later could hide, and then delete, another song the owner imported.

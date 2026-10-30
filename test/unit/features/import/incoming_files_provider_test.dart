@@ -134,4 +134,14 @@ void main() {
     expect(failures, ['Cloud Song.gp', 'Gone.gp']);
     expect(imported, isEmpty);
   });
+
+  test('failures before anyone listens wait for the first listener', () async {
+    events.add(jsonEncode({'error': 'Cloud Song.gp'}));
+    await pumpEventQueue();
+    final failures = <String>[];
+    final sub = provider.failures.listen(failures.add);
+    addTearDown(sub.cancel);
+    await pumpEventQueue();
+    expect(failures, ['Cloud Song.gp']);
+  });
 }

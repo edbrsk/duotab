@@ -21,6 +21,11 @@ export class OpenState {
     });
   }
 
+  /** The open waiting for a score is from a file. */
+  get waitingFromFile(): boolean {
+    return this.waiting?.fromFile ?? false;
+  }
+
   /** Whether the loaded score came from a file. */
   loaded(score: alphaTab.model.Score): boolean {
     const waiting = this.waiting;

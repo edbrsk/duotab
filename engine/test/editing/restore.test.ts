@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 
-import { carryPlaybackSettings, rangeAfterRestore, rangeAfterTap } from '../../src/editing/restore';
+import { carryPlaybackSettings, firstPassStarts, rangeAfterRestore, rangeAfterTap } from '../../src/editing/restore';
 import { score, twoGuitarsAndDrums } from '../fixtures';
 
 test('a restored song keeps the tones and staves chosen since', () => {
@@ -47,4 +47,15 @@ test('an undo that moves the bars clears the loop', () => {
   expect(rangeAfterRestore([0, 3840, 7680], [0, 3840, 7680], range)).toBe(range);
   expect(rangeAfterRestore([0, 3840, 7680], [0, 2880, 6720], range)).toBeNull();
   expect(rangeAfterRestore([0, 3840], [0, 3840, 7680], null)).toBeNull();
+});
+
+test('an undo of a repeat clears the loop', () => {
+  const plain = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+r.1 | r.1 | r.1`);
+  const repeated = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+\ro r.1 | \rc 2 r.1 | r.1`);
+  // The written positions match; only playback, which loops count in, differs.
+  expect(plain.masterBars.map((m) => m.start)).toEqual(repeated.masterBars.map((m) => m.start));
+  const range = { startTick: 7680, endTick: 11520 };
+  expect(rangeAfterRestore(firstPassStarts(repeated), firstPassStarts(plain), range)).toBeNull();
 });

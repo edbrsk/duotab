@@ -27,3 +27,12 @@ test('a second open rejects the first one still waiting', async () => {
 test('a score that loads with no open waiting is not from a file', () => {
   expect(new OpenState().loaded(song)).toBe(false);
 });
+
+test('an open says whether it is from a file before its score loads', () => {
+  const opens = new OpenState();
+  expect(opens.waitingFromFile).toBe(false);
+  void opens.wait({ fromFile: true }).catch(() => {});
+  expect(opens.waitingFromFile).toBe(true);
+  opens.failed(new Error('stop'));
+  expect(opens.waitingFromFile).toBe(false);
+});

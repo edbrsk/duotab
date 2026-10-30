@@ -1,5 +1,7 @@
 import type * as alphaTab from '@coderline/alphatab';
 
+import { barTimeline } from '../timeline';
+
 /**
  * Tones, volumes and staff views are practice settings, not edits: a song
  * restored by undo keeps the ones chosen since, as the panels show them.
@@ -28,4 +30,12 @@ export function rangeAfterTap<R extends Range>(range: R | null, tick: number): R
 /** A loop survives undo or redo only while every bar starts where it did. */
 export function rangeAfterRestore<R extends Range>(before: number[], after: number[], range: R | null): R | null {
   return range && before.length === after.length && before.every((tick, i) => tick === after[i]) ? range : null;
+}
+
+/**
+ * Where each bar first plays, in the MIDI ticks a loop is kept in: repeats
+ * and endings move these without moving where the bar is written.
+ */
+export function firstPassStarts(score: alphaTab.model.Score): number[] {
+  return barTimeline(score).map((bar) => bar.startTick);
 }

@@ -13,6 +13,8 @@ import 'package:mocktail/mocktail.dart';
 
 class _Engine extends Mock implements EngineBridge {}
 
+class _Owned extends Mock implements OwnedFiles {}
+
 SongSummary _song(String title, {List<int>? tuning}) => SongSummary(
   title: title,
   tracks: [
@@ -183,6 +185,27 @@ void main() {
     await cubit.refresh();
     expect(await owned.all(), isEmpty);
   });
+
+  test(
+    'a refresh lists the songs even when the record of app files fails',
+    () async {
+      final failing = _Owned();
+      when(() => failing.forgetMissing(any()))
+          .thenThrow(const FileSystemException('disk full'));
+      when(failing.all).thenAnswer((_) async => {});
+      when(failing.originals).thenAnswer((_) async => {});
+      when(failing.pairedByName).thenAnswer((_) async => true);
+      final cubit = LibraryCubit(
+        documents: documents,
+        engine: engine,
+        owned: failing,
+      );
+      addTearDown(cubit.close);
+      await cubit.refresh();
+      expect(cubit.state.loading, isFalse);
+      expect(cubit.state.songs, hasLength(2));
+    },
+  );
 
   group('edited copies', () {
     setUp(() {

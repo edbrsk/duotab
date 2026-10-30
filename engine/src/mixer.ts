@@ -38,6 +38,8 @@ export class Mixer {
   private readonly factors = new WeakMap<MixerTrack, number>();
   /** The volumes the MIDI being made was made with, until it arrives. */
   private making: Map<MixerTrack, number> | null = null;
+  /** Regenerates run one at a time; each reads the player as the last left it. */
+  private queue: Promise<void> = Promise.resolve();
 
   constructor(private readonly api: MixerApi) {
     api.midiLoaded.on(() => {
@@ -91,7 +93,13 @@ export class Mixer {
    * `load` may make MIDI more than once (alphaTab's renderScore of a new score
    * does); the position goes back after the last.
    */
-  async regenerate(load: () => void = () => this.api.loadMidiForScore()): Promise<void> {
+  regenerate(load: () => void = () => this.api.loadMidiForScore()): Promise<void> {
+    const run = this.queue.then(() => this.run(load));
+    this.queue = run.catch(() => {});
+    return run;
+  }
+
+  private async run(load: () => void): Promise<void> {
     const api = this.api;
     const tick = api.tickPosition;
     const wasPlaying = api.playerState === alphaTab.synth.PlayerState.Playing;
@@ -114,15 +122,18 @@ export class Mixer {
       real.call(api);
     };
     try {
-      load();
+      try {
+        load();
+      } finally {
+        api.loadMidiForScore = real;
+      }
+      if (made === 0) made = 1;
+      if (arrived >= made) done();
+      await loaded;
     } finally {
-      api.loadMidiForScore = real;
+      off();
+      this.making = null;
     }
-    if (made === 0) made = 1;
-    if (arrived >= made) done();
-    await loaded;
-    off();
-    this.making = null;
     // Setting a range seeks to its start, so the position goes back last.
     api.playbackRange = range;
     api.isLooping = looping;

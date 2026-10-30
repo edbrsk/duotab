@@ -229,3 +229,33 @@ test('opening with fingering marks keeps them until the next edit', () => {
   session.command(s, { op: 'setFret', fret: 5 });
   expect(session.marks.size).toBe(0);
 });
+
+test("a second digit without its first digit's step makes its own step", async () => {
+  const s = score(fourQuarters);
+  const session = new EditSession();
+  session.open(s, 0);
+  const at = { track: 0, bar: 0, voice: 0, beat: 0, string: 6 };
+  session.command(s, { op: 'place', position: at });
+  session.command(s, { op: 'setFret', fret: 1 });
+  const atOne = alphaTab.model.JsonConverter.scoreToJson(s);
+  // "1" again changes nothing, so it makes no step for "2" to join.
+  session.command(s, { op: 'setFret', fret: 1 });
+  session.command(s, { op: 'setFret', fret: 12, combine: true });
+  const restored = await session.history.undo(s);
+  expect(alphaTab.model.JsonConverter.scoreToJson(restored!)).toBe(atOne);
+});
+
+test('a second digit after an undo makes its own step', async () => {
+  const s = score(fourQuarters);
+  const session = new EditSession();
+  session.open(s, 0);
+  const at = { track: 0, bar: 0, voice: 0, beat: 0, string: 6 };
+  session.command(s, { op: 'place', position: at });
+  session.command(s, { op: 'setFret', fret: 1 });
+  const restored = (await session.history.undo(s))!;
+  session.restored(restored, s);
+  session.command(restored, { op: 'place', position: at });
+  session.command(restored, { op: 'setFret', fret: 12, combine: true });
+  expect(session.history.canUndo).toBe(true);
+  expect(session.history.canRedo).toBe(false);
+});

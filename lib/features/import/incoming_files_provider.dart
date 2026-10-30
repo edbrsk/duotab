@@ -20,8 +20,28 @@ class IncomingFilesProvider {
   Future<void> _queue = Future.value();
   final _failures = StreamController<String>.broadcast();
 
-  /// The name of each file that could not be brought in.
-  Stream<String> get failures => _failures.stream;
+  /// Failures before anyone listens, such as on a cold launch from Files
+  /// before the library is up.
+  final _unheard = <String>[];
+
+  /// The name of each file that could not be brought in; the first listener
+  /// also gets those that came before it.
+  Stream<String> get failures => Stream.multi((listener) {
+    for (final name in _unheard) {
+      listener.add(name);
+    }
+    _unheard.clear();
+    final sub = _failures.stream.listen(listener.add);
+    listener.onCancel = sub.cancel;
+  });
+
+  void _fail(String name) {
+    if (_failures.hasListener) {
+      _failures.add(name);
+    } else {
+      _unheard.add(name);
+    }
+  }
 
   IncomingFilesProvider({
     required this.documents,
@@ -45,7 +65,7 @@ class IncomingFilesProvider {
     final message = jsonDecode(event) as Map<String, dynamic>;
     // iOS could not read the file, such as one iCloud never downloaded.
     if (message['error'] case final String name) {
-      _failures.add(name);
+      _fail(name);
       return;
     }
     final original = File(message['original'] as String);
@@ -78,7 +98,7 @@ class IncomingFilesProvider {
       debugPrint(
         'IncomingFilesProvider: could not import ${original.path}: $e',
       );
-      _failures.add(p.basename(original.path));
+      _fail(p.basename(original.path));
     } finally {
       if (staged != null && staged.parent.existsSync()) {
         await staged.parent.delete(recursive: true);
