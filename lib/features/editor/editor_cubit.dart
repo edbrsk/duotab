@@ -186,6 +186,16 @@ class EditorCubit extends Cubit<EditorState> {
   Future<void> toggleDirection(String direction) =>
       _atCursor(ToggleDirection(direction));
 
+  Future<void> addTrack(List<int> tuning, int program) =>
+      command(AddTrack(tuning, program));
+
+  Future<void> removeTrack(int track) => command(RemoveTrack(track));
+
+  Future<void> moveTrack(int track, int to) => command(MoveTrack(track, to));
+
+  Future<void> renameTrack(int track, String name) =>
+      command(RenameTrack(track, name));
+
   Future<void> setTitle(String title) => command(SetTitle(title));
 
   Future<void> _atCursor(EditCommand edit) async {
@@ -232,7 +242,7 @@ class EditorCubit extends Cubit<EditorState> {
       ),
     );
     if (reply.edited) {
-      score.applyEdit(reply.song);
+      score.applyEdit(reply.song, drawnTrack: reply.drawnTrack);
       _edited.add(null);
     }
   }

@@ -66,4 +66,24 @@ void main() {
     );
     expect(p.tracks.keys, [0, 1, 2]);
   });
+
+  test("the volume resolves to the file's level", () {
+    const song = SongSummary(
+      title: 'S',
+      tracks: [
+        TrackSummary(
+          index: 0,
+          name: 'G',
+          kind: TrackKind.guitar,
+          stringCount: 6,
+          tuning: [64, 59, 55, 50, 45, 40],
+          midiProgram: 29,
+          volume: 9,
+        ),
+      ],
+    );
+    expect(resolvePractice(song, null, Tone.clean).tracks[0]!.volume, 9);
+    const saved = PracticeSettings(tracks: {0: TrackPractice(volume: 3)});
+    expect(resolvePractice(song, saved, Tone.clean).tracks[0]!.volume, 3);
+  });
 }

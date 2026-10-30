@@ -34,9 +34,11 @@ TrackPractice _resolveTrack(
       solo: practice.solo,
       showNotation: practice.showNotation,
       showTab: practice.showTab,
+      volume: practice.volume ?? track.volume,
     );
   }
   return practice.copyWith(
     tone: practice.tone ?? Tone.fromProgram(track.midiProgram) ?? defaultTone,
+    volume: practice.volume ?? track.volume,
   );
 }

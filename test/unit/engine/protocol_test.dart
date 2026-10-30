@@ -13,6 +13,8 @@ void main() {
           'stringCount': 6,
           'tuning': [64, 59, 55, 50, 45, 40],
           'midiProgram': 29,
+          'volume': 9,
+          'channel': 4,
         },
         {
           'index': 1,
@@ -40,6 +42,7 @@ void main() {
       TrackKind.other,
     ]);
     expect(song.tracks.first.tuning, [64, 59, 55, 50, 45, 40]);
+    expect([song.tracks.first.volume, song.tracks.first.channel], [9, 4]);
     expect(song.tracks[1].stringCount, isNull);
     expect(song.guitarTracks.map((t) => t.name), ['Guitar 1']);
   });

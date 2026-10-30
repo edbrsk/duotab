@@ -360,4 +360,54 @@ void main() {
       verify(() => slowStore.save('fixture.gp', any())).called(1);
     });
   });
+
+  test('setVolume sends and saves, and a preview only sends', () async {
+    await openFixture();
+    await cubit.setVolume(1, 6, save: false);
+    expect(_sentMixes(engine).single.volume, 6);
+    expect(cubit.state.practice.tracks[1]!.volume, 6);
+    expect((await practice.load('fixture.gp'))?.tracks[1]?.volume, isNot(6));
+    await cubit.setVolume(1, 4);
+    expect(_sentMixes(engine).single.volume, 4);
+    expect((await practice.load('fixture.gp'))!.tracks[1]!.volume, 4);
+  });
+
+  test(
+    'practice follows its track through a move, a removal and an undo',
+    () async {
+      await openFixture();
+      await cubit.setTone(1, Tone.highGain);
+      await cubit.setVolume(2, 5);
+      clearInteractions(engine);
+      final [drums, one, two] = drumsAndTwoGuitars.tracks;
+      SongSummary song(List<TrackSummary> tracks) => SongSummary(
+        title: 'Fixture',
+        tracks: [
+          for (final (i, t) in tracks.indexed)
+            track(i, t.name, t.kind, channel: t.channel),
+        ],
+      );
+      Future<void> edit(List<TrackSummary> tracks) async {
+        score.applyEdit(song(tracks));
+        await pumpEventQueue();
+      }
+
+      await edit([two, drums, one]);
+      expect(cubit.state.practice.tracks[0]!.volume, 5);
+      expect(cubit.state.practice.tracks[2]!.tone, Tone.highGain);
+      expect(
+        (await practice.load('fixture.gp'))!.tracks[2]!.tone,
+        Tone.highGain,
+      );
+      expect(_sentMixes(engine).map((m) => m.volume).first, 5);
+
+      await edit([drums, one]);
+      expect(cubit.state.practice.tracks[1]!.tone, Tone.highGain);
+      expect(cubit.state.practice.tracks.length, 2);
+
+      await edit([drums, one, two]);
+      expect(cubit.state.practice.tracks[1]!.tone, Tone.highGain);
+      expect(cubit.state.practice.tracks[2]!.volume, 5);
+    },
+  );
 }

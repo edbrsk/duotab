@@ -8,6 +8,7 @@ import '../../engine/engine_bridge.dart';
 import '../../engine/protocol.dart';
 import '../score/score_cubit.dart';
 import '../settings/settings_cubit.dart';
+import 'practice_moves.dart';
 import 'practice_settings.dart';
 import 'practice_store.dart';
 import 'resolve_practice.dart';
@@ -48,6 +49,9 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   late final StreamSubscription<ScoreState> _songs;
   late final StreamSubscription<AppSettings> _settings;
   SongSummary? _song;
+
+  /// Practice of tracks removed from the open song, by channel, for undo.
+  final _parked = <int, TrackPractice>{};
   int? _openId;
   String? _path;
 
@@ -93,7 +97,11 @@ class PlaybackCubit extends Cubit<PlaybackState> {
       return;
     }
     if (scoreState.openId == _openId) {
+      final before = _song;
       _song = song;
+      if (_practiceReady && before != null && _tracksMoved(before, song)) {
+        unawaited(_followTracks(before, song));
+      }
       if (scoreState.path != _path) {
         _path = scoreState.path;
         if (_practiceReady) unawaited(practice.save(_path!, state.practice));
@@ -104,6 +112,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     _song = song;
     _path = scoreState.path;
     _practiceReady = false;
+    _parked.clear();
     emit(
       state.copyWith(
         playing: false,
@@ -112,6 +121,39 @@ class PlaybackCubit extends Cubit<PlaybackState> {
       ),
     );
     unawaited(_applyPractice(song, scoreState.path!));
+  }
+
+  static bool _tracksMoved(SongSummary before, SongSummary after) =>
+      before.tracks.length != after.tracks.length ||
+      [
+        for (final (i, t) in before.tracks.indexed)
+          t.channel != after.tracks[i].channel,
+      ].any((changed) => changed);
+
+  /// After tracks were added, removed or moved: each keeps its practice.
+  Future<void> _followTracks(SongSummary before, SongSummary after) async {
+    final moved = movePractice(
+      before,
+      after,
+      state.practice.tracks,
+      parked: _parked,
+    );
+    final resolved = resolvePractice(
+      after,
+      state.practice.copyWith(tracks: moved),
+      settings.state.defaultTone,
+    );
+    await _updatePractice(resolved);
+    await _send(
+      () => engine.setTracks([for (final t in after.tracks) _mix(t)]),
+    );
+    await _send(
+      () => engine.setStaves([
+        for (final t in after.tracks)
+          if (resolved.tracks[t.index] case final p?)
+            StaffView(index: t.index, notation: p.showNotation, tab: p.showTab),
+      ]),
+    );
   }
 
   Future<void> _applyPractice(SongSummary song, String path) async {
@@ -173,8 +215,17 @@ class PlaybackCubit extends Cubit<PlaybackState> {
       mute: p.mute,
       solo: p.solo,
       program: p.tone?.program ?? track.midiProgram,
+      volume: p.volume ?? track.volume,
     );
   }
+
+  /// [save] false while a slider moves: the level is heard, and saved on release.
+  Future<void> setVolume(int track, int volume, {bool save = true}) =>
+      _updateTrack(
+        track,
+        (p) => p.copyWith(volume: volume.clamp(0, 16)),
+        save: save,
+      );
 
   Future<void> setMute(int track, {required bool on}) =>
       _updateTrack(track, (p) => p.copyWith(mute: on));
@@ -209,17 +260,22 @@ class PlaybackCubit extends Cubit<PlaybackState> {
 
   Future<void> _updateTrack(
     int index,
-    TrackPractice Function(TrackPractice) change,
-  ) async {
+    TrackPractice Function(TrackPractice) change, {
+    bool save = true,
+  }) async {
     final song = _song;
     if (!_practiceReady || song == null || index >= song.tracks.length) return;
     final tracks = {...state.practice.tracks};
     tracks[index] = change(tracks[index] ?? const TrackPractice());
+    final practice = state.practice.copyWith(tracks: tracks);
     await Future.wait([
-      _updatePractice(state.practice.copyWith(tracks: tracks)),
+      if (save) _updatePractice(practice) else _show(practice),
       _send(() => engine.setTracks([_mix(song.tracks[index])])),
     ]);
   }
+
+  Future<void> _show(PracticeSettings practice) async =>
+      emit(state.copyWith(practice: practice));
 
   void _onEngineEvent(EngineEvent event) {
     switch (event.type) {

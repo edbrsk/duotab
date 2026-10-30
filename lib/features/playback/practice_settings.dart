@@ -10,12 +10,16 @@ class TrackPractice {
   final bool showNotation;
   final bool showTab;
 
+  /// 0–16; null for the file's own level.
+  final int? volume;
+
   const TrackPractice({
     this.mute = false,
     this.solo = false,
     this.tone,
     this.showNotation = true,
     this.showTab = true,
+    this.volume,
   });
 
   TrackPractice copyWith({
@@ -24,12 +28,14 @@ class TrackPractice {
     Tone? tone,
     bool? showNotation,
     bool? showTab,
+    int? volume,
   }) => TrackPractice(
     mute: mute ?? this.mute,
     solo: solo ?? this.solo,
     tone: tone ?? this.tone,
     showNotation: showNotation ?? this.showNotation,
     showTab: showTab ?? this.showTab,
+    volume: volume ?? this.volume,
   );
 
   Map<String, Object?> toJson() => {
@@ -38,6 +44,7 @@ class TrackPractice {
     'tone': tone?.name,
     'showNotation': showNotation,
     'showTab': showTab,
+    'volume': volume,
   };
 
   factory TrackPractice.fromJson(Map<String, dynamic> json) => TrackPractice(
@@ -46,6 +53,7 @@ class TrackPractice {
     tone: Tone.values.where((t) => t.name == json['tone']).firstOrNull,
     showNotation: json['showNotation'] != false,
     showTab: json['showTab'] != false,
+    volume: json['volume'] as int?,
   );
 }
 

@@ -330,4 +330,34 @@ void main() {
       verify(() => engine.edit(command)).called(1);
     }
   });
+
+  test(
+    'track commands need no cursor, and the drawn track reaches the score',
+    () async {
+      when(() => engine.edit(any())).thenAnswer(
+        (_) async => EditState(
+          position: null,
+          issues: const [],
+          canUndo: true,
+          canRedo: false,
+          song: drumsAndTwoGuitars,
+          edited: true,
+          drawnTrack: 2,
+        ),
+      );
+      await editor.addTrack(const [64, 59, 55, 50, 45, 40], 27);
+      await editor.removeTrack(1);
+      await editor.moveTrack(1, 0);
+      await editor.renameTrack(0, 'Lead');
+      for (final command in const <EditCommand>[
+        AddTrack([64, 59, 55, 50, 45, 40], 27),
+        RemoveTrack(1),
+        MoveTrack(1, 0),
+        RenameTrack(0, 'Lead'),
+      ]) {
+        verify(() => engine.edit(command)).called(1);
+      }
+      expect(score.state.selectedTrackIndex, 2);
+    },
+  );
 }

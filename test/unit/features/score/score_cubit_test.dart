@@ -197,4 +197,15 @@ void main() {
 
     verify(() => engine.open('a (DuoScore).gp')).called(1);
   });
+
+  test('applyEdit follows the drawn track', () async {
+    when(() => engine.open(any())).thenAnswer((_) async => drumsAndTwoGuitars);
+    final cubit = ScoreCubit(engine: engine);
+    addTearDown(cubit.close);
+    await cubit.open('fixture.gp');
+    cubit.applyEdit(drumsAndTwoGuitars, drawnTrack: 2);
+    expect(cubit.state.selectedTrackIndex, 2);
+    cubit.applyEdit(drumsAndTwoGuitars);
+    expect(cubit.state.selectedTrackIndex, 2);
+  });
 }

@@ -101,12 +101,12 @@ class ScoreCubit extends Cubit<ScoreState> {
     if (first != null) await _render(first);
   }
 
-  /// The open song after an edit.
-  void applyEdit(SongSummary song) => emit(
+  /// The open song after an edit; [drawnTrack] is the engine's drawn track.
+  void applyEdit(SongSummary song, {int? drawnTrack}) => emit(
     ScoreState(
       song: song,
       path: state.path,
-      selectedTrackIndex: state.selectedTrackIndex,
+      selectedTrackIndex: drawnTrack ?? state.selectedTrackIndex,
       openId: state.openId,
     ),
   );

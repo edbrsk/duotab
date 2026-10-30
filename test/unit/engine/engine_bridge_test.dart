@@ -101,6 +101,7 @@ void main() {
           'tempoChange': true,
         },
         'canPaste': true,
+        'drawnTrack': 2,
         'structure': {
           'repeatStart': true,
           'repeatCount': 3,
@@ -131,6 +132,7 @@ void main() {
       ],
     );
     expect(s.directions, {'segno', 'fine'});
+    expect(s.drawnTrack, 2);
     expect(s.position!.bar, 2);
     expect(s.position!.string, 3);
     expect(s.issues.single.ticksOff, -480);

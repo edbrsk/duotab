@@ -18,6 +18,12 @@ class TrackSummary {
   /// 0-based General MIDI program, as alphaTab stores it.
   final int midiProgram;
 
+  /// 0–16, Guitar Pro's track volume.
+  final int volume;
+
+  /// The primary MIDI channel, which tells the track apart when tracks move.
+  final int channel;
+
   /// Per bar; filled when the song is opened, empty in library summaries.
   final List<bool> barsWithNotes;
 
@@ -28,6 +34,8 @@ class TrackSummary {
     required this.stringCount,
     required this.tuning,
     required this.midiProgram,
+    this.volume = 12,
+    this.channel = 0,
     this.barsWithNotes = const [],
   });
 
@@ -38,6 +46,8 @@ class TrackSummary {
     stringCount: json['stringCount'] as int?,
     tuning: (json['tuning'] as List<dynamic>?)?.cast<int>(),
     midiProgram: json['midiProgram'] as int,
+    volume: json['volume'] as int? ?? 12,
+    channel: json['channel'] as int? ?? 0,
     barsWithNotes:
         (json['barsWithNotes'] as List<dynamic>?)?.cast<bool>() ?? const [],
   );
@@ -133,11 +143,15 @@ class TrackMix {
   /// 0-based General MIDI program.
   final int program;
 
+  /// 0–16.
+  final int volume;
+
   const TrackMix({
     required this.index,
     required this.mute,
     required this.solo,
     required this.program,
+    required this.volume,
   });
 
   Map<String, Object> toJson() => {
@@ -145,6 +159,7 @@ class TrackMix {
     'mute': mute,
     'solo': solo,
     'program': program,
+    'volume': volume,
   };
 }
 
@@ -303,6 +318,9 @@ class EditState {
   /// Engine `DirectionId`s, such as `segno` or `dalSegnoAlCoda`.
   final Set<String> directions;
 
+  /// The track the engine draws, which track edits can change.
+  final int? drawnTrack;
+
   const EditState({
     required this.position,
     required this.issues,
@@ -330,6 +348,7 @@ class EditState {
     this.repeatCount = 0,
     this.endings = const [],
     this.directions = const {},
+    this.drawnTrack,
   });
 
   factory EditState.fromJson(Map<String, dynamic> json) {
@@ -379,6 +398,7 @@ class EditState {
         for (final d in structure?['directions'] as List<dynamic>? ?? const [])
           d as String,
       },
+      drawnTrack: json['drawnTrack'] as int?,
     );
   }
 }
@@ -634,6 +654,55 @@ class ToggleDirection extends EditCommand {
   Map<String, Object> toJson() => {
     'op': 'toggleDirection',
     'direction': direction,
+  };
+}
+
+/// Track edits need no cursor.
+class AddTrack extends EditCommand {
+  /// MIDI note numbers of the open strings, top string first.
+  final List<int> tuning;
+  final int program;
+
+  const AddTrack(this.tuning, this.program);
+
+  @override
+  Map<String, Object> toJson() => {
+    'op': 'addTrack',
+    'tuning': tuning,
+    'program': program,
+  };
+}
+
+class RemoveTrack extends EditCommand {
+  final int track;
+
+  const RemoveTrack(this.track);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'removeTrack', 'track': track};
+}
+
+class MoveTrack extends EditCommand {
+  final int track;
+  final int to;
+
+  const MoveTrack(this.track, this.to);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'moveTrack', 'track': track, 'to': to};
+}
+
+class RenameTrack extends EditCommand {
+  final int track;
+  final String name;
+
+  const RenameTrack(this.track, this.name);
+
+  @override
+  Map<String, Object> toJson() => {
+    'op': 'renameTrack',
+    'track': track,
+    'name': name,
   };
 }
 

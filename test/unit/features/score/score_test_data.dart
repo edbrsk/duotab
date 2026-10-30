@@ -1,13 +1,15 @@
 import 'package:duoscore/engine/protocol.dart';
 
-TrackSummary track(int index, String name, TrackKind kind) => TrackSummary(
-  index: index,
-  name: name,
-  kind: kind,
-  stringCount: kind == TrackKind.guitar ? 6 : null,
-  tuning: kind == TrackKind.guitar ? const [64, 59, 55, 50, 45, 40] : null,
-  midiProgram: 29,
-);
+TrackSummary track(int index, String name, TrackKind kind, {int? channel}) =>
+    TrackSummary(
+      index: index,
+      name: name,
+      kind: kind,
+      stringCount: kind == TrackKind.guitar ? 6 : null,
+      tuning: kind == TrackKind.guitar ? const [64, 59, 55, 50, 45, 40] : null,
+      midiProgram: 29,
+      channel: channel ?? index * 2,
+    );
 
 final drumsAndTwoGuitars = SongSummary(
   title: 'Fixture',
