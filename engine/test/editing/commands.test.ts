@@ -20,7 +20,7 @@ test('an edit records history and reports the change', () => {
 test('moving the cursor is not an edit', () => {
   const history = new History();
   const result = runCommand(score(fourQuarters), start, { op: 'move', direction: 'right' }, history);
-  expect(result).toEqual({ position: { ...start, beat: 1 }, edited: false });
+  expect(result).toEqual({ position: { ...start, beat: 1 }, edited: false, marks: [] });
   expect(history.canUndo).toBe(false);
 });
 

@@ -94,3 +94,20 @@ export const pitchOnlyXml = `<?xml version="1.0" encoding="UTF-8"?>
 <note><pitch><step>G</step><octave>3</octave></pitch><duration>2</duration><type>half</type></note>
 <note><rest/><duration>1</duration><type>quarter</type></note>
 </measure></part></score-partwise>`;
+
+export const dStandardRiff = String.raw`\title "D"
+.
+\track "G" \tuning D4 A3 F3 C3 G2 D2
+\chord "Low" x x x 2 2 0
+\chord "High" 5 5 5 x x x
+2.6.4 4.5.4 (1.2 3.4).4 0.6.4 | (2.3 2.2).2{ch "Low"} (5.6 5.5).2{ch "High"}`;
+
+export const dStandardLegato = String.raw`\title "Legato"
+.
+\track "G" \tuning D4 A3 F3 C3 G2 D2
+1.5{h}.2 3.5.2 | 1.5{h}.2 24.5.2`;
+
+export const sevenString = String.raw`\title "Seven"
+.
+\track "G" \tuning E4 B3 G3 D3 A2 E2 B1
+0.7.2 5.1.2`;

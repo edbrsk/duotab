@@ -6,6 +6,8 @@ import { setClef, setKeySignature, setTempo, setTimeSignature } from './bars';
 import { History } from './history';
 import { setRepeatEnd, toggleDirection, toggleEnding, toggleRepeatStart } from './structure';
 import { addTrack, moveTrack, removeTrack, renameTrack } from './tracks';
+import type { NoteMark } from './fingering';
+import { retune } from './retune';
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from './operations';
 import { clampPosition, staffOf } from './position';
 import { activeTechniques, addGrace, bendAt, setBend, setDynamic, setTuplet, toggleTechnique } from './techniques';
@@ -56,7 +58,7 @@ const MOVING_OPS = new Set<EditCommand['op']>([
   'moveTrack',
 ]);
 
-export const TRACK_OPS = new Set<EditCommand['op']>(['addTrack', 'removeTrack', 'moveTrack', 'renameTrack']);
+export const TRACK_OPS = new Set<EditCommand['op']>(['addTrack', 'removeTrack', 'moveTrack', 'renameTrack', 'retune']);
 
 export const movesTicks = (command: EditCommand) => MOVING_OPS.has(command.op);
 
@@ -72,15 +74,16 @@ export function runCommand(
   history: History,
   settings = new alphaTab.Settings(),
   clipboard: Clipboard | null = null,
-): { position: EditPosition; edited: boolean } {
-  if (command.op === 'place') return { position: clampPosition(score, command.position), edited: false };
+): { position: EditPosition; edited: boolean; marks: NoteMark[] } {
+  if (command.op === 'place') return { position: clampPosition(score, command.position), edited: false, marks: [] };
 
   // Up and down only move the cursor; skip the snapshot (about 30 ms on a long song).
   if (command.op === 'move' && (command.direction === 'up' || command.direction === 'down')) {
-    return { position: move(score, at, command.direction, settings), edited: false };
+    return { position: move(score, at, command.direction, settings), edited: false, marks: [] };
   }
   const before = History.snapshot(score);
   const shapeBefore = shape(score, at);
+  let marks: NoteMark[] = [];
   const position = (() => {
     switch (command.op) {
       case 'setFret':
@@ -141,6 +144,9 @@ export function runCommand(
       case 'renameTrack':
         renameTrack(score, command.track, command.name, settings);
         return at;
+      case 'retune':
+        marks = retune(score, command.track, command.tuning, command.octave, settings);
+        return at;
       case 'setTitle':
         score.title = command.title.trim();
         return at;
@@ -148,5 +154,5 @@ export function runCommand(
   })();
   const edited = shape(score, at) !== shapeBefore;
   if (edited) history.push(before);
-  return { position, edited };
+  return { position, edited, marks };
 }

@@ -204,7 +204,9 @@ export type EditCommand =
   | { op: 'addTrack'; tuning: number[]; program: number }
   | { op: 'removeTrack'; track: number }
   | { op: 'moveTrack'; track: number; to: number }
-  | { op: 'renameTrack'; track: number; name: string };
+  | { op: 'renameTrack'; track: number; name: string }
+  /** Keeps every pitch; `octave`, −2 to 2, shifts them all. */
+  | { op: 'retune'; track: number; tuning: number[]; octave: number };
 
 export type EditPayload = { command: EditCommand };
 
