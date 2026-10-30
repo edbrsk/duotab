@@ -6,13 +6,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/design/design_tokens.dart';
 import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
+import '../editor/editor_cubit.dart';
 import '../playback/playback_cubit.dart';
 import '../playback/practice_settings.dart';
+import '../settings/settings_cubit.dart';
+import 'add_track_dialog.dart';
 import 'score_cubit.dart';
 
 const kTrackRowHeight = 48.0;
 const kBarCellWidth = 14.0;
-const kTrackColumnWidth = 184.0;
+const kTrackColumnWidth = 228.0;
 const kDrawerMaxHeightFraction = 0.4;
 const _headerHeight = AccessibleSizes.minTouchTarget;
 const _sectionRowHeight = 20.0;
@@ -29,6 +32,7 @@ class TrackDrawer extends StatefulWidget {
 class _TrackDrawerState extends State<TrackDrawer> {
   final _grid = ScrollController();
   var _expanded = true;
+  var _mixer = false;
   int? _revealedBar;
 
   @override
@@ -109,6 +113,30 @@ class _TrackDrawerState extends State<TrackDrawer> {
                   ),
                   const Spacer(),
                   IconButton(
+                    tooltip: l10n.addTrack,
+                    icon: const Icon(Icons.add),
+                    onPressed: () async {
+                      final editor = context.read<EditorCubit>();
+                      final tone = context
+                          .read<SettingsCubit>()
+                          .state
+                          .defaultTone;
+                      final tuning = await showDialog<List<int>>(
+                        context: context,
+                        builder: (_) => const AddTrackDialog(),
+                      );
+                      if (tuning != null) {
+                        await editor.addTrack(tuning, tone.program);
+                      }
+                    },
+                  ),
+                  IconButton(
+                    tooltip: l10n.mixer,
+                    isSelected: _mixer,
+                    icon: const Icon(Icons.tune),
+                    onPressed: () => setState(() => _mixer = !_mixer),
+                  ),
+                  IconButton(
                     key: const Key('drawerToggle'),
                     tooltip: _expanded ? l10n.hideTracks : l10n.showTracks,
                     icon: Icon(
@@ -137,62 +165,81 @@ class _TrackDrawerState extends State<TrackDrawer> {
                               practice:
                                   playback.practice.tracks[track.index] ??
                                   const TrackPractice(),
+                              song: song,
                             ),
                         ],
                       ),
                     ),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        key: const Key('barGrid'),
-                        controller: _grid,
-                        scrollDirection: Axis.horizontal,
-                        child: SizedBox(
-                          width: barCount * kBarCellWidth,
-                          child: Stack(
-                            children: [
-                              Column(
-                                children: [
-                                  for (final track in rows)
-                                    GestureDetector(
-                                      key: ValueKey('barRow-${track.index}'),
-                                      onTapUp: (details) => _tapCell(
-                                        track,
-                                        (details.localPosition.dx ~/
-                                                kBarCellWidth)
-                                            .clamp(0, barCount - 1),
-                                        drawn,
-                                      ),
-                                      child: CustomPaint(
-                                        size: Size(
-                                          barCount * kBarCellWidth,
-                                          kTrackRowHeight,
-                                        ),
-                                        painter: _BarRowPainter(
-                                          barsWithNotes: track.barsWithNotes,
-                                          color: track.index == drawn
-                                              ? AppColors.accent
-                                              : Colors.white38,
-                                        ),
-                                      ),
-                                    ),
-                                  _SectionRow(bars: song.bars),
-                                ],
+                    if (_mixer)
+                      Expanded(
+                        child: Column(
+                          children: [
+                            for (final track in rows)
+                              _VolumeRow(
+                                track: track,
+                                volume:
+                                    playback
+                                        .practice
+                                        .tracks[track.index]
+                                        ?.volume ??
+                                    track.volume,
                               ),
-                              Positioned(
-                                key: const Key('currentBarMarker'),
-                                left: playback.bar * kBarCellWidth,
-                                top: 0,
-                                bottom: 0,
-                                width: 2,
-                                child: const ColoredBox(
-                                  color: AppColors.accent,
+                          ],
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: SingleChildScrollView(
+                          key: const Key('barGrid'),
+                          controller: _grid,
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: barCount * kBarCellWidth,
+                            child: Stack(
+                              children: [
+                                Column(
+                                  children: [
+                                    for (final track in rows)
+                                      GestureDetector(
+                                        key: ValueKey('barRow-${track.index}'),
+                                        onTapUp: (details) => _tapCell(
+                                          track,
+                                          (details.localPosition.dx ~/
+                                                  kBarCellWidth)
+                                              .clamp(0, barCount - 1),
+                                          drawn,
+                                        ),
+                                        child: CustomPaint(
+                                          size: Size(
+                                            barCount * kBarCellWidth,
+                                            kTrackRowHeight,
+                                          ),
+                                          painter: _BarRowPainter(
+                                            barsWithNotes: track.barsWithNotes,
+                                            color: track.index == drawn
+                                                ? AppColors.accent
+                                                : Colors.white38,
+                                          ),
+                                        ),
+                                      ),
+                                    _SectionRow(bars: song.bars),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                Positioned(
+                                  key: const Key('currentBarMarker'),
+                                  left: playback.bar * kBarCellWidth,
+                                  top: 0,
+                                  bottom: 0,
+                                  width: 2,
+                                  child: const ColoredBox(
+                                    color: AppColors.accent,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -208,13 +255,42 @@ class _TrackRow extends StatelessWidget {
   final TrackSummary track;
   final bool drawn;
   final TrackPractice practice;
+  final SongSummary song;
 
   const _TrackRow({
     required this.track,
     required this.drawn,
     required this.practice,
+    required this.song,
     super.key,
   });
+
+  Future<void> _remove(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final editor = context.read<EditorCubit>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.removeTrackQuestion(track.name)),
+        content: Text(l10n.removeTrackBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.remove),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await editor.removeTrack(track.index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -254,6 +330,73 @@ class _TrackRow extends StatelessWidget {
             tooltip: l10n.soloTrack(track.name),
             active: practice.solo,
             onPressed: () => playback.setSolo(track.index, on: !practice.solo),
+          ),
+          if (track.kind == TrackKind.guitar)
+            PopupMenuButton<VoidCallback>(
+              tooltip: l10n.trackActions,
+              icon: const Icon(Icons.more_vert),
+              onSelected: (action) => action(),
+              itemBuilder: (context) {
+                final editor = context.read<EditorCubit>();
+                final last = song.tracks.length - 1;
+                final guitars = song.guitarTracks.length;
+                return [
+                  PopupMenuItem(
+                    value: () => editor.moveTrack(track.index, track.index - 1),
+                    enabled: track.index > 0,
+                    child: Text(l10n.moveUp),
+                  ),
+                  PopupMenuItem(
+                    value: () => editor.moveTrack(track.index, track.index + 1),
+                    enabled: track.index < last,
+                    child: Text(l10n.moveDown),
+                  ),
+                  PopupMenuItem(
+                    value: () => _remove(context),
+                    enabled: guitars > 1,
+                    child: Text(l10n.removeTrack),
+                  ),
+                ];
+              },
+            )
+          else
+            const SizedBox(width: AccessibleSizes.minTouchTarget),
+        ],
+      ),
+    );
+  }
+}
+
+/// The mixer's level for one track: 0–16, shown as a percentage.
+class _VolumeRow extends StatelessWidget {
+  final TrackSummary track;
+  final int volume;
+
+  const _VolumeRow({required this.track, required this.volume});
+
+  @override
+  Widget build(BuildContext context) {
+    final playback = context.read<PlaybackCubit>();
+    return SizedBox(
+      height: kTrackRowHeight,
+      child: Row(
+        children: [
+          Expanded(
+            child: Slider(
+              key: ValueKey('volume-${track.index}'),
+              value: volume.toDouble(),
+              max: 16,
+              divisions: 16,
+              semanticFormatterCallback: (v) =>
+                  '${AppLocalizations.of(context)!.volumeOf(track.name)}: ${(v / 16 * 100).round()}%',
+              onChanged: (v) =>
+                  playback.setVolume(track.index, v.round(), save: false),
+              onChangeEnd: (v) => playback.setVolume(track.index, v.round()),
+            ),
+          ),
+          SizedBox(
+            width: AccessibleSizes.minTouchTarget,
+            child: Text('${(volume / 16 * 100).round()}%'),
           ),
         ],
       ),

@@ -760,6 +760,78 @@ abstract class AppLocalizations {
   /// **'To coda'**
   String get toCoda;
 
+  /// No description provided for @addTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Add track'**
+  String get addTrack;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @mixer.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get mixer;
+
+  /// No description provided for @trackActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Track actions'**
+  String get trackActions;
+
+  /// No description provided for @moveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get moveUp;
+
+  /// No description provided for @moveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get moveDown;
+
+  /// No description provided for @removeTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove track'**
+  String get removeTrack;
+
+  /// No description provided for @removeTrackQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove \"{name}\"?'**
+  String removeTrackQuestion(String name);
+
+  /// No description provided for @removeTrackBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Its notes are removed too. Undo brings it back.'**
+  String get removeTrackBody;
+
+  /// No description provided for @remove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get remove;
+
+  /// No description provided for @renameTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename track'**
+  String get renameTrack;
+
+  /// No description provided for @volumeOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume of {name}'**
+  String volumeOf(String name);
+
   /// No description provided for @accidentals.
   ///
   /// In en, this message translates to:

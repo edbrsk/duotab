@@ -1,29 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/design/design_tokens.dart';
 import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
+import 'tuning_fields.dart';
 import 'tuning_presets.dart';
 
 const _timeSignatures = [(4, 4), (3, 4), (6, 8), (7, 8), (5, 4), (12, 8)];
 const _denominators = [1, 2, 4, 8, 16, 32];
-const _flatNames = [
-  'C',
-  'D♭',
-  'D',
-  'E♭',
-  'E',
-  'F',
-  'G♭',
-  'G',
-  'A♭',
-  'A',
-  'B♭',
-  'B',
-];
-
-String _noteName(int midi) => '${_flatNames[midi % 12]}${midi ~/ 12 - 1}';
 
 /// Pops the [NewSongOptions] chosen, or null when cancelled.
 class NewSongDialog extends StatefulWidget {
@@ -36,10 +20,6 @@ class NewSongDialog extends StatefulWidget {
 class _NewSongDialogState extends State<NewSongDialog> {
   final _title = TextEditingController();
   final _tempo = TextEditingController(text: '120');
-  var _strings = 6;
-
-  /// A preset's name, or null for a custom tuning.
-  String? _preset = tuningPresets(6).first.name;
   var _tuning = [...tuningPresets(6).first.tuning];
   (int, int)? _timeSignature = _timeSignatures.first;
   var _numerator = 4;
@@ -64,21 +44,6 @@ class _NewSongDialogState extends State<NewSongDialog> {
     _ => null,
   };
 
-  void _setStrings(int strings) => setState(() {
-    _strings = strings;
-    _preset = tuningPresets(strings).first.name;
-    _tuning = [...tuningPresets(strings).first.tuning];
-  });
-
-  void _setPreset(String? name) => setState(() {
-    _preset = name;
-    if (name != null) {
-      _tuning = [
-        ...tuningPresets(_strings).firstWhere((t) => t.name == name).tuning,
-      ];
-    }
-  });
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -87,15 +52,7 @@ class _NewSongDialogState extends State<NewSongDialog> {
     final (numerator, denominator) =
         _timeSignature ?? (_numerator, _denominator);
 
-    Widget field(String label, Widget child) => Padding(
-      padding: const EdgeInsets.only(bottom: Spacing.md),
-      child: Row(
-        children: [
-          SizedBox(width: 120, child: Text(label)),
-          Expanded(child: child),
-        ],
-      ),
-    );
+    const field = labelledField;
 
     return AlertDialog(
       title: Text(l10n.newSong),
@@ -113,52 +70,7 @@ class _NewSongDialogState extends State<NewSongDialog> {
                   autofocus: true,
                 ),
               ),
-              field(
-                l10n.strings,
-                SegmentedButton<int>(
-                  segments: [
-                    for (final n in const [6, 7, 8])
-                      ButtonSegment(value: n, label: Text('$n')),
-                  ],
-                  selected: {_strings},
-                  onSelectionChanged: (s) => _setStrings(s.single),
-                ),
-              ),
-              field(
-                l10n.tuning,
-                DropdownButton<String?>(
-                  key: const Key('tuning'),
-                  isExpanded: true,
-                  value: _preset,
-                  items: [
-                    for (final preset in tuningPresets(_strings))
-                      DropdownMenuItem(
-                        value: preset.name,
-                        child: Text(preset.name),
-                      ),
-                    DropdownMenuItem(child: Text(l10n.custom)),
-                  ],
-                  onChanged: _setPreset,
-                ),
-              ),
-              if (_preset == null)
-                for (final (i, note) in _tuning.indexed)
-                  field(
-                    l10n.stringN(i + 1),
-                    DropdownButton<int>(
-                      key: Key('string${i + 1}'),
-                      value: note,
-                      items: [
-                        for (
-                          var n = tuningPresets(_strings).first.tuning[i] - 12;
-                          n <= tuningPresets(_strings).first.tuning[i] + 12;
-                          n++
-                        )
-                          DropdownMenuItem(value: n, child: Text(_noteName(n))),
-                      ],
-                      onChanged: (n) => setState(() => _tuning[i] = n!),
-                    ),
-                  ),
+              TuningFields(onChanged: (t) => setState(() => _tuning = t)),
               field(
                 l10n.tempoBpm,
                 TextField(

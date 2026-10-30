@@ -153,4 +153,16 @@ void main() {
     await pump(tester, const ScoreState());
     expect(find.byType(RadioListTile<Tone>), findsNothing);
   });
+
+  testWidgets('the track name renames the track', (tester) async {
+    when(() => editor.renameTrack(any(), any())).thenAnswer((_) async {});
+    await pump(tester, drawn);
+    await tester.tap(find.byTooltip('Rename track'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Lead');
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    verify(() => editor.renameTrack(1, 'Lead')).called(1);
+  });
 }

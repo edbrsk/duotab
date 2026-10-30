@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
-/// Pops with the new title, or null when cancelled.
+/// Pops with the new name, or null when cancelled: the song's title by
+/// default, or another name given [heading] and [label].
 class TitleDialog extends StatefulWidget {
   final String title;
+  final String? heading;
+  final String? label;
 
-  const TitleDialog({required this.title, super.key});
+  const TitleDialog({required this.title, this.heading, this.label, super.key});
 
   @override
   State<TitleDialog> createState() => _TitleDialogState();
@@ -25,11 +28,11 @@ class _TitleDialogState extends State<TitleDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
-      title: Text(l10n.changeTitle),
+      title: Text(widget.heading ?? l10n.changeTitle),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: InputDecoration(labelText: l10n.songTitle),
+        decoration: InputDecoration(labelText: widget.label ?? l10n.songTitle),
         onSubmitted: (title) => Navigator.pop(context, title),
       ),
       actions: [

@@ -361,6 +361,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get toCoda => 'To coda';
 
   @override
+  String get addTrack => 'Add track';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get mixer => 'Mixer';
+
+  @override
+  String get trackActions => 'Track actions';
+
+  @override
+  String get moveUp => 'Move up';
+
+  @override
+  String get moveDown => 'Move down';
+
+  @override
+  String get removeTrack => 'Remove track';
+
+  @override
+  String removeTrackQuestion(String name) {
+    return 'Remove \"$name\"?';
+  }
+
+  @override
+  String get removeTrackBody =>
+      'Its notes are removed too. Undo brings it back.';
+
+  @override
+  String get remove => 'Remove';
+
+  @override
+  String get renameTrack => 'Rename track';
+
+  @override
+  String volumeOf(String name) {
+    return 'Volume of $name';
+  }
+
+  @override
   String get accidentals => 'Accidentals';
 
   @override

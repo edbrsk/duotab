@@ -1,9 +1,12 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/editor/editor_cubit.dart';
+import 'package:duoscore/features/editor/tuning_presets.dart';
 import 'package:duoscore/features/playback/playback_cubit.dart';
 import 'package:duoscore/features/playback/practice_settings.dart';
 import 'package:duoscore/features/score/score_cubit.dart';
 import 'package:duoscore/features/score/track_drawer.dart';
+import 'package:duoscore/features/settings/settings_cubit.dart';
 import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,6 +18,10 @@ import '../../unit/features/score/score_test_data.dart';
 class _Score extends MockCubit<ScoreState> implements ScoreCubit {}
 
 class _Playback extends MockCubit<PlaybackState> implements PlaybackCubit {}
+
+class _Editor extends MockCubit<EditorState> implements EditorCubit {}
+
+class _Settings extends MockCubit<AppSettings> implements SettingsCubit {}
 
 const _barCount = 40;
 
@@ -29,6 +36,7 @@ SongSummary _song(List<TrackSummary> tracks) => SongSummary(
         stringCount: t.stringCount,
         tuning: t.tuning,
         midiProgram: t.midiProgram,
+        channel: t.channel,
         barsWithNotes: [for (var b = 0; b < _barCount; b++) b.isEven],
       ),
   ],
@@ -51,10 +59,21 @@ SongSummary _song(List<TrackSummary> tracks) => SongSummary(
 void main() {
   late _Score score;
   late _Playback playback;
+  late _Editor editor;
+  late _Settings settings;
 
   setUp(() {
     score = _Score();
     playback = _Playback();
+    editor = _Editor();
+    settings = _Settings();
+    when(() => editor.state).thenReturn(const EditorState());
+    when(() => settings.state).thenReturn(const AppSettings());
+    when(() => editor.addTrack(any(), any())).thenAnswer((_) async {});
+    when(() => editor.moveTrack(any(), any())).thenAnswer((_) async {});
+    when(() => editor.removeTrack(any())).thenAnswer((_) async {});
+    when(() => playback.setVolume(any(), any(), save: any(named: 'save')))
+        .thenAnswer((_) async {});
     when(() => score.selectTrack(any())).thenAnswer((_) async {});
     when(() => playback.seekBar(any())).thenAnswer((_) async {});
     when(() => playback.setMute(any(), on: any(named: 'on')))
@@ -100,6 +119,8 @@ void main() {
             providers: [
               BlocProvider<ScoreCubit>.value(value: score),
               BlocProvider<PlaybackCubit>.value(value: playback),
+              BlocProvider<EditorCubit>.value(value: editor),
+              BlocProvider<SettingsCubit>.value(value: settings),
             ],
             child: const Align(
               alignment: Alignment.bottomCenter,
@@ -208,5 +229,107 @@ void main() {
       tester.getTopLeft(find.byKey(const ValueKey('trackRow-11'))).dy,
       greaterThan(drawer.bottom),
     );
+  });
+
+  Finder rowMenu(int index) => find.descendant(
+    of: find.byKey(ValueKey('trackRow-$index')),
+    matching: find.byTooltip('Track actions'),
+  );
+
+  testWidgets('the mixer swaps the grid for volume sliders', (tester) async {
+    await pump(tester);
+    await tester.tap(find.byTooltip('Mixer'));
+    await tester.pump();
+    expect(find.byKey(const Key('barGrid')), findsNothing);
+    expect(find.byType(Slider), findsNWidgets(3));
+    expect(find.text('75%'), findsNWidgets(3));
+  });
+
+  testWidgets('dragging a slider previews, and letting go saves', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.tap(find.byTooltip('Mixer'));
+    await tester.pump();
+    await tester.drag(
+      find.byKey(const ValueKey('volume-2')),
+      const Offset(-60, 0),
+    );
+    await tester.pump();
+    verify(() => playback.setVolume(2, any(), save: false))
+        .called(greaterThan(0));
+    verify(() => playback.setVolume(2, any())).called(1);
+  });
+
+  testWidgets('add track asks for the tuning and adds it', (tester) async {
+    tester.view.physicalSize = const Size(890, 1400);
+    await pump(tester);
+    tester.view.physicalSize = const Size(890, 1400);
+    await tester.tap(find.byTooltip('Add track'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('7'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+    verify(() => editor.addTrack(tuningPresets(7).first.tuning, 27)).called(1);
+  });
+
+  testWidgets('the track menu moves and removes', (tester) async {
+    await pump(tester);
+    await tester.tap(rowMenu(2));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Move up'));
+    await tester.pumpAndSettle();
+    verify(() => editor.moveTrack(2, 1)).called(1);
+    await tester.tap(rowMenu(2));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove track'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove "Guitar 2"?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Remove'));
+    await tester.pumpAndSettle();
+    verify(() => editor.removeTrack(2)).called(1);
+  });
+
+  testWidgets('the ends and the last guitar track disable their actions', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.tap(rowMenu(2));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<PopupMenuItem<VoidCallback>>(
+            find.widgetWithText(PopupMenuItem<VoidCallback>, 'Move down'),
+          )
+          .enabled,
+      isFalse,
+    );
+  });
+
+  testWidgets('the only guitar track cannot be removed', (tester) async {
+    await pump(
+      tester,
+      tracks: [
+        track(0, 'Drums', TrackKind.drums),
+        track(1, 'Guitar 1', TrackKind.guitar),
+      ],
+    );
+    await tester.tap(rowMenu(1));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<PopupMenuItem<VoidCallback>>(
+            find.widgetWithText(PopupMenuItem<VoidCallback>, 'Remove track'),
+          )
+          .enabled,
+      isFalse,
+    );
+  });
+
+  testWidgets('drum rows have no track menu', (tester) async {
+    await pump(tester);
+    expect(rowMenu(0), findsNothing);
+    expect(rowMenu(1), findsOneWidget);
   });
 }

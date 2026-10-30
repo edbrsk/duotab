@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/design/design_tokens.dart';
 import '../../l10n/app_localizations.dart';
+import '../editor/editor_cubit.dart';
 import '../editor/fret_pad.dart';
+import '../editor/title_dialog.dart';
 import '../library/song_list_entry.dart';
 import '../playback/playback_cubit.dart';
 import '../playback/practice_settings.dart';
@@ -40,7 +42,30 @@ class TrackInfoPanel extends StatelessWidget {
         children: [
           heading(l10n.trackHeading),
           if (track != null) ...[
-            Text(track.name, style: textTheme.titleMedium),
+            Tooltip(
+              message: l10n.renameTrack,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  alignment: Alignment.centerLeft,
+                ),
+                onPressed: () async {
+                  final editor = context.read<EditorCubit>();
+                  final name = await showDialog<String>(
+                    context: context,
+                    builder: (_) => TitleDialog(
+                      title: track.name,
+                      heading: l10n.renameTrack,
+                      label: l10n.songName,
+                    ),
+                  );
+                  if (name != null) await editor.renameTrack(track.index, name);
+                },
+                iconAlignment: IconAlignment.end,
+                icon: const Icon(Icons.edit, size: IconSizes.md),
+                label: Text(track.name, style: textTheme.titleMedium),
+              ),
+            ),
             if (track.tuning case final tuning?) ...[
               heading(l10n.tuning),
               Text(tuningLabel(tuning)),
