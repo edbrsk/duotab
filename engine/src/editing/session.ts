@@ -86,9 +86,14 @@ export class EditSession {
     return { edited };
   }
 
-  /** After undo or redo replaced the score. */
-  restored(score: Score): void {
-    if (!score.tracks[this.track] || !isGuitar(score.tracks[this.track])) {
+  /** After undo or redo replaced `previous` with `score`; the drawn track, found by its channel, stays drawn. */
+  restored(score: Score, previous?: Score): void {
+    const channel = previous?.tracks[this.track]?.playbackInfo.primaryChannel;
+    const same = score.tracks.findIndex((t) => t.playbackInfo.primaryChannel === channel);
+    if (same >= 0 && isGuitar(score.tracks[same])) {
+      this.track = same;
+      if (this.position) this.position = { ...this.position, track: same };
+    } else if (!score.tracks[this.track] || !isGuitar(score.tracks[this.track])) {
       this.track = nearestGuitar(score, Math.min(this.track, score.tracks.length - 1));
       this.position = null;
     }

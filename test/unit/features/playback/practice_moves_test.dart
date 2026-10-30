@@ -57,4 +57,22 @@ void main() {
     expect(moved[0], clean);
     expect(moved[1], lead);
   });
+
+  test("a new track on a removed track's channel starts fresh", () {
+    final parked = <String, TrackPractice>{};
+    final removed = _song([('A', 0), ('C', 4)]);
+    movePractice(before, removed, practice, parked: parked);
+    final added = movePractice(
+      removed,
+      _song([('A', 0), ('C', 4), ('Guitar 1', 2)]),
+      {0: clean, 1: const TrackPractice(mute: true)},
+      parked: parked,
+    );
+    expect(added.containsKey(2), isFalse);
+    final undone = movePractice(removed, before, {
+      0: clean,
+      1: const TrackPractice(mute: true),
+    }, parked: parked);
+    expect(undone[1], lead);
+  });
 }

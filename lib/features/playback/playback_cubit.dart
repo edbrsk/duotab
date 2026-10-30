@@ -51,7 +51,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   SongSummary? _song;
 
   /// Practice of tracks removed from the open song, by channel, for undo.
-  final _parked = <int, TrackPractice>{};
+  final _parked = <String, TrackPractice>{};
   int? _openId;
   String? _path;
 

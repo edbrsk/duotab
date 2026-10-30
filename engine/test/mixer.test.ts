@@ -153,7 +153,8 @@ const mix = (volume: number, program = 29) => ({ index: 0, mute: false, solo: fa
 test('a volume plays at its share of the MIDI level', async () => {
   const { mixerApi, calls, tracks } = fakeApi([29]);
   await new Mixer(mixerApi).apply([mix(6)]);
-  expect(calls).toContain('volume 0 0.5');
+  // The synth sets a MIDI volume as its cube, (48 / 96)³, and a mix volume as is.
+  expect(calls).toContain('volume 0 0.125');
   expect(tracks[0].playbackInfo.volume).toBe(6);
 });
 
@@ -181,4 +182,23 @@ test("a new song resets the changed channels' volume", async () => {
   calls.length = 0;
   mixer.newSong();
   expect(calls).toEqual(expect.arrayContaining(['channel volume 0 1', 'channel volume 1 1']));
+});
+
+test('mixes follow their track when tracks move', async () => {
+  const { mixerApi, calls, tracks } = fakeApi([29, 29]);
+  const mixer = new Mixer(mixerApi);
+  await mixer.apply([{ index: 0, mute: true, solo: false, program: 29, volume: 12 }]);
+  tracks.reverse();
+  calls.length = 0;
+  await mixer.regenerate();
+  expect(calls).toContain('mute 1 true');
+  expect(calls).not.toContain('mute 0 true');
+});
+
+test("a removed track's mix is dropped", async () => {
+  const { mixerApi, tracks } = fakeApi([29, 29, 29]);
+  const mixer = new Mixer(mixerApi);
+  await mixer.apply([0, 1, 2].map((index) => ({ index, mute: false, solo: true, program: 29, volume: 12 })));
+  tracks.splice(2, 1);
+  await expect(mixer.regenerate()).resolves.toBeUndefined();
 });

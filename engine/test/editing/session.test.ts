@@ -136,3 +136,17 @@ test('track commands need no cursor', () => {
   expect(session.state(s, true).drawnTrack).toBe(3);
   expect(session.position).toBeNull();
 });
+
+test('undoing a move keeps the drawn track and its cursor', async () => {
+  const s = score(guitarsAndDrums);
+  const session = new EditSession();
+  session.open(s, 0);
+  session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 1 } });
+  session.command(s, { op: 'moveTrack', track: 0, to: 1 });
+  expect(session.track).toBe(1);
+  const undone = (await session.history.undo(s))!;
+  session.restored(undone, s);
+  expect(session.track).toBe(0);
+  expect(undone.tracks[0].name).toBe('Guitar A');
+  expect(session.position?.track).toBe(0);
+});

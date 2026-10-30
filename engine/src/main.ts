@@ -3,6 +3,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { Mixer } from './mixer';
 import { movesTicks, TRACK_OPS } from './editing/commands';
 import { hitTest } from './editing/hit_test';
+import { drawAfterTrackEdit } from './editing/track_render';
 import { newSong } from './editing/new_song';
 import { drawOverlay } from './editing/overlay';
 import { carryPlaybackSettings, rangeAfterTap } from './editing/restore';
@@ -235,7 +236,7 @@ async function restore(score: alphaTab.model.Score | null): Promise<EditState> {
   if (!score) return editState(false);
   carryPlaybackSettings(api.score!, score);
   // An undone track edit can leave the drawn index pointing elsewhere.
-  session.restored(score);
+  session.restored(score, api.score!);
   const track = session.track;
   await mixer.regenerate(() => api.renderScore(score, [track]));
   return editState(true);
@@ -314,8 +315,7 @@ async function run(request: Request): Promise<unknown> {
           postRange();
         }
         if (TRACK_OPS.has(command.op)) {
-          const score = api.score;
-          await mixer.regenerate(() => api.renderScore(score, [session.track]));
+          await drawAfterTrackEdit(api, mixer, session.track, command.op);
         } else {
           api.render();
           // The title is not in the MIDI.

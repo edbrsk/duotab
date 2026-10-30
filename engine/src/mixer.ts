@@ -29,7 +29,8 @@ export interface MixerApi {
 }
 
 export class Mixer {
-  private readonly mixes = new Map<number, TrackMix>();
+  /** By track, so a mix stays with its track when tracks move or go. */
+  private readonly mixes = new Map<MixerTrack, TrackMix>();
   private readonly changedChannels = new Set<number>();
   /** The volume each track's current MIDI was made with. */
   private readonly baked = new WeakMap<MixerTrack, number>();
@@ -75,11 +76,11 @@ export class Mixer {
       info.volume = mix.volume;
       // No factor lifts a track whose MIDI was made silent.
       if (this.baked.get(track) === 0 && mix.volume > 0) newMidi = true;
-      this.mixes.set(mix.index, mix);
+      this.mixes.set(track, mix);
     }
     // A new program needs new MIDI, which resets the player's position and channels.
     if (newMidi) await this.regenerate();
-    this.send(this.api.score?.tracks ?? tracks, mixes);
+    this.send();
   }
 
   /**
@@ -105,17 +106,21 @@ export class Mixer {
     api.playbackRange = range;
     api.isLooping = looping;
     api.tickPosition = tick;
-    this.send(api.score?.tracks ?? [], [...this.mixes.values()]);
+    this.send();
     if (wasPlaying) api.play();
   }
 
-  private send(tracks: MixerTrack[], mixes: TrackMix[]): void {
-    for (const mix of mixes) {
-      const track = tracks[mix.index];
+  private send(): void {
+    const tracks = this.api.score?.tracks ?? [];
+    for (const [track, mix] of this.mixes) {
+      // A track removed, or replaced by undo, takes its mix with it.
+      if (!tracks.includes(track)) {
+        this.mixes.delete(track);
+        continue;
+      }
       this.api.changeTrackMute([track], mix.mute);
       this.api.changeTrackSolo([track], mix.solo);
-      const baked = this.baked.get(track) ?? track.playbackInfo.volume;
-      const factor = baked === 0 ? 1 : mix.volume / baked;
+      const factor = volumeFactor(mix.volume, this.baked.get(track) ?? track.playbackInfo.volume);
       if (this.factors.get(track) !== factor && !(factor === 1 && !this.factors.has(track))) {
         this.api.changeTrackVolume([track], factor);
         this.factors.set(track, factor);
@@ -126,4 +131,15 @@ export class Mixer {
       }
     }
   }
+}
+
+/**
+ * The mix volume that sounds like MIDI made at `volume`, given MIDI made at
+ * `baked`. alphaTab writes a track volume as MIDI volume `volume × 8`, which
+ * the synth applies as its cube; a mix volume applies as is.
+ */
+function volumeFactor(volume: number, baked: number): number {
+  if (baked === 0) return 1;
+  const midi = (v: number) => Math.min(127, v * 8);
+  return (midi(volume) / midi(baked)) ** 3;
 }
