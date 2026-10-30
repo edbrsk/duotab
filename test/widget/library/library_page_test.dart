@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/export/song_exporter.dart';
 import 'package:duoscore/features/library/library_cubit.dart';
 import 'package:duoscore/features/library/library_page.dart';
 import 'package:duoscore/features/library/song_files.dart';
@@ -19,8 +20,15 @@ void main() {
     void Function(String path)? onOpen,
     Future<void> Function(NewSongOptions options)? onNewSong,
     Future<void> Function(String path)? onDelete,
-    Future<NameProblem?> Function(String path, String name)? onRename,
+    Future<NameProblem?> Function(String path, String name, {String? original})?
+    onRename,
     Future<void> Function()? onImport,
+    Future<void> Function(
+      SongListEntry entry,
+      ExportFormat format,
+      Rect anchor,
+    )?
+    onExport,
   }) async {
     final library = _Library();
     whenListen(
@@ -33,14 +41,18 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: BlocProvider<LibraryCubit>.value(
-          value: library,
-          child: LibraryPage(
-            onOpen: onOpen ?? (_) {},
-            onNewSong: onNewSong ?? (_) async {},
-            onDelete: onDelete ?? (_) async {},
-            onRename: onRename ?? (_, _) async => null,
-            onImport: onImport ?? () async {},
+        // SnackBars need a Scaffold, which the app shell gives the page.
+        home: Scaffold(
+          body: BlocProvider<LibraryCubit>.value(
+            value: library,
+            child: LibraryPage(
+              onOpen: onOpen ?? (_) {},
+              onNewSong: onNewSong ?? (_) async {},
+              onDelete: onDelete ?? (_) async {},
+              onRename: onRename ?? (_, _, {original}) async => null,
+              onImport: onImport ?? () async {},
+              onExport: onExport ?? (_, _, _) async {},
+            ),
           ),
         ),
       ),
@@ -163,7 +175,7 @@ void main() {
     await pumpPage(
       tester,
       riff,
-      onRename: (path, name) async {
+      onRename: (path, name, {original}) async {
         renamed = (path, name);
         return null;
       },
@@ -182,7 +194,11 @@ void main() {
   });
 
   testWidgets('rename says why a name is refused', (tester) async {
-    await pumpPage(tester, riff, onRename: (_, _) async => NameProblem.taken);
+    await pumpPage(
+      tester,
+      riff,
+      onRename: (_, _, {original}) async => NameProblem.taken,
+    );
     await chooseFromMenu(tester, 'Rename');
     await tester.enterText(find.byType(TextField), 'Other');
     await tester.pump();
@@ -201,5 +217,121 @@ void main() {
     );
     await tester.tap(find.text('Import'));
     expect(imports, 1);
+  });
+
+  const edited = LibraryState(
+    loading: false,
+    songs: [
+      SongListEntry(
+        path: 'a (DuoScore).gp',
+        name: 'a',
+        tuningLabel: 'E A D G B E',
+        stringCount: 6,
+        readable: true,
+        original: 'a.gp',
+      ),
+    ],
+  );
+
+  testWidgets('an edited song is tagged and reverts after asking', (
+    tester,
+  ) async {
+    final deleted = <String>[];
+    await pumpPage(tester, edited, onDelete: (path) async => deleted.add(path));
+    expect(find.text('Edited · E A D G B E · 6 strings'), findsOneWidget);
+    await chooseFromMenu(tester, 'Revert to original');
+    expect(find.text('Revert "a"?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Revert'));
+    await tester.pumpAndSettle();
+    expect(deleted, ['a (DuoScore).gp']);
+  });
+
+  testWidgets('deleting an edited song deletes its original too', (
+    tester,
+  ) async {
+    final deleted = <String>[];
+    await pumpPage(tester, edited, onDelete: (path) async => deleted.add(path));
+    await chooseFromMenu(tester, 'Delete');
+    expect(
+      find.text(
+        "The original file and your edited copy are removed from this iPhone and can't be recovered.",
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+    expect(deleted, ['a (DuoScore).gp', 'a.gp']);
+  });
+
+  testWidgets('renaming an edited song passes its original', (tester) async {
+    String? passed;
+    await pumpPage(
+      tester,
+      edited,
+      onRename: (path, name, {original}) async {
+        passed = original;
+        return null;
+      },
+    );
+    await chooseFromMenu(tester, 'Rename');
+    await tester.tap(find.widgetWithText(FilledButton, 'Rename'));
+    await tester.pumpAndSettle();
+    expect(passed, 'a.gp');
+  });
+
+  testWidgets('a song that was never edited offers no Revert', (tester) async {
+    await pumpPage(tester, riff);
+    await tester.tap(find.byTooltip('Song actions'));
+    await tester.pumpAndSettle();
+    expect(find.text('Revert to original'), findsNothing);
+  });
+
+  testWidgets("Export shares the song from the menu's button", (tester) async {
+    final exports = <(String, ExportFormat, Rect)>[];
+    await pumpPage(
+      tester,
+      edited,
+      onExport: (entry, format, anchor) async =>
+          exports.add((entry.path, format, anchor)),
+    );
+    final button = tester.getRect(find.byTooltip('Song actions'));
+    await chooseFromMenu(tester, 'Export as PDF');
+    await chooseFromMenu(tester, 'Export as .gp');
+    expect(exports, [
+      ('a (DuoScore).gp', ExportFormat.pdf, button),
+      ('a (DuoScore).gp', ExportFormat.gp, button),
+    ]);
+  });
+
+  testWidgets('a song without a guitar track offers no PDF', (tester) async {
+    final exports = <ExportFormat>[];
+    await pumpPage(
+      tester,
+      const LibraryState(
+        loading: false,
+        songs: [
+          SongListEntry(
+            path: 'beat.gp',
+            name: 'beat',
+            tuningLabel: null,
+            stringCount: null,
+            readable: true,
+          ),
+        ],
+      ),
+      onExport: (_, format, _) async => exports.add(format),
+    );
+    await chooseFromMenu(tester, 'Export as PDF');
+    expect(exports, isEmpty);
+  });
+
+  testWidgets('a failed export says so', (tester) async {
+    await pumpPage(
+      tester,
+      edited,
+      onExport: (_, _, _) async => throw Exception('no room'),
+    );
+    await chooseFromMenu(tester, 'Export as .gp');
+    expect(find.textContaining("Couldn't export"), findsOneWidget);
   });
 }

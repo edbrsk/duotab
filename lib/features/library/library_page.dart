@@ -5,6 +5,7 @@ import '../../core/design/design_tokens.dart';
 import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
 import '../editor/new_song_dialog.dart';
+import '../export/song_exporter.dart';
 import 'library_cubit.dart';
 import 'song_files.dart';
 import 'song_list_entry.dart';
@@ -15,8 +16,21 @@ class LibraryPage extends StatefulWidget {
   final Future<void> Function(String path) onDelete;
   final Future<void> Function() onImport;
 
-  /// Null when renamed.
-  final Future<NameProblem?> Function(String path, String name) onRename;
+  /// Null when renamed; an edited copy passes its `original` to rename too.
+  final Future<NameProblem?> Function(
+    String path,
+    String name, {
+    String? original,
+  })
+  onRename;
+
+  /// `anchor` is the song's menu button, which the share sheet points at.
+  final Future<void> Function(
+    SongListEntry entry,
+    ExportFormat format,
+    Rect anchor,
+  )
+  onExport;
 
   const LibraryPage({
     required this.onOpen,
@@ -24,6 +38,7 @@ class LibraryPage extends StatefulWidget {
     required this.onDelete,
     required this.onRename,
     required this.onImport,
+    required this.onExport,
     super.key,
   });
 
@@ -50,14 +65,17 @@ class _LibraryPageState extends State<LibraryPage> {
     super.dispose();
   }
 
-  Future<void> _delete(SongListEntry entry) async {
-    final library = context.read<LibraryCubit>();
+  Future<bool> _confirm({
+    required String title,
+    required String body,
+    required String action,
+  }) async {
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.deleteSongQuestion(entry.name)),
-        content: Text(l10n.deleteSongBody),
+        title: Text(title),
+        content: Text(body),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -69,12 +87,40 @@ class _LibraryPageState extends State<LibraryPage> {
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.delete),
+            child: Text(action),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
+    return confirmed == true;
+  }
+
+  Future<void> _delete(SongListEntry entry) async {
+    final library = context.read<LibraryCubit>();
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await _confirm(
+      title: l10n.deleteSongQuestion(entry.name),
+      body: entry.original == null
+          ? l10n.deleteSongBody
+          : l10n.deleteEditedBody,
+      action: l10n.delete,
+    );
+    if (!confirmed) return;
+    await widget.onDelete(entry.path);
+    if (entry.original case final original?) await widget.onDelete(original);
+    await library.refresh();
+  }
+
+  /// Deletes the edited copy; the original it stood for is listed again.
+  Future<void> _revert(SongListEntry entry) async {
+    final library = context.read<LibraryCubit>();
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await _confirm(
+      title: l10n.revertSongQuestion(entry.name),
+      body: l10n.revertSongBody,
+      action: l10n.revert,
+    );
+    if (!confirmed) return;
     await widget.onDelete(entry.path);
     await library.refresh();
   }
@@ -85,7 +131,8 @@ class _LibraryPageState extends State<LibraryPage> {
       context: context,
       builder: (_) => _RenameDialog(
         name: entry.name,
-        onRename: (name) => widget.onRename(entry.path, name),
+        onRename: (name) =>
+            widget.onRename(entry.path, name, original: entry.original),
       ),
     );
     if (renamed == true) await library.refresh();
@@ -153,6 +200,9 @@ class _LibraryPageState extends State<LibraryPage> {
                             onOpen: widget.onOpen,
                             onDelete: () => _delete(entry),
                             onRename: () => _rename(entry),
+                            onRevert: () => _revert(entry),
+                            onExport: (format, anchor) =>
+                                widget.onExport(entry, format, anchor),
                           ),
                       ],
                     ),
@@ -164,23 +214,52 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 }
 
-class _SongTile extends StatelessWidget {
+class _SongTile extends StatefulWidget {
   final SongListEntry entry;
   final void Function(String path) onOpen;
   final VoidCallback onDelete;
   final VoidCallback onRename;
+  final VoidCallback onRevert;
+  final Future<void> Function(ExportFormat format, Rect anchor) onExport;
 
   const _SongTile({
     required this.entry,
     required this.onOpen,
     required this.onDelete,
     required this.onRename,
+    required this.onRevert,
+    required this.onExport,
   });
+
+  @override
+  State<_SongTile> createState() => _SongTileState();
+}
+
+class _SongTileState extends State<_SongTile> {
+  final _menu = GlobalKey();
+  var _exporting = false;
+
+  Future<void> _export(ExportFormat format) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final box = _menu.currentContext!.findRenderObject()! as RenderBox;
+    final anchor = box.localToGlobal(Offset.zero) & box.size;
+    setState(() => _exporting = true);
+    try {
+      await widget.onExport(format, anchor);
+    } on Object catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.exportFailed('$e'))));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final entry = widget.entry;
     final details = [
+      if (entry.original != null) l10n.edited,
       ?entry.tuningLabel,
       if (entry.stringCount case final count?) l10n.stringsCount(count),
     ];
@@ -191,16 +270,49 @@ class _SongTile extends StatelessWidget {
         entry.readable ? details.join(' · ') : l10n.unreadableFile,
       ),
       // A broken file can still be renamed or deleted.
-      trailing: PopupMenuButton<VoidCallback>(
-        tooltip: l10n.songActions,
-        icon: const Icon(Icons.more_vert),
-        onSelected: (action) => action(),
-        itemBuilder: (_) => [
-          PopupMenuItem(value: onRename, child: Text(l10n.rename)),
-          PopupMenuItem(value: onDelete, child: Text(l10n.delete)),
-        ],
+      trailing: SizedBox.square(
+        key: _menu,
+        dimension: kMinInteractiveDimension,
+        child: _exporting
+            ? const Center(
+                child: SizedBox.square(
+                  dimension: IconSizes.md,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : PopupMenuButton<VoidCallback>(
+                tooltip: l10n.songActions,
+                icon: const Icon(Icons.more_vert),
+                onSelected: (action) => action(),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: widget.onRename,
+                    child: Text(l10n.rename),
+                  ),
+                  PopupMenuItem(
+                    enabled: entry.readable,
+                    value: () => _export(ExportFormat.gp),
+                    child: Text(l10n.exportAsGp),
+                  ),
+                  PopupMenuItem(
+                    // The PDF prints the first guitar track.
+                    enabled: entry.readable && entry.stringCount != null,
+                    value: () => _export(ExportFormat.pdf),
+                    child: Text(l10n.exportAsPdf),
+                  ),
+                  if (entry.original != null)
+                    PopupMenuItem(
+                      value: widget.onRevert,
+                      child: Text(l10n.revertToOriginal),
+                    ),
+                  PopupMenuItem(
+                    value: widget.onDelete,
+                    child: Text(l10n.delete),
+                  ),
+                ],
+              ),
       ),
-      onTap: entry.readable ? () => onOpen(entry.path) : null,
+      onTap: entry.readable ? () => widget.onOpen(entry.path) : null,
     );
   }
 }

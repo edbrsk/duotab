@@ -54,6 +54,8 @@ Future<void> main() async {
                 onDelete: getIt<SongFiles>().delete,
                 onRename: getIt<SongFiles>().rename,
                 onImport: () => const SongPicker().pick(),
+                onExport: (entry, format, anchor) => getIt<SongExporter>()
+                    .shareFile(entry.path, entry.name, format, anchor),
                 onNewSong: (options) async {
                   getIt<NavigationCubit>().select(AppTab.editor);
                   try {

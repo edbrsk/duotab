@@ -330,6 +330,21 @@
     }
   },
   "deleteSongBody": "The file is removed from this iPhone and can't be recovered.",
+  "deleteEditedBody": "The original file and your edited copy are removed from this iPhone and can't be recovered.",
+  "edited": "Edited",
+  "exportAsGp": "Export as .gp",
+  "exportAsPdf": "Export as PDF",
+  "revertToOriginal": "Revert to original",
+  "revert": "Revert",
+  "revertSongQuestion": "Revert \"{name}\"?",
+  "@revertSongQuestion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "revertSongBody": "Your edits are deleted, and the original file is listed again as it was.",
   "renameSong": "Rename song",
   "songName": "Name",
   "nameEmpty": "Enter a name",

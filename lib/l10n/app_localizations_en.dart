@@ -673,6 +673,34 @@ class AppLocalizationsEn extends AppLocalizations {
       'The file is removed from this iPhone and can\'t be recovered.';
 
   @override
+  String get deleteEditedBody =>
+      'The original file and your edited copy are removed from this iPhone and can\'t be recovered.';
+
+  @override
+  String get edited => 'Edited';
+
+  @override
+  String get exportAsGp => 'Export as .gp';
+
+  @override
+  String get exportAsPdf => 'Export as PDF';
+
+  @override
+  String get revertToOriginal => 'Revert to original';
+
+  @override
+  String get revert => 'Revert';
+
+  @override
+  String revertSongQuestion(String name) {
+    return 'Revert \"$name\"?';
+  }
+
+  @override
+  String get revertSongBody =>
+      'Your edits are deleted, and the original file is listed again as it was.';
+
+  @override
   String get renameSong => 'Rename song';
 
   @override

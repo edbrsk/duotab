@@ -1300,6 +1300,54 @@ abstract class AppLocalizations {
   /// **'The file is removed from this iPhone and can\'t be recovered.'**
   String get deleteSongBody;
 
+  /// No description provided for @deleteEditedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The original file and your edited copy are removed from this iPhone and can\'t be recovered.'**
+  String get deleteEditedBody;
+
+  /// No description provided for @edited.
+  ///
+  /// In en, this message translates to:
+  /// **'Edited'**
+  String get edited;
+
+  /// No description provided for @exportAsGp.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as .gp'**
+  String get exportAsGp;
+
+  /// No description provided for @exportAsPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as PDF'**
+  String get exportAsPdf;
+
+  /// No description provided for @revertToOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert to original'**
+  String get revertToOriginal;
+
+  /// No description provided for @revert.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert'**
+  String get revert;
+
+  /// No description provided for @revertSongQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert \"{name}\"?'**
+  String revertSongQuestion(String name);
+
+  /// No description provided for @revertSongBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your edits are deleted, and the original file is listed again as it was.'**
+  String get revertSongBody;
+
   /// No description provided for @renameSong.
   ///
   /// In en, this message translates to:
