@@ -138,4 +138,41 @@ void main() {
     expect(await files.rename('riff.gp', 'Riff'), isNull);
     expect(documents.listSync().map((f) => p.basename(f.path)), ['Riff.gp']);
   });
+
+  group('an edited song', () {
+    File doc(String name) => File(p.join(documents.path, name));
+
+    setUp(() async {
+      doc('a.gp').writeAsBytesSync([9]);
+      doc('a (DuoScore).gp').writeAsBytesSync([1]);
+      await owned.addCopy('a (DuoScore).gp', of: 'a.gp');
+    });
+
+    test('renaming it renames its original with it', () async {
+      expect(
+        await files.rename('a (DuoScore).gp', 'Riff', original: 'a.gp'),
+        isNull,
+      );
+      expect(doc('Riff.gp').readAsBytesSync(), [9]);
+      expect(doc('Riff (DuoScore).gp').readAsBytesSync(), [1]);
+      expect(doc('a.gp').existsSync(), isFalse);
+      expect(await owned.originals(), {'Riff (DuoScore).gp': 'Riff.gp'});
+    });
+
+    test('its new name must be free for both files', () async {
+      doc('Riff (DuoScore).gp').writeAsBytesSync([5]);
+      expect(
+        await files.rename('a (DuoScore).gp', 'Riff', original: 'a.gp'),
+        NameProblem.taken,
+      );
+      expect(doc('a.gp').existsSync(), isTrue);
+    });
+
+    test('a later copy keeps its counter', () async {
+      doc('a (DuoScore) (2).gp').writeAsBytesSync([2]);
+      await owned.addCopy('a (DuoScore) (2).gp', of: 'a.gp');
+      await files.rename('a (DuoScore) (2).gp', 'Riff', original: 'a.gp');
+      expect(doc('Riff (DuoScore) (2).gp').existsSync(), isTrue);
+    });
+  });
 }

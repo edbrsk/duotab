@@ -36,27 +36,57 @@ class SongFiles {
     await owned.remove(path);
   }
 
-  /// Renames the file, keeping its folder and extension; null when done.
-  Future<NameProblem?> rename(String path, String name) async {
+  /// Renames the file, keeping its folder and extension; null when done. An
+  /// edited copy renames its [original] with it, so the two stay a pair.
+  Future<NameProblem?> rename(
+    String path,
+    String name, {
+    String? original,
+  }) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return NameProblem.empty;
     if (trimmed.contains(RegExp(r'[/\\:]'))) return NameProblem.invalid;
-    final to = p.join(p.dirname(path), '$trimmed${p.extension(path)}');
-    final target = p.normalize(to);
-    if (target == path) return null;
-    // Only the case changing finds the song itself on a case-insensitive disk.
-    if (File(p.join(documents.path, target)).existsSync() &&
-        target.toLowerCase() != path.toLowerCase()) {
-      return NameProblem.taken;
+    final moves = <(String, String)>[
+      if (original != null) (original, _renamed(original, trimmed)),
+      (path, _renamed(path, _copyName(path, original, trimmed))),
+    ];
+    for (final (from, to) in moves) {
+      // Only the case changing finds the song itself on a case-insensitive disk.
+      if (to != from &&
+          File(p.join(documents.path, to)).existsSync() &&
+          to.toLowerCase() != from.toLowerCase()) {
+        return NameProblem.taken;
+      }
     }
-    final open = score.state.path == path;
+    for (final (from, to) in moves) {
+      if (to != from) await _move(from, to);
+    }
+    return null;
+  }
+
+  static String _renamed(String path, String name) =>
+      p.normalize(p.join(p.dirname(path), '$name${p.extension(path)}'));
+
+  /// A copy named after its original keeps what follows that name, such as
+  /// " (DuoScore) (2)".
+  static String _copyName(String copy, String? original, String name) {
+    final copyName = p.basenameWithoutExtension(copy);
+    final originalName = original == null
+        ? null
+        : p.basenameWithoutExtension(original);
+    if (originalName == null || !copyName.startsWith(originalName)) {
+      return name;
+    }
+    return '$name${copyName.substring(originalName.length)}';
+  }
+
+  Future<void> _move(String from, String to) async {
+    final open = score.state.path == from;
     if (open) await saver.flush();
     await saver.idle;
-    await File(p.join(documents.path, path))
-        .rename(p.join(documents.path, target));
-    await practice.rename(path, target);
-    await owned.rename(path, target);
-    if (open) score.moveTo(target);
-    return null;
+    await File(p.join(documents.path, from)).rename(p.join(documents.path, to));
+    await practice.rename(from, to);
+    await owned.rename(from, to);
+    if (open) score.moveTo(to);
   }
 }
