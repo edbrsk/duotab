@@ -3,11 +3,11 @@ import { expect, test } from 'vitest';
 
 import { Mixer, type MixerApi, type MixerTrack } from '../src/mixer';
 
-function fakeApi(programs: number[]) {
+function fakeApi(programs: number[], volumes: number[] = programs.map(() => 12)) {
   const calls: string[] = [];
   const handlers: (() => void)[] = [];
   const tracks: MixerTrack[] = programs.map((program, i) => ({
-    playbackInfo: { program, primaryChannel: i * 2, secondaryChannel: i * 2 + 1 },
+    playbackInfo: { program, volume: volumes[i], primaryChannel: i * 2, secondaryChannel: i * 2 + 1 },
   }));
   let range: { startTick: number; endTick: number } | null = null;
   const api = {
@@ -26,6 +26,7 @@ function fakeApi(programs: number[]) {
     player: {
       setChannelMute: (channel: number, mute: boolean) => calls.push(`channel mute ${channel} ${mute}`),
       setChannelSolo: (channel: number, solo: boolean) => calls.push(`channel solo ${channel} ${solo}`),
+      setChannelVolume: (channel: number, volume: number) => calls.push(`channel volume ${channel} ${volume}`),
     },
     play() {
       calls.push('play');
@@ -39,13 +40,16 @@ function fakeApi(programs: number[]) {
       calls.push('loadMidi');
       // alphaTab drops the position and reports the new MIDI asynchronously.
       this.tickPosition = 0;
-      queueMicrotask(() => handlers.splice(0).forEach((h) => h()));
+      queueMicrotask(() => [...handlers].forEach((h) => h()));
     },
     changeTrackMute(ts: MixerTrack[], mute: boolean) {
       calls.push(`mute ${tracks.indexOf(ts[0])} ${mute}`);
     },
     changeTrackSolo(ts: MixerTrack[], solo: boolean) {
       calls.push(`solo ${tracks.indexOf(ts[0])} ${solo}`);
+    },
+    changeTrackVolume(ts: MixerTrack[], factor: number) {
+      calls.push(`volume ${tracks.indexOf(ts[0])} ${factor}`);
     },
     midiLoaded: {
       on(handler: () => void) {
@@ -60,21 +64,21 @@ function fakeApi(programs: number[]) {
 
 test('mutes and solos without regenerating MIDI when programs are unchanged', async () => {
   const { mixerApi, calls } = fakeApi([29]);
-  await new Mixer(mixerApi).apply([{ index: 0, mute: true, solo: false, program: 29 }]);
+  await new Mixer(mixerApi).apply([{ index: 0, mute: true, solo: false, program: 29, volume: 12 }]);
   expect(calls).toEqual(['mute 0 true', 'solo 0 false']);
 });
 
 test('a program change keeps position, mixer and loop', async () => {
   const { api, mixerApi, calls, tracks } = fakeApi([29, 29]);
   const mixer = new Mixer(mixerApi);
-  await mixer.apply([{ index: 1, mute: true, solo: false, program: 29 }]);
+  await mixer.apply([{ index: 1, mute: true, solo: false, program: 29, volume: 12 }]);
   api.play();
   api.playbackRange = { startTick: 960, endTick: 3840 };
   api.tickPosition = 5000;
   api.isLooping = true;
   calls.length = 0;
 
-  await mixer.apply([{ index: 0, mute: false, solo: false, program: 30 }]);
+  await mixer.apply([{ index: 0, mute: false, solo: false, program: 30, volume: 12 }]);
 
   expect(tracks[0].playbackInfo.program).toBe(30);
   expect(calls.filter((c) => c === 'loadMidi')).toHaveLength(1);
@@ -87,15 +91,15 @@ test('a program change keeps position, mixer and loop', async () => {
 
 test('an unknown track is an error', async () => {
   const { mixerApi } = fakeApi([29]);
-  await expect(new Mixer(mixerApi).apply([{ index: 4, mute: false, solo: false, program: 29 }])).rejects.toThrow('no track 4');
+  await expect(new Mixer(mixerApi).apply([{ index: 4, mute: false, solo: false, program: 29, volume: 12 }])).rejects.toThrow('no track 4');
 });
 
 test('a new song starts with no channel muted or soloed', async () => {
   const { mixerApi, calls } = fakeApi([29, 29]);
   const mixer = new Mixer(mixerApi);
   await mixer.apply([
-    { index: 0, mute: false, solo: false, program: 29 },
-    { index: 1, mute: true, solo: true, program: 29 },
+    { index: 0, mute: false, solo: false, program: 29, volume: 12 },
+    { index: 1, mute: true, solo: true, program: 29, volume: 12 },
   ]);
   calls.length = 0;
 
@@ -106,13 +110,15 @@ test('a new song starts with no channel muted or soloed', async () => {
     'channel mute 3 false',
     'channel solo 2 false',
     'channel solo 3 false',
+    'channel volume 2 1',
+    'channel volume 3 1',
   ]);
 });
 
 test('regenerate keeps position, mixer and loop', async () => {
   const { api, mixerApi, calls } = fakeApi([29, 29]);
   const mixer = new Mixer(mixerApi);
-  await mixer.apply([{ index: 1, mute: true, solo: false, program: 29 }]);
+  await mixer.apply([{ index: 1, mute: true, solo: false, program: 29, volume: 12 }]);
   api.play();
   api.playbackRange = { startTick: 960, endTick: 3840 };
   api.tickPosition = 5000;
@@ -140,4 +146,39 @@ test('regenerate runs the load it is given', async () => {
   expect(loads).toBe(1);
   expect(calls.filter((c) => c === 'loadMidi')).toHaveLength(1);
   expect(api.tickPosition).toBe(1234);
+});
+
+const mix = (volume: number, program = 29) => ({ index: 0, mute: false, solo: false, program, volume });
+
+test('a volume plays at its share of the MIDI level', async () => {
+  const { mixerApi, calls, tracks } = fakeApi([29]);
+  await new Mixer(mixerApi).apply([mix(6)]);
+  expect(calls).toContain('volume 0 0.5');
+  expect(tracks[0].playbackInfo.volume).toBe(6);
+});
+
+test('a volume survives new MIDI', async () => {
+  const { mixerApi, calls, tracks } = fakeApi([29]);
+  const mixer = new Mixer(mixerApi);
+  await mixer.apply([mix(6)]);
+  calls.length = 0;
+  await mixer.apply([mix(6, 30)]);
+  expect(calls).toContain('loadMidi');
+  expect(calls.filter((c) => c.startsWith('volume')).at(-1)).toBe('volume 0 1');
+  expect(tracks[0].playbackInfo.volume).toBe(6);
+});
+
+test('a track made at 0 gets new MIDI for a volume', async () => {
+  const { mixerApi, calls } = fakeApi([29], [0]);
+  await new Mixer(mixerApi).apply([mix(8)]);
+  expect(calls).toContain('loadMidi');
+});
+
+test("a new song resets the changed channels' volume", async () => {
+  const { mixerApi, calls } = fakeApi([29]);
+  const mixer = new Mixer(mixerApi);
+  await mixer.apply([mix(6)]);
+  calls.length = 0;
+  mixer.newSong();
+  expect(calls).toEqual(expect.arrayContaining(['channel volume 0 1', 'channel volume 1 1']));
 });

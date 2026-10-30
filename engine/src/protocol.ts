@@ -21,7 +21,8 @@ export type PlayerStatePayload = { playing: boolean };
 
 export type SeekBarPayload = { bar: number };
 
-export type TrackMix = { index: number; mute: boolean; solo: boolean; program: number };
+/** `volume`: 0–16, Guitar Pro's track volume. */
+export type TrackMix = { index: number; mute: boolean; solo: boolean; program: number; volume: number };
 
 export type SetTracksPayload = { tracks: TrackMix[] };
 
@@ -55,6 +56,10 @@ export type TrackSummary = {
   tuning: number[] | null;
   /** 0-based General MIDI program, as alphaTab stores it. */
   midiProgram: number;
+  /** 0–16. */
+  volume: number;
+  /** The primary MIDI channel, which tells the track apart when tracks move. */
+  channel: number;
   /** Per bar; filled by `open`, empty from `summarize`. */
   barsWithNotes: boolean[];
 };

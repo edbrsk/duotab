@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 
 import { expect, test } from 'vitest';
 
-import { summarize } from '../src/summary';
-import { gpBytes, twoGuitarsAndDrums } from './fixtures';
+import { summarize, summarizeScore } from '../src/summary';
+import { gpBytes, score, twoGuitarsAndDrums } from './fixtures';
 
 test('summarizes a generated song with two guitars and drums', () => {
   const s = summarize(gpBytes(twoGuitarsAndDrums), 'Fixture.gp');
@@ -30,4 +30,14 @@ test.skipIf(!process.env.DUOSCORE_PRIVATE_SAMPLE)('summarizes the private sample
   expect(s.tracks).toHaveLength(7);
   expect(s.tracks.every((t) => t.kind === 'guitar' && t.stringCount === 6)).toBe(true);
   expect(s.tracks[0].tuning).toEqual([63, 58, 54, 49, 44, 39]);
+});
+
+test("summaries tell each track's volume and channel", () => {
+  const s = score(twoGuitarsAndDrums);
+  s.tracks[1].playbackInfo.volume = 9;
+  const summary = summarizeScore(s, 'x.gp');
+  expect(summary.tracks.map((t) => [t.volume, t.channel])).toEqual(
+    s.tracks.map((t) => [t.playbackInfo.volume, t.playbackInfo.primaryChannel]),
+  );
+  expect(summary.tracks[1].volume).toBe(9);
 });

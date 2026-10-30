@@ -22,6 +22,8 @@ export function summarizeScore(score: alphaTab.model.Score, fileName: string): S
         stringCount: strings.length > 0 ? strings.length : null,
         tuning: strings.length > 0 ? [...strings] : null,
         midiProgram: track.playbackInfo.program,
+        volume: track.playbackInfo.volume,
+        channel: track.playbackInfo.primaryChannel,
         barsWithNotes: [],
       };
     }),
