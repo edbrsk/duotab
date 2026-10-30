@@ -186,7 +186,12 @@ export type EditCommand =
   | { op: 'deleteBar' }
   /** The loop's bars when the cursor is inside the loop, else the cursor bar. */
   | { op: 'copyBars' }
-  | { op: 'pasteBars' };
+  | { op: 'pasteBars' }
+  | { op: 'toggleRepeatStart' }
+  /** `count` plays; 0 removes the repeat end. */
+  | { op: 'setRepeatEnd'; count: number }
+  | { op: 'setEndings'; endings: number[] }
+  | { op: 'toggleDirection'; direction: DirectionId };
 
 export type EditPayload = { command: EditCommand };
 
@@ -215,6 +220,8 @@ export type EditState = {
   } | null;
   /** Null without a cursor. */
   bar: BarProperties | null;
+  /** Null without a cursor. */
+  structure: Structure | null;
   canPaste: boolean;
 };
 

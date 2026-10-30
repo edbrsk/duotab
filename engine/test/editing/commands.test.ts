@@ -3,8 +3,8 @@ import { expect, test } from 'vitest';
 
 import { movesTicks, runCommand } from '../../src/editing/commands';
 import { History } from '../../src/editing/history';
-import type { EditPosition } from '../../src/protocol';
-import { fourQuarters, lineOfEighths, score, twoTracksThreeBars } from '../fixtures';
+import type { EditCommand, EditPosition } from '../../src/protocol';
+import { fourQuarters, lineOfEighths, score, sixBars, twoTracksThreeBars } from '../fixtures';
 
 const start: EditPosition = { track: 0, bar: 0, voice: 0, beat: 0, string: 1 };
 
@@ -146,4 +146,25 @@ test('bar edits that move ticks clear the loop', () => {
   for (const op of ['setFret', 'setTempo', 'setKeySignature', 'setClef', 'copyBars', ...moving]) {
     expect(movesTicks({ op } as never), op).toBe(moving.includes(op));
   }
+});
+
+const structureCommands: EditCommand[] = [
+  { op: 'toggleRepeatStart' },
+  { op: 'setRepeatEnd', count: 3 },
+  { op: 'setEndings', endings: [1, 2] },
+  { op: 'toggleDirection', direction: 'segno' },
+];
+
+test('structure commands are edits and undo', async () => {
+  for (const command of structureCommands) {
+    const s = score(sixBars);
+    const before = alphaTab.model.JsonConverter.scoreToJson(s);
+    const history = new History();
+    expect(runCommand(s, { ...start, bar: 2 }, command, history).edited, command.op).toBe(true);
+    expect(alphaTab.model.JsonConverter.scoreToJson((await history.undo(s))!), command.op).toBe(before);
+  }
+});
+
+test('structure commands move ticks', () => {
+  for (const command of structureCommands) expect(movesTicks(command), command.op).toBe(true);
 });

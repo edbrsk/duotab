@@ -34,6 +34,10 @@ class EditorState {
   final int barTempo;
   final bool barTempoChange;
   final bool canPaste;
+  final bool repeatStart;
+  final int repeatCount;
+  final List<int> endings;
+  final Set<String> directions;
 
   const EditorState({
     this.position,
@@ -56,6 +60,10 @@ class EditorState {
     this.barTempo = 120,
     this.barTempoChange = false,
     this.canPaste = false,
+    this.repeatStart = false,
+    this.repeatCount = 0,
+    this.endings = const [],
+    this.directions = const {},
   });
 
   EditorState copyWith({int? duration, int? dots}) => EditorState(
@@ -79,6 +87,10 @@ class EditorState {
     barTempo: barTempo,
     barTempoChange: barTempoChange,
     canPaste: canPaste,
+    repeatStart: repeatStart,
+    repeatCount: repeatCount,
+    endings: endings,
+    directions: directions,
   );
 }
 
@@ -164,6 +176,16 @@ class EditorCubit extends Cubit<EditorState> {
 
   Future<void> pasteBars() => _atCursor(const PasteBars());
 
+  Future<void> toggleRepeatStart() => _atCursor(const ToggleRepeatStart());
+
+  /// 0 removes the repeat end.
+  Future<void> setRepeatEnd(int count) => _atCursor(SetRepeatEnd(count));
+
+  Future<void> setEndings(List<int> endings) => _atCursor(SetEndings(endings));
+
+  Future<void> toggleDirection(String direction) =>
+      _atCursor(ToggleDirection(direction));
+
   Future<void> setTitle(String title) => command(SetTitle(title));
 
   Future<void> _atCursor(EditCommand edit) async {
@@ -203,6 +225,10 @@ class EditorCubit extends Cubit<EditorState> {
         barTempo: reply.barTempo,
         barTempoChange: reply.barTempoChange,
         canPaste: reply.canPaste,
+        repeatStart: reply.repeatStart,
+        repeatCount: reply.repeatCount,
+        endings: reply.endings,
+        directions: reply.directions,
       ),
     );
     if (reply.edited) {

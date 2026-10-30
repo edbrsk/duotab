@@ -4,6 +4,7 @@ import type { EditCommand, EditPosition } from '../protocol';
 import { type Clipboard, deleteBar, insertBar, pasteBars } from './bar_structure';
 import { setClef, setKeySignature, setTempo, setTimeSignature } from './bars';
 import { History } from './history';
+import { setEndings, setRepeatEnd, toggleDirection, toggleRepeatStart } from './structure';
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from './operations';
 import { clampPosition, staffOf } from './position';
 import { activeTechniques, addGrace, bendAt, setBend, setDynamic, setTuplet, toggleTechnique } from './techniques';
@@ -17,7 +18,8 @@ const shape = (score: Score, at: EditPosition) => {
     .map((bar) => {
       const master = bar.masterBar;
       const tempo = master.tempoAutomations.map((a) => `${a.ratioPosition}@${a.value}`);
-      return `${master.timeSignatureNumerator}/${master.timeSignatureDenominator}T${tempo}K${bar.keySignature}${bar.keySignatureType}C${bar.clef}${bar.clefOttava}:${bar.voices
+      const form = `${master.isRepeatStart}${master.repeatCount}E${master.alternateEndings}D${[...(master.directions ?? [])]}`;
+      return `${master.timeSignatureNumerator}/${master.timeSignatureDenominator}T${tempo}F${form}K${bar.keySignature}${bar.keySignatureType}C${bar.clef}${bar.clefOttava}:${bar.voices
         .map((voice) =>
           voice.beats
             .map((b) => {
@@ -38,8 +40,18 @@ const shape = (score: Score, at: EditPosition) => {
 };
 
 /** Edits that shift the song's ticks, after which a loop would cover other bars. */
-export const movesTicks = (command: EditCommand) =>
-  command.op === 'insertBar' || command.op === 'deleteBar' || command.op === 'setTimeSignature' || command.op === 'pasteBars';
+const MOVING_OPS = new Set<EditCommand['op']>([
+  'insertBar',
+  'deleteBar',
+  'setTimeSignature',
+  'pasteBars',
+  'toggleRepeatStart',
+  'setRepeatEnd',
+  'setEndings',
+  'toggleDirection',
+]);
+
+export const movesTicks = (command: EditCommand) => MOVING_OPS.has(command.op);
 
 /**
  * One edit command on the song. A step goes into `history` only when the song
@@ -102,6 +114,14 @@ export function runCommand(
         return clipboard ? pasteBars(score, at, clipboard, settings) : at;
       case 'copyBars':
         return at;
+      case 'toggleRepeatStart':
+        return toggleRepeatStart(score, at, settings);
+      case 'setRepeatEnd':
+        return setRepeatEnd(score, at, command.count, settings);
+      case 'setEndings':
+        return setEndings(score, at, command.endings, settings);
+      case 'toggleDirection':
+        return toggleDirection(score, at, command.direction, settings);
       case 'setTitle':
         score.title = command.title.trim();
         return at;

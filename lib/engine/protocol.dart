@@ -291,6 +291,18 @@ class EditState {
   final bool barTempoChange;
   final bool canPaste;
 
+  /// The cursor bar's form, as the engine's `Structure`.
+  final bool repeatStart;
+
+  /// How many times the repeat plays; 0 when the bar ends no repeat.
+  final int repeatCount;
+
+  /// Ascending, 1–8.
+  final List<int> endings;
+
+  /// Engine `DirectionId`s, such as `segno` or `dalSegnoAlCoda`.
+  final Set<String> directions;
+
   const EditState({
     required this.position,
     required this.issues,
@@ -314,12 +326,17 @@ class EditState {
     this.barTempo = 120,
     this.barTempoChange = false,
     this.canPaste = false,
+    this.repeatStart = false,
+    this.repeatCount = 0,
+    this.endings = const [],
+    this.directions = const {},
   });
 
   factory EditState.fromJson(Map<String, dynamic> json) {
     final beat = json['beat'] as Map<String, dynamic>?;
     final bend = beat?['bend'] as Map<String, dynamic>?;
     final bar = json['bar'] as Map<String, dynamic>?;
+    final structure = json['structure'] as Map<String, dynamic>?;
     return EditState(
       position: switch (json['position']) {
         final Map<String, dynamic> p => EditPosition.fromJson(p),
@@ -352,6 +369,16 @@ class EditState {
       barTempo: (bar?['tempo'] as num?)?.round() ?? 120,
       barTempoChange: bar?['tempoChange'] as bool? ?? false,
       canPaste: json['canPaste'] as bool? ?? false,
+      repeatStart: structure?['repeatStart'] as bool? ?? false,
+      repeatCount: structure?['repeatCount'] as int? ?? 0,
+      endings: [
+        for (final e in structure?['endings'] as List<dynamic>? ?? const [])
+          e as int,
+      ],
+      directions: {
+        for (final d in structure?['directions'] as List<dynamic>? ?? const [])
+          d as String,
+      },
     );
   }
 }
@@ -568,6 +595,46 @@ class PasteBars extends EditCommand {
 
   @override
   Map<String, Object> toJson() => {'op': 'pasteBars'};
+}
+
+class ToggleRepeatStart extends EditCommand {
+  const ToggleRepeatStart();
+
+  @override
+  Map<String, Object> toJson() => {'op': 'toggleRepeatStart'};
+}
+
+class SetRepeatEnd extends EditCommand {
+  /// How many times the repeat plays, 2–8; 0 removes the repeat end.
+  final int count;
+
+  const SetRepeatEnd(this.count);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'setRepeatEnd', 'count': count};
+}
+
+class SetEndings extends EditCommand {
+  /// 1–8; empty removes the bracket.
+  final List<int> endings;
+
+  const SetEndings(this.endings);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'setEndings', 'endings': endings};
+}
+
+class ToggleDirection extends EditCommand {
+  /// An engine `DirectionId`.
+  final String direction;
+
+  const ToggleDirection(this.direction);
+
+  @override
+  Map<String, Object> toJson() => {
+    'op': 'toggleDirection',
+    'direction': direction,
+  };
 }
 
 class Place extends EditCommand {

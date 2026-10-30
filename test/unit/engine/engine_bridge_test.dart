@@ -101,6 +101,12 @@ void main() {
           'tempoChange': true,
         },
         'canPaste': true,
+        'structure': {
+          'repeatStart': true,
+          'repeatCount': 3,
+          'endings': [1, 2],
+          'directions': ['segno', 'fine'],
+        },
       },
     });
     final s = await state;
@@ -116,6 +122,15 @@ void main() {
       [6, 8, -3, true, 'bass'],
     );
     expect([s.barTempo, s.barTempoChange, s.canPaste], [140, true, true]);
+    expect(
+      [s.repeatStart, s.repeatCount, s.endings],
+      [
+        true,
+        3,
+        [1, 2],
+      ],
+    );
+    expect(s.directions, {'segno', 'fine'});
     expect(s.position!.bar, 2);
     expect(s.position!.string, 3);
     expect(s.issues.single.ticksOff, -480);

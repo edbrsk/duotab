@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 
 import { setDuration } from '../../src/editing/operations';
 import { EditSession } from '../../src/editing/session';
-import { fourQuarters, lineOfEighths, score, twoGuitarsAndDrums, twoTracksThreeBars } from '../fixtures';
+import { fourQuarters, lineOfEighths, score, sixBars, twoGuitarsAndDrums, twoTracksThreeBars } from '../fixtures';
 
 test("opening a song checks its bars and clears the cursor and history", async () => {
   const s = score(fourQuarters);
@@ -115,4 +115,15 @@ test("copy takes the loop's bars when the cursor is inside them", () => {
   session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 1 } });
   session.command(s, { op: 'pasteBars' });
   expect(s.masterBars).toHaveLength(4);
+});
+
+test("the state tells the bar's structure", () => {
+  const s = score(sixBars);
+  const session = new EditSession();
+  session.open(s, 0);
+  expect(session.state(s, false).structure).toBeNull();
+  session.command(s, { op: 'place', position: { track: 0, bar: 2, voice: 0, beat: 0, string: 1 } });
+  session.command(s, { op: 'setRepeatEnd', count: 2 });
+  session.command(s, { op: 'toggleDirection', direction: 'fine' });
+  expect(session.state(s, true).structure).toEqual({ repeatStart: false, repeatCount: 2, endings: [], directions: ['fine'] });
 });

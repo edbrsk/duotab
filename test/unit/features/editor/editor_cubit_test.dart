@@ -281,4 +281,53 @@ void main() {
     await editor.pasteBars();
     verifyNever(() => engine.edit(any()));
   });
+
+  test('the state follows the structure at the cursor', () async {
+    when(() => engine.edit(any())).thenAnswer(
+      (_) async => EditState(
+        position: _at,
+        issues: const [],
+        canUndo: false,
+        canRedo: false,
+        song: drumsAndTwoGuitars,
+        edited: false,
+        repeatStart: true,
+        repeatCount: 2,
+        endings: const [1],
+        directions: const {'coda'},
+      ),
+    );
+    await editor.command(const Place(_at));
+    final state = editor.state;
+    expect(
+      [state.repeatStart, state.repeatCount, state.endings],
+      [
+        true,
+        2,
+        [1],
+      ],
+    );
+    expect(state.directions, {'coda'});
+  });
+
+  test('structure commands send their command and wait for a cursor', () async {
+    await editor.toggleRepeatStart();
+    await editor.setRepeatEnd(2);
+    await editor.setEndings([1]);
+    await editor.toggleDirection('segno');
+    verifyNever(() => engine.edit(any()));
+    await editor.command(const Place(_at));
+    await editor.toggleRepeatStart();
+    await editor.setRepeatEnd(2);
+    await editor.setEndings([1]);
+    await editor.toggleDirection('segno');
+    for (final command in const <EditCommand>[
+      ToggleRepeatStart(),
+      SetRepeatEnd(2),
+      SetEndings([1]),
+      ToggleDirection('segno'),
+    ]) {
+      verify(() => engine.edit(command)).called(1);
+    }
+  });
 }

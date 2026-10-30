@@ -6,6 +6,7 @@ import { checkBars } from './bar_check';
 import { type Clipboard, copyBars } from './bar_structure';
 import { barProperties } from './bars';
 import { runCommand } from './commands';
+import { structureAt } from './structure';
 import { History } from './history';
 import { beatOf, clampPosition } from './position';
 import { activeTechniques, bendAt, dynamicAt, tupletAt } from './techniques';
@@ -94,6 +95,7 @@ export class EditSession {
             }
           : null,
       bar: at ? barProperties(score, at) : null,
+      structure: at ? structureAt(score, at) : null,
       canPaste: this.clipboard !== null,
     };
   }
