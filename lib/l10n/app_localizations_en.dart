@@ -678,6 +678,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trackName => 'Track name';
 
   @override
+  String importFailed(String name) {
+    return 'Couldn\'t import $name';
+  }
+
+  @override
   String get exportFailedPdf => 'Couldn\'t make the PDF';
 
   @override

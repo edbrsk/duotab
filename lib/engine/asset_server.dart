@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:path/path.dart' as p;
 
@@ -16,12 +17,22 @@ const _contentTypes = {
 /// Serves the engine page to the web view on the loopback interface, plus
 /// the Documents folder read-only so the engine can fetch songs. WebKit
 /// refuses alphaTab's module, worker and worklet from `file://`.
+///
+/// Any app or web page on the phone can reach the loopback port, so every
+/// path starts with a token made for this launch, and a request naming
+/// another host (a DNS-rebinding page) is refused.
 class AssetServer {
   final HttpServer _server;
   final Directory _engineAssets;
   final Directory _documents;
+  final String _token;
 
-  AssetServer._(this._server, this._engineAssets, this._documents) {
+  AssetServer._(
+    this._server,
+    this._engineAssets,
+    this._documents,
+    this._token,
+  ) {
     _server.listen(_handle);
   }
 
@@ -30,18 +41,26 @@ class AssetServer {
     required Directory documents,
   }) async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    return AssetServer._(server, engineAssets, documents);
+    final random = Random.secure();
+    final token = [
+      for (var i = 0; i < 16; i++)
+        random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ].join();
+    return AssetServer._(server, engineAssets, documents, token);
   }
+
+  /// The path every route sits under.
+  String get root => '/$_token';
 
   Uri get engineUri => Uri(
     scheme: 'http',
     host: '127.0.0.1',
     port: _server.port,
-    path: '/engine/index.html',
+    path: '$root/engine/index.html',
   );
 
   Uri songUri(String documentsRelativePath) =>
-      engineUri.replace(path: '/songs/$documentsRelativePath');
+      engineUri.replace(path: '$root/songs/$documentsRelativePath');
 
   Future<void> close() => _server.close(force: true);
 
@@ -52,7 +71,16 @@ class AssetServer {
       await response.close();
       return;
     }
-    final file = _resolve(request.uri.pathSegments);
+    final headers = request.headers;
+    if (headers.host != '127.0.0.1' || headers.port != _server.port) {
+      response.statusCode = HttpStatus.forbidden;
+      await response.close();
+      return;
+    }
+    final segments = request.uri.pathSegments;
+    final file = segments.firstOrNull == _token
+        ? _resolve(segments.skip(1).toList())
+        : null;
     if (file == null || !file.existsSync()) {
       response.statusCode = HttpStatus.notFound;
       await response.close();

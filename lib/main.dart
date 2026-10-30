@@ -10,6 +10,7 @@ import 'core/duo/vertical_bar_edge_provider.dart';
 import 'features/editor/editor_cubit.dart';
 import 'features/editor/song_saver.dart';
 import 'features/export/song_exporter.dart';
+import 'features/import/incoming_files_provider.dart';
 import 'features/import/song_picker.dart';
 import 'features/library/library_cubit.dart';
 import 'features/library/library_page.dart';
@@ -60,6 +61,7 @@ Future<void> main() async {
                 onDelete: getIt<SongFiles>().delete,
                 onRename: getIt<SongFiles>().rename,
                 onImport: () => const SongPicker().pick(),
+                importFailures: getIt<IncomingFilesProvider>().failures,
                 onExport: (entry, format, anchor) => getIt<SongExporter>()
                     .shareFile(entry.path, entry.name, format, anchor),
                 onNewSong: (options) async {

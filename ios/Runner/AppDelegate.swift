@@ -157,11 +157,12 @@ final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamH
 
   func receive(_ urls: [URL]) {
     for url in urls {
-      guard let staged = stage(url) else { continue }
+      // A file that can't be staged is still reported, so Dart can say so.
+      guard let event = stage(url) ?? failure(url.lastPathComponent) else { continue }
       if let eventSink {
-        eventSink(staged)
+        eventSink(event)
       } else {
-        pending.append(staged)
+        pending.append(event)
       }
     }
   }
@@ -202,12 +203,27 @@ final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamH
     let destination = folder.appendingPathComponent(url.lastPathComponent)
     do {
       try fileManager.createDirectory(at: folder, withIntermediateDirectories: true)
-      try fileManager.copyItem(at: url, to: destination)
+      // A coordinated read waits for iCloud to download a file not yet on the phone.
+      var coordination: NSError?
+      var copying: Error?
+      NSFileCoordinator().coordinate(readingItemAt: url, options: .withoutChanges, error: &coordination) { readable in
+        do {
+          try fileManager.copyItem(at: readable, to: destination)
+        } catch {
+          copying = error
+        }
+      }
+      if let failure = coordination ?? copying { throw failure }
       return message(original: original.path, staged: destination.path)
     } catch {
       NSLog("DuoScore: could not stage \(url.lastPathComponent): \(error)")
       return nil
     }
+  }
+
+  private func failure(_ name: String) -> String? {
+    guard let data = try? JSONSerialization.data(withJSONObject: ["error": name]) else { return nil }
+    return String(data: data, encoding: .utf8)
   }
 
   private func message(original: String, staged: String?) -> String? {

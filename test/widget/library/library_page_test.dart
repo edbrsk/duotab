@@ -32,6 +32,7 @@ void main() {
       Rect anchor,
     )?
     onExport,
+    Stream<String>? importFailures,
   }) async {
     final library = _Library();
     whenListen(
@@ -55,6 +56,7 @@ void main() {
               onRename: onRename ?? (_, _, {original}) async => null,
               onImport: onImport ?? () async {},
               onExport: onExport ?? (_, _, _) async {},
+              importFailures: importFailures,
             ),
           ),
         ),
@@ -469,5 +471,15 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     exporting.complete();
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('an import that fails says so', (tester) async {
+    await pumpPage(
+      tester,
+      const LibraryState(loading: false, songs: []),
+      importFailures: Stream.value('Cloud Song.gp'),
+    );
+    await tester.pump();
+    expect(find.text("Couldn't import Cloud Song.gp"), findsOneWidget);
   });
 }

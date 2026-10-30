@@ -60,7 +60,16 @@ class WorkspaceLayout extends StatelessWidget {
       ],
     );
 
-    if (isCollapsed(context)) return scoreColumn;
+    // With no side panel to sit on, the score itself keeps clear of the bar.
+    if (isCollapsed(context)) {
+      return ColoredBox(
+        color: AppColors.paper,
+        child: Padding(
+          padding: EdgeInsets.only(left: padding.left, right: padding.right),
+          child: scoreColumn,
+        ),
+      );
+    }
 
     final l10n = AppLocalizations.of(context)!;
     return Row(

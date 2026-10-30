@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -33,6 +35,9 @@ class LibraryPage extends StatefulWidget {
   )
   onExport;
 
+  /// The name of each file that could not be imported.
+  final Stream<String>? importFailures;
+
   const LibraryPage({
     required this.onOpen,
     required this.onNewSong,
@@ -40,6 +45,7 @@ class LibraryPage extends StatefulWidget {
     required this.onRename,
     required this.onImport,
     required this.onExport,
+    this.importFailures,
     super.key,
   });
 
@@ -49,10 +55,17 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   late final AppLifecycleListener _lifecycle;
+  StreamSubscription<String>? _importFailures;
 
   @override
   void initState() {
     super.initState();
+    _importFailures = widget.importFailures?.listen((name) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.importFailed(name))));
+    });
     // Files added in the Files app show up when the app comes back.
     _lifecycle = AppLifecycleListener(
       onResume: () => context.read<LibraryCubit>().refresh(),
@@ -62,6 +75,7 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   void dispose() {
+    unawaited(_importFailures?.cancel());
     _lifecycle.dispose();
     super.dispose();
   }

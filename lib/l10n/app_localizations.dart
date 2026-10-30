@@ -1312,6 +1312,12 @@ abstract class AppLocalizations {
   /// **'Track name'**
   String get trackName;
 
+  /// No description provided for @importFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import {name}'**
+  String importFailed(String name);
+
   /// No description provided for @exportFailedPdf.
   ///
   /// In en, this message translates to:

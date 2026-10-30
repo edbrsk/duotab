@@ -120,4 +120,18 @@ void main() {
     expect(imported, ['song.gp']);
     expect(documents.listSync(), hasLength(1));
   });
+
+  test('an import error is reported', () async {
+    final failures = <String>[];
+    final sub = provider.failures.listen(failures.add);
+    addTearDown(sub.cancel);
+    events.add(jsonEncode({'error': 'Cloud Song.gp'}));
+    arrive(
+      original: File(p.join(root.path, 'outside', 'Gone.gp')),
+      staged: File(p.join(root.path, 'staged', 'missing', 'Gone.gp')),
+    );
+    await pumpEventQueue();
+    expect(failures, ['Cloud Song.gp', 'Gone.gp']);
+    expect(imported, isEmpty);
+  });
 }

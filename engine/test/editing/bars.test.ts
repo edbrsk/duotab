@@ -92,7 +92,7 @@ test('bar properties survive the .gp round-trip', () => {
   setTimeSignature(s, at(2), 6, 8);
   setTempo(s, at(2), 140);
   setKeySignature(s, at(2), 2, false);
-  setClef(s, at(2), 'treble');
+  setClef(s, at(2), 'bass');
   const settings = new alphaTab.Settings();
   const reloaded = alphaTab.importer.ScoreLoader.loadScoreFromBytes(
     new alphaTab.exporter.Gp7Exporter().export(s, settings),

@@ -18,6 +18,10 @@ class IncomingFilesProvider {
   final Future<void> Function(String documentsRelativePath) onImported;
   StreamSubscription<dynamic>? _subscription;
   Future<void> _queue = Future.value();
+  final _failures = StreamController<String>.broadcast();
+
+  /// The name of each file that could not be brought in.
+  Stream<String> get failures => _failures.stream;
 
   IncomingFilesProvider({
     required this.documents,
@@ -39,6 +43,11 @@ class IncomingFilesProvider {
 
   Future<void> _import(String event) async {
     final message = jsonDecode(event) as Map<String, dynamic>;
+    // iOS could not read the file, such as one iCloud never downloaded.
+    if (message['error'] case final String name) {
+      _failures.add(name);
+      return;
+    }
     final original = File(message['original'] as String);
     final staged = switch (message['staged']) {
       final String path => File(path),
@@ -69,6 +78,7 @@ class IncomingFilesProvider {
       debugPrint(
         'IncomingFilesProvider: could not import ${original.path}: $e',
       );
+      _failures.add(p.basename(original.path));
     } finally {
       if (staged != null && staged.parent.existsSync()) {
         await staged.parent.delete(recursive: true);
@@ -76,5 +86,8 @@ class IncomingFilesProvider {
     }
   }
 
-  void dispose() => _subscription?.cancel();
+  void dispose() {
+    _subscription?.cancel();
+    _failures.close();
+  }
 }

@@ -51,8 +51,9 @@ const post = (message: Reply | EngineEvent) => window.DuoScore?.postMessage(JSON
 
 const pageUrl = (relative: string) => new URL(relative, location.href).href;
 
-// The app's loopback server serves Documents next to the engine.
-const songUrl = (path: string) => `/songs/${path.split('/').map(encodeURIComponent).join('/')}`;
+// The app's loopback server serves Documents beside the engine, under the
+// same launch token, so the path stays relative.
+const songUrl = (path: string) => pageUrl(`../songs/${path.split('/').map(encodeURIComponent).join('/')}`);
 
 const settings = new alphaTab.Settings();
 settings.core.fontDirectory = pageUrl('./alphatab/font/');

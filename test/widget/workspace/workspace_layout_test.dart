@@ -128,6 +128,17 @@ void main() {
     expect(find.text('score content'), findsOneWidget);
   });
 
+  testWidgets(
+    'collapsed Split View keeps the score clear of the vertical bar',
+    (tester) async {
+      await pumpLayout(tester, width: 600, barEdge: 'trailing', right: 60);
+      expect(tester.getRect(find.byKey(const Key('score'))).right, 540);
+
+      await pumpLayout(tester, width: 600, barEdge: 'leading', left: 60);
+      expect(tester.getRect(find.byKey(const Key('score'))).left, 60);
+    },
+  );
+
   testWidgets('draws the drawer under the transport', (tester) async {
     for (final width in [890.0, 600.0]) {
       await pumpLayout(

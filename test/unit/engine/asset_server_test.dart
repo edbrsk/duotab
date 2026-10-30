@@ -32,15 +32,25 @@ void main() {
     await root.delete(recursive: true);
   });
 
-  Future<HttpClientResponse> request(String method, String path) async {
-    final uri = server.engineUri.replace(path: path);
+  /// [path] below the server's launch token.
+  Future<HttpClientResponse> request(
+    String method,
+    String path, {
+    bool withToken = true,
+    String? host,
+  }) async {
+    final uri = server.engineUri.replace(
+      path: withToken ? '${server.root}$path' : path,
+    );
     final req = await client.openUrl(method, uri);
+    if (host != null) req.headers.host = host;
     return req.close();
   }
 
   test('serves the engine page and its modules with the right types', () async {
     expect(server.engineUri.host, '127.0.0.1');
-    expect(server.engineUri.path, '/engine/index.html');
+    expect(server.engineUri.path, '${server.root}/engine/index.html');
+    expect(server.root, matches(RegExp(r'^/[0-9a-f]{32}$')));
 
     final page = await request('GET', '/engine/index.html');
     expect(page.statusCode, 200);
@@ -62,7 +72,8 @@ void main() {
       3,
     ]);
 
-    final escape = await request('GET', '/songs/%2E%2E/secret.txt');
+    // Uri keeps %2F encoded, so the server sees "../secret.txt" as one segment.
+    final escape = await request('GET', '/songs/..%2Fsecret.txt');
     expect(escape.statusCode, 404);
     expect(
       await escape.transform(utf8.decoder).join(),
@@ -72,5 +83,25 @@ void main() {
     final write = await request('PUT', '/songs/new.gp');
     expect(write.statusCode, 405);
     await write.drain<void>();
+  });
+
+  test('a request without the token is refused', () async {
+    final response = await request(
+      'GET',
+      '/engine/index.html',
+      withToken: false,
+    );
+    expect(response.statusCode, 404);
+    await response.drain<void>();
+  });
+
+  test('a foreign Host is refused', () async {
+    final response = await request(
+      'GET',
+      '/engine/index.html',
+      host: 'evil.example',
+    );
+    expect(response.statusCode, 403);
+    await response.drain<void>();
   });
 }
