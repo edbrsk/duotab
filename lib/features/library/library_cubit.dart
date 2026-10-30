@@ -79,7 +79,29 @@ class LibraryCubit extends Cubit<LibraryState> {
     required this.owned,
   }) : super(const LibraryState(loading: false, songs: []));
 
-  Future<void> refresh() async {
+  Future<void>? _refreshing;
+  var _again = false;
+
+  /// Refreshes asked for while one runs wait for it and share one more run,
+  /// which sees what changed meanwhile.
+  Future<void> refresh() {
+    if (_refreshing case final running?) {
+      _again = true;
+      return running;
+    }
+    return _refreshing = () async {
+      try {
+        do {
+          _again = false;
+          await _refresh();
+        } while (_again && !isClosed);
+      } finally {
+        _refreshing = null;
+      }
+    }();
+  }
+
+  Future<void> _refresh() async {
     emit(LibraryState(loading: true, songs: state.songs));
     final files = documents.listSync().whereType<File>().where(
       (f) =>
@@ -92,6 +114,9 @@ class LibraryCubit extends Cubit<LibraryState> {
     final paths = summarized.map((e) => e.path).toSet();
     _cache.removeWhere((path, _) => !paths.contains(path));
     final sorted = paths.toList()..sort();
+    await owned.forgetMissing(
+      (path) => File(p.join(documents.path, path)).existsSync(),
+    );
     final ownedPaths = await owned.all();
     // Once, for copies made before the app recorded them: a match by name
     // later could hide, and then delete, another song the owner imported.

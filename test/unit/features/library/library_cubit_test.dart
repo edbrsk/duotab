@@ -160,6 +160,30 @@ void main() {
     expect(tuningLabel(const [64, 59, 55, 50, 45, 40, 35]), 'B E A D G B E');
   });
 
+  test('refreshes asked for at once run once, then once more', () async {
+    final cubit = LibraryCubit(
+      documents: documents,
+      engine: engine,
+      owned: owned,
+    );
+    addTearDown(cubit.close);
+    await Future.wait([cubit.refresh(), cubit.refresh(), cubit.refresh()]);
+    verify(() => engine.summarize('b.gp')).called(1);
+    expect(cubit.state.songs, hasLength(2));
+  });
+
+  test('a refresh forgets app-made files that are gone', () async {
+    await owned.add('gone.gp');
+    final cubit = LibraryCubit(
+      documents: documents,
+      engine: engine,
+      owned: owned,
+    );
+    addTearDown(cubit.close);
+    await cubit.refresh();
+    expect(await owned.all(), isEmpty);
+  });
+
   group('edited copies', () {
     setUp(() {
       when(() => engine.summarize(any()))

@@ -4,8 +4,23 @@ import '../../core/storage/json_file.dart';
 /// files it ever overwrites. A copy also remembers the file it was made from.
 class OwnedFiles {
   final JsonFile file;
+  Future<void> _changes = Future.value();
 
   OwnedFiles(this.file);
+
+  /// One at a time: each change rewrites the whole file from what it read.
+  /// A failed change fails only its own caller.
+  Future<void> _change(
+    bool Function(({Set<String> paths, Map<String, String> originals}) state)
+    change,
+  ) {
+    final done = _changes.then((_) async {
+      final state = await _read();
+      if (change(state)) await _write(state);
+    });
+    _changes = done.then<void>((_) {}, onError: (Object _) {});
+    return done;
+  }
 
   Future<bool> owns(String path) async => (await _paths()).contains(path);
 
@@ -20,35 +35,44 @@ class OwnedFiles {
       (await file.read())['pairedByName'] == true;
 
   Future<void> markPairedByName() async {
+    await _changes;
     final state = await _read();
     await _write(state, pairedByName: true);
   }
 
-  Future<void> add(String path) async {
-    final state = await _read();
-    if (state.paths.add(path)) await _write(state);
-  }
+  Future<void> add(String path) => _change((state) => state.paths.add(path));
 
-  Future<void> addCopy(String copy, {required String of}) async {
-    final state = await _read();
+  Future<void> addCopy(String copy, {required String of}) => _change((state) {
     state.paths.add(copy);
     state.originals[copy] = of;
-    await _write(state);
-  }
+    return true;
+  });
 
   /// Forgets [path], and any copy record it is part of.
-  Future<void> remove(String path) async {
-    final state = await _read();
+  Future<void> remove(String path) => _change((state) {
     final removed = state.paths.remove(path);
     final before = state.originals.length;
     state.originals.removeWhere(
       (copy, original) => copy == path || original == path,
     );
-    if (removed || state.originals.length != before) await _write(state);
-  }
+    return removed || state.originals.length != before;
+  });
 
-  Future<void> rename(String from, String to) async {
-    final state = await _read();
+  /// Forgets files deleted outside the app, so another file that arrives
+  /// under one of their names is never overwritten as the app's own.
+  Future<void> forgetMissing(bool Function(String path) exists) => _change((
+    state,
+  ) {
+    final paths = state.paths.length;
+    final originals = state.originals.length;
+    state.paths.removeWhere((path) => !exists(path));
+    state.originals.removeWhere(
+      (copy, original) => !exists(copy) || !exists(original),
+    );
+    return state.paths.length != paths || state.originals.length != originals;
+  });
+
+  Future<void> rename(String from, String to) => _change((state) {
     var changed = false;
     if (state.paths.remove(from)) {
       state.paths.add(to);
@@ -64,8 +88,8 @@ class OwnedFiles {
         changed = true;
       }
     }
-    if (changed) await _write(state);
-  }
+    return changed;
+  });
 
   Future<Set<String>> _paths() async => (await _read()).paths;
 

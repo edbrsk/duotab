@@ -24,10 +24,16 @@ import 'presentation/shell/app_destinations.dart';
 import 'presentation/shell/app_shell.dart';
 import 'presentation/shell/fold_gate.dart';
 import 'presentation/shell/navigation_cubit.dart';
+import 'presentation/startup_failure.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await setupDependencies();
+  try {
+    await setupDependencies();
+  } on Object catch (e) {
+    debugPrint('DuoScore: setup failed: $e');
+    return runApp(StartupFailure(error: e));
+  }
   registerBundledLicences(rootBundle);
   runApp(
     MultiProvider(

@@ -333,6 +333,14 @@
   "deleteEditedBody": "The original file and your edited copy are removed from this iPhone and can't be recovered.",
   "edited": "Edited",
   "trackName": "Track name",
+  "startupFailed": "DuoScore couldn't start: {error}",
+  "@startupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "otherClef": "Other",
   "muteShort": "M",
   "soloShort": "S",

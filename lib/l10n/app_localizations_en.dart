@@ -683,6 +683,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trackName => 'Track name';
 
   @override
+  String startupFailed(String error) {
+    return 'DuoScore couldn\'t start: $error';
+  }
+
+  @override
   String get otherClef => 'Other';
 
   @override

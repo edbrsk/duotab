@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:bloc_test/bloc_test.dart';
@@ -409,5 +410,64 @@ void main() {
     );
     await chooseFromMenu(tester, 'Export as .gp');
     expect(find.textContaining("Couldn't export"), findsOneWidget);
+  });
+
+  testWidgets('a song row keeps its own export state', (tester) async {
+    SongListEntry song(String name) => SongListEntry(
+      path: '$name.gp',
+      name: name,
+      tuningLabel: null,
+      stringCount: 6,
+      readable: true,
+    );
+    final library = _Library();
+    final states = StreamController<LibraryState>();
+    addTearDown(states.close);
+    whenListen(
+      library,
+      states.stream,
+      initialState: LibraryState(loading: false, songs: [song('B'), song('C')]),
+    );
+    when(library.refresh).thenAnswer((_) async {});
+    final exporting = Completer<void>();
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: BlocProvider<LibraryCubit>.value(
+            value: library,
+            child: LibraryPage(
+              onOpen: (_) {},
+              onNewSong: (_) async {},
+              onDelete: (_) async {},
+              onRename: (_, _, {original}) async => null,
+              onImport: () async {},
+              onExport: (_, _, _) => exporting.future,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byTooltip('Song actions').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export as .gp'));
+    await tester.pump();
+    states.add(
+      LibraryState(loading: false, songs: [song('A'), song('B'), song('C')]),
+    );
+    await tester.pump();
+    Finder row(String name) =>
+        find.ancestor(of: find.text(name), matching: find.byType(ListTile));
+    expect(
+      find.descendant(
+        of: row('C'),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    exporting.complete();
+    await tester.pumpAndSettle();
   });
 }

@@ -48,4 +48,20 @@ void main() {
     await json.write({'n': 2});
     expect(await json.read(), {'n': 2});
   });
+
+  test('a damaged store is kept aside before it is written', () async {
+    file.writeAsStringSync('{not json');
+    final store = JsonFile(file);
+    expect(await store.read(), isEmpty);
+    await store.write({'a': 1});
+    final aside = dir
+        .listSync()
+        .map((f) => p.basename(f.path))
+        .where((name) => name.startsWith('data.json.damaged-'));
+    expect(aside, hasLength(1));
+    expect(
+      File(p.join(dir.path, aside.single)).readAsStringSync(),
+      '{not json',
+    );
+  });
 }

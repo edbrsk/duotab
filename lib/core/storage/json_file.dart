@@ -9,14 +9,29 @@ class JsonFile {
 
   JsonFile(this.file);
 
-  /// A missing or unreadable file reads as empty, so a damaged store only
-  /// loses what it held.
+  /// A missing or unreadable file reads as empty. An unreadable one is moved
+  /// aside first, so the next write can't destroy what it still holds.
   Future<Map<String, dynamic>> read() async {
     try {
       return jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-    } on Object catch (e) {
-      if (e is! PathNotFoundException) debugPrint('JsonFile ${file.path}: $e');
+    } on PathNotFoundException {
       return {};
+    } on Object catch (e) {
+      debugPrint('JsonFile ${file.path}: $e');
+      await _keepAside();
+      return {};
+    }
+  }
+
+  Future<void> _keepAside() async {
+    final t = DateTime.now();
+    String two(int n) => n.toString().padLeft(2, '0');
+    final stamp =
+        '${t.year}${two(t.month)}${two(t.day)}${two(t.hour)}${two(t.minute)}${two(t.second)}';
+    try {
+      await file.rename('${file.path}.damaged-$stamp');
+    } on Object catch (e) {
+      debugPrint('JsonFile ${file.path}: could not keep it aside: $e');
     }
   }
 

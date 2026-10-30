@@ -1318,6 +1318,12 @@ abstract class AppLocalizations {
   /// **'Track name'**
   String get trackName;
 
+  /// No description provided for @startupFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'DuoScore couldn\'t start: {error}'**
+  String startupFailed(String error);
+
   /// No description provided for @otherClef.
   ///
   /// In en, this message translates to:

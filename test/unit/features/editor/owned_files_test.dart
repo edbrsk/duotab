@@ -54,4 +54,23 @@ void main() {
     await owned.add('a.gp');
     expect(await owned.pairedByName(), isTrue);
   });
+
+  test('owned changes run one at a time', () async {
+    await owned.add('a.gp');
+    await Future.wait([
+      owned.addCopy('b (DuoScore).gp', of: 'b.gp'),
+      owned.rename('a.gp', 'c.gp'),
+      owned.add('d.gp'),
+    ]);
+    expect(await owned.all(), {'b (DuoScore).gp', 'c.gp', 'd.gp'});
+    expect(await owned.originals(), {'b (DuoScore).gp': 'b.gp'});
+  });
+
+  test('a refresh forgets owned files that are gone', () async {
+    await owned.addCopy('b (DuoScore).gp', of: 'b.gp');
+    await owned.add('x.gp');
+    await owned.forgetMissing((path) => path == 'x.gp');
+    expect(await owned.all(), {'x.gp'});
+    expect(await owned.originals(), isEmpty);
+  });
 }

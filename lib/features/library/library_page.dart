@@ -233,6 +233,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       children: [
                         for (final entry in state.songs)
                           _SongTile(
+                            key: ValueKey(entry.path),
                             entry: entry,
                             onOpen: widget.onOpen,
                             onDelete: () => _delete(entry),
@@ -266,6 +267,7 @@ class _SongTile extends StatefulWidget {
     required this.onRename,
     required this.onRevert,
     required this.onExport,
+    super.key,
   });
 
   @override
@@ -277,6 +279,7 @@ class _SongTileState extends State<_SongTile> {
   var _exporting = false;
 
   Future<void> _export(ExportFormat format) async {
+    if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     final messenger = ScaffoldMessenger.of(context);
     final box = _menu.currentContext!.findRenderObject()! as RenderBox;
