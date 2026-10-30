@@ -12,6 +12,8 @@ import '../engine/engine_host.dart';
 import '../features/editor/editor_cubit.dart';
 import '../features/editor/owned_files.dart';
 import '../features/editor/song_saver.dart';
+import '../features/export/export_channel.dart';
+import '../features/export/song_exporter.dart';
 import '../features/import/incoming_files_provider.dart';
 import '../features/library/library_cubit.dart';
 import '../features/library/song_files.dart';
@@ -44,8 +46,9 @@ Future<void> setupDependencies() async {
   final practice = PracticeStore(
     JsonFile(File(p.join(support.path, 'practice.json'))),
   );
+  final temporary = await getTemporaryDirectory();
   final engineAssets = await extractEngineAssets(
-    Directory(p.join((await getTemporaryDirectory()).path, 'engine')),
+    Directory(p.join(temporary.path, 'engine')),
   );
   final server = await AssetServer.start(
     engineAssets: engineAssets,
@@ -90,6 +93,14 @@ Future<void> setupDependencies() async {
     ..registerSingleton<PlaybackCubit>(playback)
     ..registerSingleton<EditorCubit>(editor)
     ..registerSingleton<SongSaver>(saver)
+    ..registerSingleton<SongExporter>(
+      SongExporter(
+        engine: engine,
+        score: score,
+        channel: const ExportChannel(),
+        temporary: temporary,
+      ),
+    )
     ..registerSingleton<SongFiles>(
       SongFiles(
         documents: documents,

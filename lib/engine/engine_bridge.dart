@@ -119,13 +119,27 @@ class EngineBridge {
         as String,
   );
 
+  /// Rendering a long song's pages takes seconds, beyond [timeout].
+  Future<PdfPages> exportPdf() async => PdfPages.fromJson(
+    (await _request(
+          'exportPdf',
+          const {},
+          timeout: const Duration(minutes: 1),
+        ))!
+        as Map<String, dynamic>,
+  );
+
   Future<void> setTracks(List<TrackMix> tracks) => _request('setTracks', {
     'tracks': [for (final t in tracks) t.toJson()],
   });
 
   /// Waits for the engine page to load, so the timeout also covers an engine
   /// that never starts.
-  Future<Object?> _request(String type, Map<String, Object?> payload) async {
+  Future<Object?> _request(
+    String type,
+    Map<String, Object?> payload, {
+    Duration? timeout,
+  }) async {
     final id = _nextId++;
     final reply = Completer<Object?>();
     _pending[id] = reply;
@@ -137,7 +151,10 @@ class EngineBridge {
           jsonEncode({'id': id, 'type': type, 'payload': payload}),
         );
         return reply.future;
-      }().timeout(timeout, onTimeout: () => throw EngineTimeout(type));
+      }().timeout(
+        timeout ?? this.timeout,
+        onTimeout: () => throw EngineTimeout(type),
+      );
     } finally {
       _pending.remove(id);
     }

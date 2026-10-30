@@ -743,3 +743,17 @@ class NewSongOptions {
     'denominator': denominator,
   };
 }
+
+/// One HTML document per A4 page; [baseUrl] is the engine's origin, which
+/// serves the music font.
+class PdfPages {
+  final List<String> pages;
+  final String baseUrl;
+
+  const PdfPages({required this.pages, required this.baseUrl});
+
+  factory PdfPages.fromJson(Map<String, dynamic> json) => PdfPages(
+    pages: [for (final page in json['pages'] as List) page as String],
+    baseUrl: json['baseUrl'] as String,
+  );
+}

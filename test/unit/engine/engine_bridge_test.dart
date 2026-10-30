@@ -1,5 +1,6 @@
 import 'package:duoscore/engine/engine_bridge.dart';
 import 'package:duoscore/engine/protocol.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_transport.dart';
@@ -152,6 +153,58 @@ void main() {
       'payload': {'base64': 'AQID'},
     });
     expect(await bytes, [1, 2, 3]);
+  });
+
+  test('exportPdf reads the pages and base URL', () async {
+    await engineReady();
+    final pages = bridge.exportPdf();
+    await pumpEventQueue();
+    expect(transport.lastRequest['type'], 'exportPdf');
+    transport.deliver({
+      'id': transport.lastRequest['id'],
+      'ok': true,
+      'payload': {
+        'pages': ['<p>1</p>', '<p>2</p>'],
+        'baseUrl': 'http://127.0.0.1:1/',
+      },
+    });
+    final reply = await pages;
+    expect(reply.pages, ['<p>1</p>', '<p>2</p>']);
+    expect(reply.baseUrl, 'http://127.0.0.1:1/');
+  });
+
+  test('exportPdf waits up to a minute', () {
+    fakeAsync((async) {
+      // Built inside the fake zone, so its streams run on fake time.
+      final transport = FakeTransport();
+      final bridge = EngineBridge(transport);
+      transport.deliver({'event': 'ready', 'payload': <String, Object>{}});
+      async.flushMicrotasks();
+      PdfPages? answered;
+      bridge.exportPdf().then((r) => answered = r);
+      async.elapse(const Duration(seconds: 40));
+      transport.deliver({
+        'id': transport.lastRequest['id'],
+        'ok': true,
+        'payload': {'pages': <String>[], 'baseUrl': ''},
+      });
+      async.flushMicrotasks();
+      expect(answered, isNotNull);
+
+      Object? failure;
+      bridge.exportPdf().catchError((Object e) {
+        failure = e;
+        return const PdfPages(pages: [], baseUrl: '');
+      });
+      async.elapse(const Duration(seconds: 59));
+      expect(failure, isNull);
+      async.elapse(const Duration(seconds: 2));
+      expect(
+        failure,
+        isA<EngineTimeout>().having((e) => e.requestType, 'type', 'exportPdf'),
+      );
+      bridge.dispose();
+    });
   });
 
   test('every edit command serialises its op', () {
