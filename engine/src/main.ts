@@ -8,6 +8,7 @@ import { newSong } from './editing/new_song';
 import { drawOverlay } from './editing/overlay';
 import { carryPlaybackSettings, rangeAfterTap } from './editing/restore';
 import { EditSession } from './editing/session';
+import { fingerUnstrung, type NoteMark } from './editing/fingering';
 import { isGuitar } from './editing/tracks';
 import type {
   EditPayload,
@@ -207,8 +208,13 @@ function whenPlayerReady(): Promise<void> {
 // Set by `open`: only a file's own staff flags are replaced, before alphaTab's
 // first render of it; a score restored by undo keeps the owner's choice.
 let fromFile = false;
+/** What fingering on the last open could not place, per track. */
+let openedMarks = new Map<number, NoteMark[]>();
 api.scoreLoaded.on((score) => {
-  if (fromFile) showNotationAndTab(score);
+  if (fromFile) {
+    openedMarks = fingerUnstrung(score, settings);
+    showNotationAndTab(score);
+  }
   fromFile = false;
   pendingOpen?.resolve(score);
   pendingOpen = null;
@@ -266,7 +272,8 @@ async function run(request: Request): Promise<unknown> {
       startSong();
       session.open(score, 0, fileName(path).replace(/\.[^.]+$/, ''));
       redrawOverlay();
-      return describeOpened(score, fileName(path));
+      const unplayable = [...openedMarks.values()].reduce((sum, marks) => sum + marks.length, 0);
+      return describeOpened(score, fileName(path), unplayable);
     }
     case 'renderTrack': {
       const { index } = request.payload as RenderTrackPayload;

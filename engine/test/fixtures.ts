@@ -75,3 +75,22 @@ export const longRiff = String.raw`\title "Riff" \tempo 140
 .
 \track "G" \tuning E4 B3 G3 D3 A2 E2
 ${Array.from({ length: 40 }, () => '0.6.4 2.5.4 3.4.4 5.3.4').join(' | ')}`;
+
+export const pitchesOnly = String.raw`\title "Pitches"
+.
+\track "P" \instrument 25 \tuning piano
+G3.4 A3.4 B3.4 C4.4 | E4.4 (E2 B3 E4).4 C5.4 D4.4 | C2.4 C7.4 F4.2 | F4{t}.1`;
+
+/** A guitar part as MusicXML exporters often write it: pitches, no strings or frets. */
+export const pitchOnlyXml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Guitar</part-name>
+<score-instrument id="P1-I1"><instrument-name>Guitar</instrument-name></score-instrument>
+<midi-instrument id="P1-I1"><midi-channel>1</midi-channel><midi-program>26</midi-program></midi-instrument></score-part></part-list>
+<part id="P1"><measure number="1"><attributes><divisions>1</divisions><time><beats>4</beats><beat-type>4</beat-type></time>
+<clef><sign>G</sign><line>2</line><clef-octave-change>-1</clef-octave-change></clef>
+<transpose><diatonic>0</diatonic><chromatic>0</chromatic><octave-change>-1</octave-change></transpose></attributes>
+<note><pitch><step>E</step><octave>4</octave></pitch><duration>1</duration><type>quarter</type></note>
+<note><chord/><pitch><step>B</step><octave>3</octave></pitch><duration>1</duration><type>quarter</type></note>
+<note><pitch><step>G</step><octave>3</octave></pitch><duration>2</duration><type>half</type></note>
+<note><rest/><duration>1</duration><type>quarter</type></note>
+</measure></part></score-partwise>`;

@@ -1,6 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import type { SongSummary } from './protocol';
+import { fingerUnstrung } from './editing/fingering';
 import { barsWithNotes, barTimeline } from './timeline';
 import { classifyTrack } from './track_kind';
 
@@ -28,19 +29,24 @@ export function summarizeScore(score: alphaTab.model.Score, fileName: string): S
       };
     }),
     bars: [],
+    unplayableNotes: 0,
   };
 }
 
-export function describeOpened(score: alphaTab.model.Score, fileName: string): SongSummary {
+/** `unplayable`: the notes fingering on open could not place. */
+export function describeOpened(score: alphaTab.model.Score, fileName: string, unplayable = 0): SongSummary {
   const summary = summarizeScore(score, fileName);
   return {
     ...summary,
+    unplayableNotes: unplayable,
     tracks: summary.tracks.map((t) => ({ ...t, barsWithNotes: barsWithNotes(score.tracks[t.index]) })),
     bars: barTimeline(score),
   };
 }
 
 export function summarize(bytes: Uint8Array, fileName: string): SongSummary {
-  const score = alphaTab.importer.ScoreLoader.loadScoreFromBytes(bytes, new alphaTab.Settings());
+  const settings = new alphaTab.Settings();
+  const score = alphaTab.importer.ScoreLoader.loadScoreFromBytes(bytes, settings);
+  fingerUnstrung(score, settings);
   return summarizeScore(score, fileName);
 }

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 
 import { summarize, summarizeScore } from '../src/summary';
-import { gpBytes, score, twoGuitarsAndDrums } from './fixtures';
+import { gpBytes, pitchOnlyXml, score, twoGuitarsAndDrums } from './fixtures';
 
 test('summarizes a generated song with two guitars and drums', () => {
   const s = summarize(gpBytes(twoGuitarsAndDrums), 'Fixture.gp');
@@ -40,4 +40,12 @@ test("summaries tell each track's volume and channel", () => {
     s.tracks.map((t) => [t.playbackInfo.volume, t.playbackInfo.primaryChannel]),
   );
   expect(summary.tracks[1].volume).toBe(9);
+});
+
+test('a pitch-only guitar part summarises with its fingered tuning', () => {
+  const s = summarize(new TextEncoder().encode(pitchOnlyXml), 'Part.musicxml');
+  expect(s.tracks[0].kind).toBe('guitar');
+  expect(s.tracks[0].stringCount).toBe(6);
+  expect(s.tracks[0].tuning).toEqual([64, 59, 55, 50, 45, 40]);
+  expect(s.unplayableNotes).toBe(0);
 });

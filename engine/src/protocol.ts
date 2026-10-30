@@ -74,6 +74,8 @@ export type SongSummary = {
   tracks: TrackSummary[];
   /** Filled by `open`, empty from `summarize`. */
   bars: BarInfo[];
+  /** Notes that automatic fingering on `open` could not place; 0 elsewhere. */
+  unplayableNotes: number;
 };
 
 /** alphaTab numbers strings from the lowest: string 1 is the lowest-pitched. */
