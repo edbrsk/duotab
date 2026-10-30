@@ -59,3 +59,14 @@ r.1 | r.1 | r.1`);
   const range = { startTick: 7680, endTick: 11520 };
   expect(rangeAfterRestore(firstPassStarts(repeated), firstPassStarts(plain), range)).toBeNull();
 });
+
+test("undo keeps the tone over the file's instrument changes", () => {
+  const tex = String.raw`\track "G" \instrument 29 \tuning E4 B3 G3 D3 A2 E2
+0.6.4{instrument 29} 0.6.4 0.6.2 | 0.6.1{instrument 30}`;
+  const current = score(tex);
+  current.tracks[0].playbackInfo.program = 27;
+  const restored = score(tex);
+  carryPlaybackSettings(current, restored);
+  const values = restored.tracks[0].staves[0].bars.flatMap((b) => b.voices[0].beats.flatMap((beat) => beat.automations.map((a) => a.value)));
+  expect(values).toEqual([27, 27]);
+});

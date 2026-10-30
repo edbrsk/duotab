@@ -1,5 +1,6 @@
 import type * as alphaTab from '@coderline/alphatab';
 
+import { applyProgram } from '../instrument';
 import { barTimeline } from '../timeline';
 
 /**
@@ -13,7 +14,7 @@ export function carryPlaybackSettings(current: alphaTab.model.Score, restored: a
     const at = unmatched.findIndex((t) => t.playbackInfo.primaryChannel === target.playbackInfo.primaryChannel);
     if (at < 0) continue;
     const [track] = unmatched.splice(at, 1);
-    target.playbackInfo.program = track.playbackInfo.program;
+    applyProgram(target, track.playbackInfo.program);
     target.playbackInfo.volume = track.playbackInfo.volume;
     target.staves[0].showStandardNotation = track.staves[0].showStandardNotation;
     target.staves[0].showTablature = track.staves[0].showTablature;

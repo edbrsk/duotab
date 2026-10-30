@@ -1,8 +1,9 @@
 import * as alphaTab from '@coderline/alphatab';
 
+import { applyProgram, type ProgramTrack } from './instrument';
 import type { TrackMix } from './protocol';
 
-export type MixerTrack = {
+export type MixerTrack = ProgramTrack & {
   playbackInfo: { program: number; volume: number; primaryChannel: number; secondaryChannel: number };
 };
 
@@ -74,10 +75,7 @@ export class Mixer {
       const track = tracks[mix.index];
       const info = track.playbackInfo;
       if (!this.baked.has(track)) this.baked.set(track, info.volume);
-      if (info.program !== mix.program) {
-        info.program = mix.program;
-        newMidi = true;
-      }
+      if (applyProgram(track, mix.program)) newMidi = true;
       info.volume = mix.volume;
       // No factor lifts a track whose MIDI was made silent.
       if (this.baked.get(track) === 0 && mix.volume > 0) newMidi = true;
