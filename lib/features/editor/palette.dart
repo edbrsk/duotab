@@ -198,7 +198,10 @@ class Palette extends StatelessWidget {
                 tooltip: l10n.deleteBar,
                 label: const Icon(Icons.delete_outline),
                 selected: false,
-                onSelected: placed ? editor.deleteBar : null,
+                // A song keeps at least one bar.
+                onSelected: placed && state.barCount > 1
+                    ? editor.deleteBar
+                    : null,
               ),
               PaletteChip(
                 tooltip: l10n.copyBars,

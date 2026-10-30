@@ -7,6 +7,8 @@ const WHOLE = 3840;
 export function checkBars(score: alphaTab.model.Score, track: number): BarIssue[] {
   const issues: BarIssue[] = [];
   for (const bar of score.tracks[track].staves[0].bars) {
+    // A pickup is short by design, and free time has no length to keep.
+    if (bar.masterBar.isAnacrusis || bar.masterBar.isFreeTime) continue;
     const expected = bar.masterBar.calculateDuration();
     for (const voice of bar.voices) {
       // A voice made only of empty beats is unused, as in Guitar Pro.

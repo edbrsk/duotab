@@ -319,7 +319,10 @@ void main() {
   });
 
   testWidgets('the bars chips send their commands', (tester) async {
-    await pump(tester, const EditorState(position: _at, canPaste: true));
+    await pump(
+      tester,
+      const EditorState(position: _at, canPaste: true, barCount: 2),
+    );
     await tester.tap(find.byTooltip('Insert bar'));
     await tester.tap(find.byTooltip('Delete bar'));
     await tester.tap(find.byTooltip('Copy bars'));
@@ -347,5 +350,15 @@ void main() {
     expect(chip(tester, 'Repeat start').selected, isTrue);
     await tester.tap(find.byTooltip('Repeat start'));
     verify(() => editor.toggleRepeatStart()).called(1);
+  });
+
+  testWidgets('delete bar is off for a one-bar song', (tester) async {
+    await pump(tester, const EditorState(position: _at, barCount: 1));
+    expect(chip(tester, 'Delete bar').onSelected, isNull);
+  });
+
+  testWidgets('delete bar is on for a song with more bars', (tester) async {
+    await pump(tester, const EditorState(position: _at, barCount: 2));
+    expect(chip(tester, 'Delete bar').onSelected, isNotNull);
   });
 }

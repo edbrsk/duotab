@@ -52,3 +52,11 @@ test('a grace note at the start of a bar or the song keeps both bars right', () 
   addGrace(s, { track: 0, bar: 0, voice: 0, beat: 0, string: 4 });
   expect(checkBars(s, 0)).toEqual([]);
 });
+
+test('a pickup or free-time bar is not flagged', () => {
+  for (const tex of ['\\ac r.4 | r.1', '\\ft r.4 | r.1']) {
+    const s = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+` + tex);
+    expect(checkBars(s, 0)).toEqual([]);
+  }
+});

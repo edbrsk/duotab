@@ -100,3 +100,13 @@ test('bar properties survive the .gp round-trip', () => {
   );
   for (const index of [0, 1, 2]) expect(barProperties(reloaded, at(index))).toEqual(barProperties(s, at(index)));
 });
+
+test('a time signature change keeps the text and lyrics on its rests', () => {
+  const s = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+r.4 r.4{txt "hello"} r.2`);
+  s.tracks[0].staves[0].bars[0].voices[0].beats[2].lyrics = ['la'];
+  setTimeSignature(s, { track: 0, bar: 0, voice: 0, beat: 0, string: 1 }, 3, 4);
+  const beats = s.tracks[0].staves[0].bars[0].voices[0].beats;
+  expect(beats.map((b) => b.text).filter(Boolean)).toEqual(['hello']);
+  expect(beats.flatMap((b) => b.lyrics ?? [])).toEqual(['la']);
+});

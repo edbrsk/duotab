@@ -35,6 +35,8 @@ export function insertBar(score: Score, at: EditPosition, settings = defaultSett
   if (index === 0) {
     masterBar.tempoAutomations = next.tempoAutomations.filter((a) => a.ratioPosition === 0);
     next.tempoAutomations = next.tempoAutomations.filter((a) => a.ratioPosition !== 0);
+    // A pickup opens the song; after the new bar it is a short bar like any other.
+    next.isAnacrusis = false;
   }
   score.masterBars.splice(index, 0, masterBar);
   const ids = idSource(score);
@@ -77,7 +79,16 @@ function carryForm(removed: MasterBar, previous: MasterBar | undefined, next: Ma
     previous.repeatCount = removed.repeatCount;
   }
   if (next && removed.section && !next.section) next.section = removed.section;
-  for (const direction of removed.directions ?? []) {
+  const directions = [...(removed.directions ?? [])];
+  // A mark and a jump on one bar, such as a segno with To Coda, stay together.
+  const together = directions.some(closes) && directions.some((d) => !closes(d));
+  if (together) {
+    const target = next ?? previous;
+    const hasJump = [...(target?.directions ?? [])].some(isJump);
+    for (const direction of directions) if (!(isJump(direction) && hasJump)) target?.addDirection(direction);
+    return;
+  }
+  for (const direction of directions) {
     if (!closes(direction)) {
       next?.addDirection(direction);
     } else if (previous && (!isJump(direction) || ![...(previous.directions ?? [])].some(isJump))) {
@@ -91,6 +102,10 @@ export function deleteBar(score: Score, at: EditPosition, settings = defaultSett
   if (score.masterBars.length === 1) return at;
   const index = at.bar;
   const removed = score.masterBars[index];
+  // Its repeat end would move onto a bar that already ends one.
+  if (removed.isRepeatEnd && !removed.isRepeatStart && score.masterBars[index - 1]?.isRepeatEnd) {
+    throw new Error("this bar ends a repeat that can't move");
+  }
   const next = score.masterBars[index + 1];
   const last = [...removed.tempoAutomations].sort((a, b) => a.ratioPosition - b.ratioPosition).at(-1);
   if (last && next && !markingOf(next)) {

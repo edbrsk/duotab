@@ -265,3 +265,37 @@ test('deleting the bar with Fine keeps the al Fine ending', () => {
   expect(structureAt(s, at(1)).directions).toEqual(['fine']);
   expect(playOrder(s)).toEqual([0, 1, 2, 3, 0, 1]);
 });
+
+const threeWholeBars = String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+r.1 | r.1 | r.1`;
+const barAt = (bar: number): EditPosition => ({ track: 0, bar, voice: 0, beat: 0, string: 1 });
+
+test('a segno and a To Coda on a deleted bar move together', () => {
+  const s = score(threeWholeBars);
+  toggleDirection(s, barAt(1), 'segno');
+  toggleDirection(s, barAt(1), 'toCoda');
+  deleteBar(s, barAt(1));
+  expect(structureAt(s, barAt(1)).directions.sort()).toEqual(['segno', 'toCoda']);
+  expect(structureAt(s, barAt(0)).directions).toEqual([]);
+
+  const last = score(threeWholeBars);
+  toggleDirection(last, barAt(2), 'segno');
+  toggleDirection(last, barAt(2), 'toCoda');
+  deleteBar(last, barAt(2));
+  expect(structureAt(last, barAt(1)).directions.sort()).toEqual(['segno', 'toCoda']);
+});
+
+test("deleting an outer repeat's last bar next to an inner end is refused", () => {
+  const s = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+\ro r.1 | \ro \rc 2 r.1 | \rc 2 r.1 | r.1`);
+  const before = alphaTab.model.JsonConverter.scoreToJson(s);
+  expect(() => deleteBar(s, barAt(2))).toThrow("this bar ends a repeat that can't move");
+  expect(alphaTab.model.JsonConverter.scoreToJson(s)).toBe(before);
+});
+
+test('inserting before a pickup bar ends the pickup', () => {
+  const s = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+\ac r.4 | r.1`);
+  insertBar(s, barAt(0));
+  expect(s.masterBars.map((m) => m.isAnacrusis)).toEqual([false, false, false]);
+});

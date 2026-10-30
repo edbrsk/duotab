@@ -190,6 +190,10 @@ const REST_VALUES: [alphaTab.model.Duration, number, number][] = [
   [Duration.SixtyFourth, 0, QUARTER / 16],
 ];
 
+/** The ticks of a rest `restsFilling` made. */
+export const restTicks = (rest: alphaTab.model.Beat) =>
+  REST_VALUES.find(([duration, dots]) => duration === rest.duration && dots === rest.dots)?.[2] ?? 0;
+
 /** Rests that add up to `ticks`, longest first; `ids` when they join a song. */
 export function restsFilling(ticks: number, ids?: IdSource): alphaTab.model.Beat[] {
   const rests: alphaTab.model.Beat[] = [];
@@ -214,6 +218,7 @@ export function appendBar(score: Score, settings = defaultSettings): void {
   masterBar.timeSignatureNumerator = previous.timeSignatureNumerator;
   masterBar.timeSignatureDenominator = previous.timeSignatureDenominator;
   masterBar.timeSignatureCommon = previous.timeSignatureCommon;
+  masterBar.tripletFeel = previous.tripletFeel;
   score.addMasterBar(masterBar);
   const ticks = masterBar.calculateDuration();
   const ids = idSource(score);

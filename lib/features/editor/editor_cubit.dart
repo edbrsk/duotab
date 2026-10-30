@@ -42,6 +42,9 @@ class EditorState {
   /// After a retune, until the next edit, undo or redo.
   final RetuneReport? retune;
 
+  /// The song's bars, from the last reply; 0 before one.
+  final int barCount;
+
   const EditorState({
     this.position,
     this.issues = const [],
@@ -68,6 +71,7 @@ class EditorState {
     this.endings = const [],
     this.directions = const {},
     this.retune,
+    this.barCount = 0,
   });
 
   EditorState copyWith({int? duration, int? dots}) => EditorState(
@@ -96,6 +100,7 @@ class EditorState {
     endings: endings,
     directions: directions,
     retune: retune,
+    barCount: barCount,
   );
 }
 
@@ -275,6 +280,7 @@ class EditorCubit extends Cubit<EditorState> {
         endings: reply.endings,
         directions: reply.directions,
         retune: reply.retune,
+        barCount: reply.song.bars.length,
       ),
     );
     if (reply.edited) {

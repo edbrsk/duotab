@@ -197,3 +197,10 @@ test('a new beat continues the tuplet', () => {
   // Twelve triplet eighths fill the 4/4 bar.
   expect(move(s, at(1, 11), 'right')).toEqual(at(2, 0));
 });
+
+test('an appended bar keeps the triplet feel', () => {
+  s = score(sixEight);
+  s.masterBars[0].tripletFeel = alphaTab.model.TripletFeel.Triplet8th;
+  move(s, at(0, 1), 'right');
+  expect(s.masterBars[1].tripletFeel).toBe(alphaTab.model.TripletFeel.Triplet8th);
+});

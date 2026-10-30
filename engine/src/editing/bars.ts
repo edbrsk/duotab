@@ -3,7 +3,7 @@ import * as alphaTab from '@coderline/alphatab';
 import type { BarProperties, Clef, EditPosition } from '../protocol';
 import { finishEdit } from './finish';
 import { idSource } from './ids';
-import { restsFilling } from './operations';
+import { restsFilling, restTicks } from './operations';
 import { barOf, staffOf } from './position';
 import { relink } from './relink';
 
@@ -66,15 +66,40 @@ export function setTimeSignature(
 function refillIfRests(bar: alphaTab.model.Bar, masterBar: MasterBar, ids: ReturnType<typeof idSource>): void {
   if (!bar.voices.every((v) => v.beats.every((b) => b.isRest))) return;
   for (const [index, voice] of bar.voices.entries()) {
+    const words = voice.beats
+      .filter((b) => b.text || b.lyrics?.length)
+      .map((b) => ({ tick: b.playbackStart, text: b.text, lyrics: b.lyrics }));
     voice.beats.length = 0;
     if (index === 0) {
-      for (const rest of restsFilling(masterBar.calculateDuration(), ids)) voice.addBeat(rest);
+      const rests = restsFilling(masterBar.calculateDuration(), ids);
+      for (const rest of rests) voice.addBeat(rest);
+      keepWords(rests, words);
     } else {
       const empty = new alphaTab.model.Beat();
       empty.id = ids.beat();
       empty.isEmpty = true;
       voice.addBeat(empty);
     }
+  }
+}
+
+/** Each removed rest's text and lyrics go to the new rest that starts at or before it. */
+function keepWords(
+  rests: alphaTab.model.Beat[],
+  words: { tick: number; text: string | null; lyrics: string[] | null }[],
+): void {
+  const starts: number[] = [];
+  let tick = 0;
+  for (const rest of rests) {
+    starts.push(tick);
+    tick += restTicks(rest);
+  }
+  for (const word of words) {
+    let i = 0;
+    while (i + 1 < starts.length && starts[i + 1] <= word.tick) i++;
+    const rest = rests[i];
+    if (word.text) rest.text = rest.text ? `${rest.text} ${word.text}` : word.text;
+    if (word.lyrics?.length) rest.lyrics = [...(rest.lyrics ?? []), ...word.lyrics];
   }
 }
 
