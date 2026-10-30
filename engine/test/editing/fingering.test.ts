@@ -74,3 +74,14 @@ test('stringed tracks and other instruments are left alone', () => {
   fingerUnstrung(piano);
   expect(piano.tracks[0].staves[0].tuning).toEqual([]);
 });
+
+test('a tie destination keeps its string apart from the chord around it', () => {
+  for (const tex of ['E4.2 (E4{t} B4).2', 'E4.1 | (E4{t} C5).1']) {
+    const song = score(String.raw`\track "P" \instrument 25 \tuning piano
+${tex}`);
+    fingerUnstrung(song);
+    const chord = song.tracks[0].staves[0].bars.flatMap((b) => b.voices[0].beats).at(-1)!;
+    expect(new Set(chord.notes.map((n) => n.string)).size).toBe(2);
+    expect(chord.notes.find((n) => n.isTieDestination)!.tieOrigin).not.toBeNull();
+  }
+});

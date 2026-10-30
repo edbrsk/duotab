@@ -68,6 +68,46 @@ test('an unplayable note never shares a string with another note of its beat', (
   expect(marks.filter((m) => m.kind === 'unplayable')).toHaveLength(1);
 });
 
+test('natural harmonics keep their pitch or are marked', () => {
+  const song = score(String.raw`\track "G" \tuning D4 A3 F3 C3 G2 D2
+12.6{nh}.4 7.5{nh}.4 5.4{nh}.4 12.3{nh}.4`);
+  const before = notes(song).map((n) => n.realValue);
+  const marks = retune(song, 0, E, 0);
+  const unplayable = marks.filter((m) => m.kind === 'unplayable');
+  for (const [i, note] of notes(song).entries()) {
+    const marked = unplayable.some((m) => m.beat === note.beat.index && m.string === note.string);
+    if (!marked) expect(note.realValue).toBe(before[i]);
+  }
+});
+
+test('a natural harmonic moves to a string where its node sounds the same', () => {
+  // A3's 12th-fret harmonic, A4, is no node of B3 but the 7th of D3 and the 5th of A2.
+  const song = score(String.raw`\track "G" \tuning D4 A3 F3 C3 G2 D2
+12.2{nh}.1`);
+  const before = notes(song)[0].realValue;
+  const marks = retune(song, 0, E, 0);
+  expect(notes(song)[0].realValue).toBe(before);
+  expect(marks).toEqual([{ bar: 0, voice: 0, beat: 0, string: notes(song)[0].string, kind: 'moved' }]);
+});
+
+test('a moved note never takes over a tie that spans its beat', () => {
+  const song = score(String.raw`\track "G" \tuning D4 A3 F3 C3 G2 D2
+3.6.8 0.5.8 -.6.8 0.4.8 r.2`);
+  const before = notes(song).map((n) => n.realValue);
+  retune(song, 0, E, 0);
+  const tied = song.tracks[0].staves[0].bars[0].voices[0].beats[2].notes[0];
+  expect(tied.tieOrigin).toBe(song.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0]);
+  expect(tied.realValue).toBe(before[2]);
+});
+
+test("a retune leaves no note findable on a string it left", () => {
+  const song = score(dStandardLegato);
+  retune(song, 0, E, 0);
+  const beat = song.tracks[0].staves[0].bars[0].voices[0].beats[0];
+  expect(beat.notes[0].string).toBe(1);
+  expect(beat.getNoteOnString(2)).toBeNull();
+});
+
 test('fewer strings map from the top', () => {
   const song = score(sevenString);
   const marks = retune(song, 0, E, 0);

@@ -122,6 +122,9 @@ const pianoPitch = (note: Note) => note.octave * 12 + note.tone;
 export function restring(beat: Beat): void {
   const notes = [...beat.notes];
   for (const note of notes) beat.removeNote(note);
+  // removeNote forgets only a note's current string; alphaTab 1.6.1 keeps the
+  // lookup in this internal field.
+  (beat as unknown as { noteStringLookup: Map<number, Note> }).noteStringLookup.clear();
   for (const note of notes) beat.addNote(note);
 }
 
@@ -154,7 +157,14 @@ function fingerStaff(staff: alphaTab.model.Staff): NoteMark[] {
   for (const bar of staff.bars) {
     for (const voice of bar.voices) {
       for (const beat of voice.beats) {
-        const notes = beat.notes.filter((n) => n.string < 0 && !(n.isTieDestination && n.tieOrigin));
+        // Before the beat's other notes choose, so they keep off the tied string.
+        for (const note of beat.notes) {
+          if (note.string < 0 && note.isTieDestination && note.tieOrigin && note.tieOrigin.string >= 1) {
+            note.string = note.tieOrigin.string;
+            note.fret = note.tieOrigin.fret;
+          }
+        }
+        const notes = beat.notes.filter((n) => n.string < 0);
         const pitches = notes.map(pianoPitch);
         const strings = assign(bar, beat, notes, pitches, tuning);
         const taken = new Set(beat.notes.filter((n) => n.string >= 1).map((n) => n.string));
@@ -169,12 +179,6 @@ function fingerStaff(staff: alphaTab.model.Staff): NoteMark[] {
           }
           note.string = string;
           note.fret = Math.max(0, pitch - open(string));
-        }
-        for (const note of beat.notes) {
-          if (note.string < 0 && note.tieOrigin) {
-            note.string = note.tieOrigin.string;
-            note.fret = note.tieOrigin.fret;
-          }
         }
         restring(beat);
       }
