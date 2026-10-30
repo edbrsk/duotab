@@ -13,6 +13,7 @@ import '../playback/playback_cubit.dart';
 import '../playback/practice_settings.dart';
 import '../settings/settings_cubit.dart';
 import 'add_track_dialog.dart';
+import 'mixer_row.dart';
 import 'score_cubit.dart';
 
 const kTrackRowHeight = 48.0;
@@ -85,8 +86,10 @@ class _TrackDrawerState extends State<TrackDrawer> {
     final maxBody =
         MediaQuery.sizeOf(context).height * kDrawerMaxHeightFraction -
         _headerHeight;
+    // The mixer's Master row stands where the grid has its sections.
     final bodyHeight = min(
-      rows.length * kTrackRowHeight + _sectionRowHeight,
+      rows.length * kTrackRowHeight +
+          (_mixer ? kTrackRowHeight : _sectionRowHeight),
       maxBody,
     );
 
@@ -175,6 +178,19 @@ class _TrackDrawerState extends State<TrackDrawer> {
                                   const TrackPractice(),
                               song: song,
                             ),
+                          if (_mixer)
+                            SizedBox(
+                              height: kTrackRowHeight,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: Spacing.md,
+                                  ),
+                                  child: Text(l10n.master),
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -183,19 +199,27 @@ class _TrackDrawerState extends State<TrackDrawer> {
                         child: Column(
                           children: [
                             for (final track in rows)
-                              _VolumeRow(
+                              MixerRow(
+                                key: ValueKey('mixerRow-${track.index}'),
                                 track: track,
-                                volume:
-                                    (faderPosition(
-                                              playback
-                                                      .practice
-                                                      .tracks[track.index]
-                                                      ?.volumeDb ??
-                                                  track.volumeDb,
-                                            ) *
-                                            16)
-                                        .round(),
+                                volumeDb:
+                                    playback
+                                        .practice
+                                        .tracks[track.index]
+                                        ?.volumeDb ??
+                                    snapDb(track.volumeDb),
+                                pan:
+                                    playback
+                                        .practice
+                                        .tracks[track.index]
+                                        ?.pan ??
+                                    track.pan,
                               ),
+                            MasterRow(
+                              volumeDb:
+                                  playback.practice.masterDb ??
+                                  snapDb(song.masterDb),
+                            ),
                           ],
                         ),
                       )
@@ -374,47 +398,6 @@ class _TrackRow extends StatelessWidget {
             )
           else
             const SizedBox(width: AccessibleSizes.minTouchTarget),
-        ],
-      ),
-    );
-  }
-}
-
-/// The mixer's level for one track: 0–16, shown as a percentage.
-class _VolumeRow extends StatelessWidget {
-  final TrackSummary track;
-  final int volume;
-
-  const _VolumeRow({required this.track, required this.volume});
-
-  @override
-  Widget build(BuildContext context) {
-    final playback = context.read<PlaybackCubit>();
-    return SizedBox(
-      height: kTrackRowHeight,
-      child: Row(
-        children: [
-          Expanded(
-            child: Slider(
-              key: ValueKey('volume-${track.index}'),
-              value: volume.toDouble(),
-              max: 16,
-              divisions: 16,
-              semanticFormatterCallback: (v) =>
-                  '${AppLocalizations.of(context)!.volumeOf(track.name)}: ${(v / 16 * 100).round()}%',
-              onChanged: (v) => playback.setVolumeDb(
-                track.index,
-                dbAtPosition(v / 16),
-                save: false,
-              ),
-              onChangeEnd: (v) =>
-                  playback.setVolumeDb(track.index, dbAtPosition(v / 16)),
-            ),
-          ),
-          SizedBox(
-            width: AccessibleSizes.minTouchTarget,
-            child: Text('${(volume / 16 * 100).round()}%'),
-          ),
         ],
       ),
     );

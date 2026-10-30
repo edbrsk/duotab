@@ -397,8 +397,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get renameTrack => 'Rename track';
 
   @override
-  String volumeOf(String name) {
-    return 'Volume of $name';
+  String volumeOf(String name, String db) {
+    return 'Volume of $name: $db';
+  }
+
+  @override
+  String panOf(String name, String pan) {
+    return 'Pan of $name: $pan';
+  }
+
+  @override
+  String get master => 'Master';
+
+  @override
+  String masterVolume(String db) {
+    return 'Master volume: $db';
   }
 
   @override

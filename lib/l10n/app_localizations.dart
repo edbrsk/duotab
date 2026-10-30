@@ -829,8 +829,26 @@ abstract class AppLocalizations {
   /// No description provided for @volumeOf.
   ///
   /// In en, this message translates to:
-  /// **'Volume of {name}'**
-  String volumeOf(String name);
+  /// **'Volume of {name}: {db}'**
+  String volumeOf(String name, String db);
+
+  /// No description provided for @panOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Pan of {name}: {pan}'**
+  String panOf(String name, String pan);
+
+  /// No description provided for @master.
+  ///
+  /// In en, this message translates to:
+  /// **'Master'**
+  String get master;
+
+  /// No description provided for @masterVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Master volume: {db}'**
+  String masterVolume(String db);
 
   /// No description provided for @accidentals.
   ///

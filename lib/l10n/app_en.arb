@@ -192,10 +192,33 @@
   "removeTrackBody": "Its notes are removed too. Undo brings it back.",
   "remove": "Remove",
   "renameTrack": "Rename track",
-  "volumeOf": "Volume of {name}",
+  "volumeOf": "Volume of {name}: {db}",
   "@volumeOf": {
     "placeholders": {
       "name": {
+        "type": "String"
+      },
+      "db": {
+        "type": "String"
+      }
+    }
+  },
+  "panOf": "Pan of {name}: {pan}",
+  "@panOf": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "pan": {
+        "type": "String"
+      }
+    }
+  },
+  "master": "Master",
+  "masterVolume": "Master volume: {db}",
+  "@masterVolume": {
+    "placeholders": {
+      "db": {
         "type": "String"
       }
     }

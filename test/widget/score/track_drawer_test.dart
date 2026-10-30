@@ -2,12 +2,15 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
 import 'package:duoscore/features/editor/tuning_presets.dart';
+import 'package:duoscore/features/playback/levels.dart';
 import 'package:duoscore/features/playback/playback_cubit.dart';
 import 'package:duoscore/features/playback/practice_settings.dart';
+import 'package:duoscore/features/score/mixer_row.dart';
 import 'package:duoscore/features/score/score_cubit.dart';
 import 'package:duoscore/features/score/track_drawer.dart';
 import 'package:duoscore/features/settings/settings_cubit.dart';
 import 'package:duoscore/l10n/app_localizations.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -74,6 +77,7 @@ void main() {
     when(() => editor.removeTrack(any())).thenAnswer((_) async {});
     when(() => playback.setVolumeDb(any(), any(), save: any(named: 'save')))
         .thenAnswer((_) async {});
+    when(() => playback.levels).thenReturn(ValueNotifier<Levels?>(null));
     when(() => score.selectTrack(any())).thenAnswer((_) async {});
     when(() => playback.seekBar(any())).thenAnswer((_) async {});
     when(() => playback.setMute(any(), on: any(named: 'on')))
@@ -236,26 +240,32 @@ void main() {
     matching: find.byTooltip('Track actions'),
   );
 
-  testWidgets('the mixer swaps the grid for volume sliders', (tester) async {
+  testWidgets('the mixer swaps the grid for faders and a Master row', (
+    tester,
+  ) async {
     await pump(tester);
+    expect(find.text('Master'), findsNothing);
+    expect(find.byKey(const ValueKey('fader-master')), findsNothing);
     await tester.tap(find.byTooltip('Mixer'));
     await tester.pump();
     expect(find.byKey(const Key('barGrid')), findsNothing);
-    expect(find.byType(Slider), findsNWidgets(3));
-    expect(find.text('81%'), findsNWidgets(3));
+    expect(find.byType(MixerRow), findsNWidgets(3));
+    expect(find.text('Master'), findsOneWidget);
+    expect(find.byKey(const ValueKey('fader-master')), findsOneWidget);
+    expect(find.text('0.0 dB'), findsNWidgets(4));
   });
 
-  testWidgets('dragging a slider previews, and letting go saves', (
+  testWidgets('dragging a fader previews, and letting go saves', (
     tester,
   ) async {
     await pump(tester);
     await tester.tap(find.byTooltip('Mixer'));
     await tester.pump();
     await tester.drag(
-      find.byKey(const ValueKey('volume-2')),
+      find.byKey(const ValueKey('fader-2')),
       const Offset(-60, 0),
     );
-    await tester.pump();
+    await tester.pump(kDoubleTapTimeout);
     verify(() => playback.setVolumeDb(2, any(), save: false))
         .called(greaterThan(0));
     verify(() => playback.setVolumeDb(2, any())).called(1);
