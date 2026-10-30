@@ -133,7 +133,10 @@ export function move(score: Score, at: EditPosition, direction: Direction, setti
       if (voiceTicks(voice) < barOf(score, at).masterBar.calculateDuration()) {
         const rest = new Beat();
         rest.id = idSource(score).beat();
-        rest.duration = beatOf(score, at).duration;
+        rest.duration = current.duration;
+        // As in Guitar Pro, notes typed after a tuplet stay in it.
+        rest.tupletNumerator = current.tupletNumerator;
+        rest.tupletDenominator = current.tupletDenominator;
         voice.addBeat(rest);
         finishEdit(score, at, settings);
         return { ...at, beat: at.beat + 1 };

@@ -3,7 +3,7 @@ import { beforeEach, expect, test } from 'vitest';
 
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from '../../src/editing/operations';
 import type { EditPosition } from '../../src/protocol';
-import { addGrace } from '../../src/editing/techniques';
+import { addGrace, setTuplet } from '../../src/editing/techniques';
 import { fourQuarters, lineOfEighths, score, sixEight } from '../fixtures';
 
 const at = (bar: number, beat: number, string = 1, voice = 0): EditPosition => ({ track: 0, bar, voice, beat, string });
@@ -187,4 +187,13 @@ test('a grace note at the start of the next bar does not make this bar look shor
   s = score(lineOfEighths);
   addGrace(s, at(1, 0, 1));
   expect(move(s, at(0, 5, 4), 'right')).toEqual(at(1, 0, 4));
+});
+
+test('a new beat continues the tuplet', () => {
+  setDuration(s, at(1, 0), alphaTab.model.Duration.Eighth, 0);
+  setTuplet(s, at(1, 0), 3);
+  for (let b = 0; b < 11; b++) expect(move(s, at(1, b), 'right')).toEqual(at(1, b + 1));
+  expect(voice(1).beats.every((b) => b.duration === 8 && b.tupletNumerator === 3 && b.tupletDenominator === 2)).toBe(true);
+  // Twelve triplet eighths fill the 4/4 bar.
+  expect(move(s, at(1, 11), 'right')).toEqual(at(2, 0));
 });
