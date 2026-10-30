@@ -559,6 +559,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changeTitle => 'Change title';
 
   @override
+  String get export => 'Export';
+
+  @override
+  String get exportGp => 'Guitar Pro file (.gp)';
+
+  @override
+  String get exportPdf => 'PDF';
+
+  @override
+  String exportFailed(String error) {
+    return 'Couldn\'t export: $error';
+  }
+
+  @override
   String get save => 'Save';
 
   @override

@@ -265,6 +265,17 @@
   "redo": "Redo",
   "songTitle": "Title",
   "changeTitle": "Change title",
+  "export": "Export",
+  "exportGp": "Guitar Pro file (.gp)",
+  "exportPdf": "PDF",
+  "exportFailed": "Couldn't export: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "save": "Save",
   "strings": "Strings",
   "custom": "Custom",

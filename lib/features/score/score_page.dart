@@ -8,6 +8,8 @@ import '../../presentation/workspace/workspace_layout.dart';
 import '../editor/editor_cubit.dart';
 import '../editor/palette.dart';
 import '../editor/title_dialog.dart';
+import '../export/export_button.dart';
+import '../export/song_exporter.dart';
 import '../playback/transport_bar.dart';
 import '../settings/settings_cubit.dart';
 import 'score_cubit.dart';
@@ -18,7 +20,10 @@ class ScorePage extends StatelessWidget {
   /// Replaces the engine's web view in tests, where no web view can run.
   final Widget? engineView;
 
-  const ScorePage({this.engineView, super.key});
+  /// Shows the Export button beside the title.
+  final Future<void> Function(ExportFormat format, Rect anchor)? onExport;
+
+  const ScorePage({this.engineView, this.onExport, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -60,27 +65,39 @@ class ScorePage extends StatelessWidget {
                 top: MediaQuery.paddingOf(context).top + Spacing.sm,
                 bottom: Spacing.xs,
               ),
-              child: Tooltip(
-                message: l10n.changeTitle,
-                child: TextButton.icon(
-                  onPressed: () async {
-                    final editor = context.read<EditorCubit>();
-                    final title = await showDialog<String>(
-                      context: context,
-                      builder: (_) => TitleDialog(title: song.title),
-                    );
-                    if (title != null) await editor.setTitle(title);
-                  },
-                  iconAlignment: IconAlignment.end,
-                  icon: const Icon(Icons.edit, color: Colors.black38),
-                  label: Text(
-                    song.title,
-                    style: textTheme.titleMedium?.copyWith(
-                      color: Colors.black87,
-                      fontFamily: 'Georgia',
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Tooltip(
+                      message: l10n.changeTitle,
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          final editor = context.read<EditorCubit>();
+                          final title = await showDialog<String>(
+                            context: context,
+                            builder: (_) => TitleDialog(title: song.title),
+                          );
+                          if (title != null) await editor.setTitle(title);
+                        },
+                        iconAlignment: IconAlignment.end,
+                        icon: const Icon(Icons.edit, color: Colors.black38),
+                        label: Text(
+                          song.title,
+                          style: textTheme.titleMedium?.copyWith(
+                            color: Colors.black87,
+                            fontFamily: 'Georgia',
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  if (onExport case final onExport?)
+                    ExportButton(
+                      onExport: onExport,
+                      canExportPdf: song.guitarTracks.isNotEmpty,
+                    ),
+                ],
               ),
             ),
           Expanded(

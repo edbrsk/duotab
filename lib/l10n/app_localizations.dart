@@ -1138,6 +1138,30 @@ abstract class AppLocalizations {
   /// **'Change title'**
   String get changeTitle;
 
+  /// No description provided for @export.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get export;
+
+  /// No description provided for @exportGp.
+  ///
+  /// In en, this message translates to:
+  /// **'Guitar Pro file (.gp)'**
+  String get exportGp;
+
+  /// No description provided for @exportPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF'**
+  String get exportPdf;
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export: {error}'**
+  String exportFailed(String error);
+
   /// No description provided for @save.
   ///
   /// In en, this message translates to:

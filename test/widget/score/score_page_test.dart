@@ -4,6 +4,8 @@ import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
 import 'package:duoscore/features/editor/fret_pad.dart';
 import 'package:duoscore/features/editor/palette.dart';
+import 'package:duoscore/features/export/export_button.dart';
+import 'package:duoscore/features/export/song_exporter.dart';
 import 'package:duoscore/features/playback/playback_cubit.dart';
 import 'package:duoscore/features/playback/transport_bar.dart';
 import 'package:duoscore/features/score/score_cubit.dart';
@@ -54,7 +56,11 @@ void main() {
 
   tearDown(() => cubit.close());
 
-  Future<void> pumpPage(WidgetTester tester, {double width = 890}) async {
+  Future<void> pumpPage(
+    WidgetTester tester, {
+    double width = 890,
+    Future<void> Function(ExportFormat, Rect)? onExport,
+  }) async {
     tester.view
       ..physicalSize = Size(width, 626)
       ..devicePixelRatio = 1;
@@ -70,11 +76,42 @@ void main() {
             BlocProvider<EditorCubit>.value(value: editor),
             BlocProvider<SettingsCubit>.value(value: settings),
           ],
-          child: const ScorePage(engineView: Text('engine view')),
+          child: ScorePage(
+            engineView: const Text('engine view'),
+            onExport: onExport,
+          ),
         ),
       ),
     );
   }
+
+  testWidgets('the export button shows beside the title when a song is open', (
+    tester,
+  ) async {
+    await pumpPage(tester, onExport: (_, _) async {});
+    await tester.pump();
+    expect(find.byType(ExportButton), findsNothing);
+
+    await cubit.open('fixture.gp');
+    await tester.pump();
+    expect(find.byType(ExportButton), findsOneWidget);
+  });
+
+  testWidgets('a long title beside the export button does not overflow', (
+    tester,
+  ) async {
+    when(() => engine.open('long.gp')).thenAnswer(
+      (_) async => SongSummary(
+        title: 'A very long song title ' * 6,
+        tracks: drumsAndTwoGuitars.tracks,
+      ),
+    );
+    await pumpPage(tester, onExport: (_, _) async {});
+    await cubit.open('long.gp');
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(ExportButton), findsOneWidget);
+  });
 
   testWidgets('the right panel shows the drawn track', (tester) async {
     await cubit.open('fixture.gp');
