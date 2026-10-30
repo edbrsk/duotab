@@ -290,3 +290,84 @@ Expected: build succeeds; the app launches.
   9. The "(DuoTab)" copy opens in Guitar Pro 8 with every one of these marks.
 
 - [ ] **Step 3: Record the results** in the ledger, one line per check, and fix any failure as described above.
+
+---
+
+## Owner feedback, round 1
+
+From the first simulator check:
+- **H/P stays as in Guitar Pro.** It belongs to the first note of the pair; on the second note the chip adds the next link, so legato runs chain.
+- **Added: a bend picker (Task 6).**
+- **Added: tuplets continue (Task 7).**
+- **Still later:** a time signature per bar (Plan 5); export and share (Plan 6). The "(DuoTab)" copy is already in Files › On My iPhone › DuoTab.
+
+### Task 6: Bend types and amounts
+
+**Files:**
+- Modify: `engine/src/protocol.ts`, `engine/src/editing/techniques.ts`, `engine/src/editing/commands.ts`, `engine/src/editing/session.ts`, `lib/engine/protocol.dart`, `lib/features/editor/editor_cubit.dart`, `lib/features/editor/palette.dart`, `lib/l10n/app_en.arb`
+- Test: `engine/test/editing/techniques.test.ts`, `engine/test/editing/session.test.ts`, `test/unit/engine/engine_bridge_test.dart`, `test/unit/features/editor/editor_cubit_test.dart`, `test/widget/editor/palette_test.dart`
+
+**Interfaces:**
+- Produces (protocol):
+  - `type BendKind = 'bend' | 'bendRelease' | 'release' | 'prebend' | 'prebendRelease'`;
+  - `type Bend = { kind: BendKind; amount: number }`, where `amount` is in quarter tones, from 1 (¼) to 12 (3 tones);
+  - `EditCommand` gains `{ op: 'setBend'; bend: Bend | null }`, where null removes the bend;
+  - `EditState.beat` gains `bend: Bend | null`. It is null for no bend, and for a bend shape outside the five kinds.
+- Produces (engine), in `techniques.ts`:
+  - `setBend(score, at, bend: Bend | null)`, a no-op on a string with no note;
+  - `bendAt(score, at): Bend | null`.
+
+  The `bend` technique reads as on for any bend, imported shapes included.
+- Produces (Dart):
+  - `SetBend(String? kind, int amount)`;
+  - `EditState` and `EditorState` gain `bendKind` (`String?`) and `bendAmount` (`int`, default 4);
+  - `EditorCubit.setBend(String? kind, int amount)`, which waits for a cursor.
+- **The bend points** are in alphaTab's offset 0–60 and value in quarter tones, with `a` the amount:
+
+  | Kind | Points |
+  |---|---|
+  | `bend` | (0, 0) (15, a) (60, a) |
+  | `bendRelease` | (0, 0) (15, a) (30, a) (45, 0) (60, 0) |
+  | `release` | (0, a) (30, 0) (60, 0) |
+  | `prebend` | (0, a) (60, a) |
+  | `prebendRelease` | (0, a) (15, a) (45, 0) (60, 0) |
+
+- **Palette.** The Bend chip opens a menu instead of toggling. The menu has:
+  - a Type row of five chips: Bend, Bend and release, Release, Pre-bend, Pre-bend and release;
+  - an Amount row of twelve chips: ¼ ½ ¾ full 1¼ 1½ 1¾ 2 2¼ 2½ 2¾ 3;
+  - a Remove bend button.
+
+  Choosing a type or an amount sends `setBend` straight away, with the other value as it stands. The amount defaults to full and the type to Bend.
+
+- [ ] **Step 1: Write the failing tests.**
+  - Engine:
+    - `each bend kind sets its points`: every kind at amount 8 gives the table's points, and `bendAt` reads it back.
+    - `a bend survives the .gp round-trip`: every kind at amounts 2 and 12, read back with `bendAt`.
+    - `setBend null removes the bend`.
+    - `an out-of-range amount is refused`: 0 and 13 throw.
+    - `the state tells the bend at the cursor`.
+  - Dart:
+    - `SetBend` serialises, and `null` sends `bend: null`;
+    - the edit state parses `bend`;
+    - the cubit follows the bend and waits for a cursor;
+    - in the palette, `the bend chip opens the bend menu`: tapping Bend, then `Bend and release`, then `1½`, gives `setBend('bendRelease', 4)` and then `setBend('bendRelease', 6)`.
+- [ ] **Step 2: Run them to verify they fail.**
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run all suites**, with `flutter analyze`. Expected: all pass.
+- [ ] **Step 5: Commit** `feat: bend types and amounts`.
+
+### Task 7: Tuplets continue
+
+**Files:**
+- Modify: `engine/src/editing/operations.ts`
+- Test: `engine/test/editing/operations.test.ts`
+
+- [ ] **Step 1: Write the failing test** `a new beat continues the tuplet`. On a triplet eighth that ends the voice, moving right adds a triplet eighth rest. After three triplet eighths that fill the bar, moving right goes to the next bar.
+- [ ] **Step 2: Run it to verify it fails.**
+- [ ] **Step 3: Implement.** `move` right copies `tupletNumerator` and `tupletDenominator` onto the new rest.
+- [ ] **Step 4: Run all suites.**
+- [ ] **Step 5: Commit** `feat: new beats continue the tuplet`.
+
+Then repeat Task 5's checks 3 and 4, plus:
+10. A bend and release on fret 8, set to 2 tones, rises to fret 12's pitch and comes back.
+11. Typing three triplet eighths in a row needs one tap on Triplet.
