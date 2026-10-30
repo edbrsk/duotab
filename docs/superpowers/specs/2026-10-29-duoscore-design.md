@@ -80,6 +80,7 @@ Modelled on Guitar Pro's track list.
 - **Each row**: track name, mute, solo.
 - **Bar overview grid** beside the rows: one cell per bar, filled where that track has notes, with the file's section markers (A, B, C… and their start times) under the grid. A marker shows the current bar and follows playback.
 - **Tapping a cell** selects that track and moves the cursor to the start of that bar, scrolling the score there. For a non-guitar track the cursor moves and the drawn track stays.
+- **Mixer**: a Mixer toggle in the drawer header swaps the bar grid for a volume slider on each track's row, beside its mute and solo, so every track is mixed at once, as in Guitar Pro's mixer. A track's volume runs 0–100% from the file's own level. It is kept per song with the practice settings, and written into the saved copy like the tones.
 
 ### Music engine
 
@@ -98,7 +99,7 @@ Chosen by the [engine spike](../spikes/2026-10-29-engine-spike.md): on the owner
 - **Player**: alphaTab's synthesizer, which turns the song (all tracks, tempo changes, dynamics and techniques) into MIDI and plays it in the web view. The engine exposes play, pause, seek, speed, loop range, mute/solo, program change, count-in, metronome and a single-note preview for editing, and pushes the playback position so the cursor (drawn by alphaTab) and Flutter's transport stay in step.
 - **SoundFont**: `sonivox.sf2` (1.3 MB, Apache-2.0), shipped with alphaTab.
 - **Tones** map to General MIDI programs (1-based): Clean = 28 Electric Guitar (clean), Overdrive = 30 Overdriven Guitar, High gain = 31 Distortion Guitar. A guitar track starts with its file's program when that is one of these three, otherwise Clean.
-- **Practice settings** (tone, mute/solo, speed, loop, the staves drawn) are kept by the app per file, outside the song file, so practising never modifies or copies a file. When the song is saved, each guitar track's tone is written as its MIDI program.
+- **Practice settings** (tone, mute/solo, volume, speed, loop, the staves drawn) are kept by the app per file, outside the song file, so practising never modifies or copies a file. When the song is saved, each guitar track's tone is written as its MIDI program and each track's volume as its mixer volume.
 - **Other tracks** play with their file's program; drums play with the SoundFont's percussion bank.
 - **Speed**: 25–150% of the written tempo, with 50/75/100% shortcuts. Tempo changes in the song are followed.
 - **Looping**: drag across notes to set an A–B loop; on touch, long-press to start the selection.
