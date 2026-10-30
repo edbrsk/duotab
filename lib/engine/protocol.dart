@@ -614,14 +614,14 @@ class SetRepeatEnd extends EditCommand {
   Map<String, Object> toJson() => {'op': 'setRepeatEnd', 'count': count};
 }
 
-class SetEndings extends EditCommand {
-  /// 1–8; empty removes the bracket.
-  final List<int> endings;
+class ToggleEnding extends EditCommand {
+  /// 1–8.
+  final int ending;
 
-  const SetEndings(this.endings);
+  const ToggleEnding(this.ending);
 
   @override
-  Map<String, Object> toJson() => {'op': 'setEndings', 'endings': endings};
+  Map<String, Object> toJson() => {'op': 'toggleEnding', 'ending': ending};
 }
 
 class ToggleDirection extends EditCommand {

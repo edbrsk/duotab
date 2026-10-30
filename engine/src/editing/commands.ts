@@ -4,7 +4,7 @@ import type { EditCommand, EditPosition } from '../protocol';
 import { type Clipboard, deleteBar, insertBar, pasteBars } from './bar_structure';
 import { setClef, setKeySignature, setTempo, setTimeSignature } from './bars';
 import { History } from './history';
-import { setEndings, setRepeatEnd, toggleDirection, toggleRepeatStart } from './structure';
+import { setRepeatEnd, toggleDirection, toggleEnding, toggleRepeatStart } from './structure';
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from './operations';
 import { clampPosition, staffOf } from './position';
 import { activeTechniques, addGrace, bendAt, setBend, setDynamic, setTuplet, toggleTechnique } from './techniques';
@@ -47,7 +47,7 @@ const MOVING_OPS = new Set<EditCommand['op']>([
   'pasteBars',
   'toggleRepeatStart',
   'setRepeatEnd',
-  'setEndings',
+  'toggleEnding',
   'toggleDirection',
 ]);
 
@@ -118,8 +118,8 @@ export function runCommand(
         return toggleRepeatStart(score, at, settings);
       case 'setRepeatEnd':
         return setRepeatEnd(score, at, command.count, settings);
-      case 'setEndings':
-        return setEndings(score, at, command.endings, settings);
+      case 'toggleEnding':
+        return toggleEnding(score, at, command.ending, settings);
       case 'toggleDirection':
         return toggleDirection(score, at, command.direction, settings);
       case 'setTitle':

@@ -17,7 +17,6 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(const SetRest());
-    registerFallbackValue(<int>[]);
   });
 
   setUp(() {
@@ -43,7 +42,7 @@ void main() {
     when(() => editor.pasteBars()).thenAnswer((_) async {});
     when(() => editor.toggleRepeatStart()).thenAnswer((_) async {});
     when(() => editor.setRepeatEnd(any())).thenAnswer((_) async {});
-    when(() => editor.setEndings(any())).thenAnswer((_) async {});
+    when(() => editor.toggleEnding(any())).thenAnswer((_) async {});
     when(() => editor.toggleDirection(any())).thenAnswer((_) async {});
   });
 
@@ -170,15 +169,35 @@ void main() {
     verify(() => editor.setRepeatEnd(0)).called(1);
   });
 
-  testWidgets('ending chips add and remove endings', (tester) async {
+  testWidgets('ending chips toggle one ending each', (tester) async {
     await pump(tester, const EditorState(position: _at, endings: [1]));
-    expect(find.text('1.'), findsOneWidget);
     await tester.tap(find.byTooltip('Alternate ending'));
     await tester.pumpAndSettle();
+    expect(chip(tester, 'Ending 1').selected, isTrue);
     await tester.tap(find.byTooltip('Ending 2'));
-    verify(() => editor.setEndings([1, 2])).called(1);
     await tester.tap(find.byTooltip('Ending 1'));
-    verify(() => editor.setEndings([])).called(1);
+    verify(() => editor.toggleEnding(2)).called(1);
+    verify(() => editor.toggleEnding(1)).called(1);
+  });
+
+  testWidgets('the ending and repeat end chips are off on a plain bar', (
+    tester,
+  ) async {
+    await pump(tester, const EditorState(position: _at));
+    expect(chip(tester, 'Alternate ending').selected, isFalse);
+    expect(chip(tester, 'Repeat end').selected, isFalse);
+  });
+
+  testWidgets('the ending and repeat end chips show the bar has them', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      const EditorState(position: _at, endings: [1, 2], repeatCount: 2),
+    );
+    expect(chip(tester, 'Alternate ending').selected, isTrue);
+    expect(find.text('1.2.'), findsOneWidget);
+    expect(chip(tester, 'Repeat end').selected, isTrue);
   });
 
   testWidgets("direction chips toggle and show the bar's directions", (

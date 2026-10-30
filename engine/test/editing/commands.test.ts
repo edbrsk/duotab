@@ -151,7 +151,7 @@ test('bar edits that move ticks clear the loop', () => {
 const structureCommands: EditCommand[] = [
   { op: 'toggleRepeatStart' },
   { op: 'setRepeatEnd', count: 3 },
-  { op: 'setEndings', endings: [1, 2] },
+  { op: 'toggleEnding', ending: 2 },
   { op: 'toggleDirection', direction: 'segno' },
 ];
 

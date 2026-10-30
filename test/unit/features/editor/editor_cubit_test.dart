@@ -313,18 +313,18 @@ void main() {
   test('structure commands send their command and wait for a cursor', () async {
     await editor.toggleRepeatStart();
     await editor.setRepeatEnd(2);
-    await editor.setEndings([1]);
+    await editor.toggleEnding(1);
     await editor.toggleDirection('segno');
     verifyNever(() => engine.edit(any()));
     await editor.command(const Place(_at));
     await editor.toggleRepeatStart();
     await editor.setRepeatEnd(2);
-    await editor.setEndings([1]);
+    await editor.toggleEnding(1);
     await editor.toggleDirection('segno');
     for (final command in const <EditCommand>[
       ToggleRepeatStart(),
       SetRepeatEnd(2),
-      SetEndings([1]),
+      ToggleEnding(1),
       ToggleDirection('segno'),
     ]) {
       verify(() => engine.edit(command)).called(1);

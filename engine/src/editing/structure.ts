@@ -55,6 +55,11 @@ export function setEndings(score: Score, at: EditPosition, endings: number[], se
   return finishStructure(score, at, settings);
 }
 
+export function toggleEnding(score: Score, at: EditPosition, ending: number, settings = defaultSettings): EditPosition {
+  const endings = structureAt(score, at).endings;
+  return setEndings(score, at, endings.includes(ending) ? endings.filter((e) => e !== ending) : [...endings, ending], settings);
+}
+
 /** A bar holds one jump: choosing one replaces the bar's other. */
 export function toggleDirection(score: Score, at: EditPosition, id: DirectionId, settings = defaultSettings): EditPosition {
   const masterBar = score.masterBars[at.bar];

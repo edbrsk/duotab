@@ -22,7 +22,7 @@
 Plans 1–5a's Global Constraints all apply. In addition:
 
 - **Everything here belongs to the bar of the whole song** (`MasterBar`), so it applies to every track.
-- **Repeat end:** `repeatCount` is the number of times the section plays, 2 to 8; 0 removes the sign. A repeat end without a start repeats from the song's start, as in standard notation.
+- **Repeat end:** `repeatCount` is the number of times the section plays, 2 to 8; 0 removes the sign. A repeat end without a start repeats from the song's start, or from the end of the repeat before it, as alphaTab plays it. A jump on a repeat-end bar fires on the first pass, which is also alphaTab's playback.
 - **Alternate endings:** a set of ending numbers from 1 to 8, stored as alphaTab's bitmask, where ending *n* is bit *n*−1. The empty set removes the bracket.
 - **Directions offered:**
 
@@ -43,8 +43,8 @@ Plans 1–5a's Global Constraints all apply. In addition:
   - **A bar holds at most one jump.** Choosing a jump replaces the bar's other jump.
   - **Directions outside the table**, such as a double coda from an imported file, are kept untouched and never listed.
 - **Deleting a bar keeps the song's form:**
-  - its repeat start and its targets move to the next bar;
-  - its repeat end and its jump move to the previous bar;
+  - its repeat start, segno and coda move to the next bar;
+  - its repeat end, its jump and its Fine move to the previous bar, because playback stops after the bar with Fine;
   - its section marker moves to the next bar, unless that bar has its own;
   - none of these overwrites one the receiving bar already has;
   - a one-bar repeat, with its start and end on the deleted bar, goes with the bar.
@@ -142,14 +142,14 @@ Expected: FAIL: `../../src/editing/structure` not found.
 **Interfaces:**
 - Consumes: Task 1.
 - Produces (protocol):
-  - `EditCommand` gains `{ op: 'toggleRepeatStart' }`, `{ op: 'setRepeatEnd'; count: number }`, `{ op: 'setEndings'; endings: number[] }` and `{ op: 'toggleDirection'; direction: DirectionId }`;
+  - `EditCommand` gains `{ op: 'toggleRepeatStart' }`, `{ op: 'setRepeatEnd'; count: number }`, `{ op: 'toggleEnding'; ending: number }` and `{ op: 'toggleDirection'; direction: DirectionId }`;
   - `EditState` gains `structure: Structure | null`, which is null without a cursor;
   - `movesTicks` is true for all four commands;
   - `shape` adds each bar's repeat start, repeat count, endings and directions.
 - Produces (Dart):
-  - commands `ToggleRepeatStart()`, `SetRepeatEnd(int count)`, `SetEndings(List<int> endings)` and `ToggleDirection(String direction)`;
+  - commands `ToggleRepeatStart()`, `SetRepeatEnd(int count)`, `ToggleEnding(int ending)` and `ToggleDirection(String direction)`;
   - `EditState` and `EditorState` fields `repeatStart` (`bool`), `repeatCount` (`int`), `endings` (`List<int>`) and `directions` (`Set<String>`);
-  - `EditorCubit` methods `toggleRepeatStart()`, `setRepeatEnd(int count)`, `setEndings(List<int> endings)` and `toggleDirection(String direction)`, which wait for a cursor.
+  - `EditorCubit` methods `toggleRepeatStart()`, `setRepeatEnd(int count)`, `toggleEnding(int ending)` and `toggleDirection(String direction)`, which wait for a cursor.
 
 - [ ] **Step 1: Write the failing tests:**
   - **engine:**
@@ -181,7 +181,7 @@ Expected: FAIL: `../../src/editing/structure` not found.
   |---|---|---|
   | Repeat start | `Smufl.repeatLeft` U+E040 | toggles, and is selected when `repeatStart` |
   | Repeat end | `Smufl.repeatRight` U+E041 | opens a menu of count chips ×2 to ×8, with the current count selected, plus No repeat (sends 0) |
-  | Alternate ending | `1.`, or the endings joined, e.g. `1.2.` | opens a menu of ending chips 1 to 8; each tap adds or removes that ending, then sends `setEndings` |
+  | Alternate ending | `1.`, or the endings joined, e.g. `1.2.` | opens a menu of ending chips 1 to 8; each tap sends `toggleEnding` for that ending, so quick taps never undo each other |
   | Directions | `Smufl.segno` U+E047, selected when the bar has any listed direction | opens a menu with a Targets row (Segno U+E047, Coda U+E048, `Fine`) and a Jumps row (`D.C.`, `D.C. al Fine`, `D.C. al Coda`, `D.S.`, `D.S. al Fine`, `D.S. al Coda`, `To Coda`). Each chip toggles its direction and shows it selected. |
 
 - [ ] **Step 1: Write the failing tests:**
@@ -190,7 +190,7 @@ Expected: FAIL: `../../src/editing/structure` not found.
     - `repeat start toggles and shows its state`.
   - **`bar_menus_test.dart`:**
     - `a repeat count sets the repeat end, and No repeat removes it`: ×3 sends `setRepeatEnd(3)`; No repeat sends 0.
-    - `ending chips add and remove endings`: with `[1]`, tapping 2 sends `[1, 2]`, and tapping 1 sends `[]`.
+    - `ending chips add and remove endings`: with `[1]`, tapping 2 sends `toggleEnding(2)`, and tapping 1 sends `toggleEnding(1)`.
     - `direction chips toggle and show the bar's directions`: with `{'segno'}`, Segno is selected, and tapping `D.S. al Coda` sends `toggleDirection('dalSegnoAlCoda')`.
 - [ ] **Step 2: Run them to verify they fail.**
 - [ ] **Step 3: Implement** with `_MenuChip` and `PaletteChip`, with l10n tooltips.

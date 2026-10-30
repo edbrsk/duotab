@@ -17,7 +17,6 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(const SetRest());
-    registerFallbackValue(<int>[]);
   });
 
   setUp(() {
@@ -43,7 +42,7 @@ void main() {
     when(() => editor.pasteBars()).thenAnswer((_) async {});
     when(() => editor.toggleRepeatStart()).thenAnswer((_) async {});
     when(() => editor.setRepeatEnd(any())).thenAnswer((_) async {});
-    when(() => editor.setEndings(any())).thenAnswer((_) async {});
+    when(() => editor.toggleEnding(any())).thenAnswer((_) async {});
     when(() => editor.toggleDirection(any())).thenAnswer((_) async {});
   });
 

@@ -256,3 +256,12 @@ test('an inserted bar takes no repeat or direction', () => {
   expect(structureAt(s, at(2))).toEqual({ repeatStart: false, repeatCount: 0, endings: [], directions: [] });
   expect(structureAt(s, at(3))).toMatchObject({ repeatStart: true, directions: ['segno'] });
 });
+
+test('deleting the bar with Fine keeps the al Fine ending', () => {
+  s = score(sixBars);
+  toggleDirection(s, at(2), 'fine');
+  toggleDirection(s, at(4), 'daCapoAlFine');
+  deleteBar(s, at(2));
+  expect(structureAt(s, at(1)).directions).toEqual(['fine']);
+  expect(playOrder(s)).toEqual([0, 1, 2, 3, 0, 1]);
+});

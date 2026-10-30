@@ -26,6 +26,7 @@ class _MenuChip extends StatelessWidget {
   final String tooltip;
   final Widget label;
   final bool enabled;
+  final bool selected;
   final List<Widget> Function(BuildContext context) menu;
 
   const _MenuChip({
@@ -33,6 +34,7 @@ class _MenuChip extends StatelessWidget {
     required this.label,
     required this.enabled,
     required this.menu,
+    this.selected = false,
   });
 
   @override
@@ -52,7 +54,7 @@ class _MenuChip extends StatelessWidget {
     builder: (context, controller, _) => PaletteChip(
       tooltip: tooltip,
       label: label,
-      selected: false,
+      selected: selected,
       onSelected: enabled ? controller.open : null,
     ),
   );
@@ -352,6 +354,7 @@ class RepeatEndChip extends StatelessWidget {
       tooltip: l10n.repeatEnd,
       label: const PaletteGlyph(Smufl.repeatRight),
       enabled: state.position != null,
+      selected: state.repeatCount > 0,
       menu: (_) => [
         _wrap([
           for (var count = 2; count <= 8; count++)
@@ -389,6 +392,7 @@ class EndingsChip extends StatelessWidget {
         endings.isEmpty ? '1.' : endings.map((e) => '$e.').join(),
       ),
       enabled: state.position != null,
+      selected: endings.isNotEmpty,
       menu: (_) => [
         _wrap([
           for (var ending = 1; ending <= 8; ending++)
@@ -396,11 +400,7 @@ class EndingsChip extends StatelessWidget {
               tooltip: l10n.endingN(ending),
               label: PaletteText('$ending.'),
               selected: endings.contains(ending),
-              onSelected: () => editor.setEndings(
-                endings.contains(ending)
-                    ? [...endings.where((e) => e != ending)]
-                    : ([...endings, ending]..sort()),
-              ),
+              onSelected: () => editor.toggleEnding(ending),
             ),
         ]),
       ],
@@ -436,37 +436,23 @@ class DirectionsChip extends StatelessWidget {
       selected: state.directions.contains(id),
       onSelected: () => editor.toggleDirection(id),
     );
-    return MenuAnchor(
-      menuChildren: [
-        Padding(
-          padding: const EdgeInsets.all(Spacing.sm),
-          child: SizedBox(
-            width: _menuWidth,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _heading(context, l10n.targets),
-                _wrap([
-                  for (final (id, name, label) in targets)
-                    direction(id, name, label),
-                ]),
-                const SizedBox(height: Spacing.sm),
-                _heading(context, l10n.jumps),
-                _wrap([
-                  for (final (id, name, label) in jumps)
-                    direction(id, name, PaletteText(label)),
-                ]),
-              ],
-            ),
-          ),
-        ),
+    return _MenuChip(
+      tooltip: l10n.directions,
+      label: const PaletteGlyph(Smufl.segno),
+      enabled: state.position != null,
+      selected: state.directions.isNotEmpty,
+      menu: (context) => [
+        _heading(context, l10n.targets),
+        _wrap([
+          for (final (id, name, label) in targets) direction(id, name, label),
+        ]),
+        const SizedBox(height: Spacing.sm),
+        _heading(context, l10n.jumps),
+        _wrap([
+          for (final (id, name, label) in jumps)
+            direction(id, name, PaletteText(label)),
+        ]),
       ],
-      builder: (context, controller, _) => PaletteChip(
-        tooltip: l10n.directions,
-        label: const PaletteGlyph(Smufl.segno),
-        selected: state.directions.isNotEmpty,
-        onSelected: state.position != null ? controller.open : null,
-      ),
     );
   }
 }

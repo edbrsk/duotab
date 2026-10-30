@@ -62,6 +62,8 @@ export function insertBar(score: Score, at: EditPosition, settings = defaultSett
 }
 
 const isJump = (direction: alphaTab.model.Direction) => alphaTab.model.Direction[direction].startsWith('Jump');
+// Playback stops after the bar with Fine, so Fine closes a passage, as a jump does.
+const closes = (direction: alphaTab.model.Direction) => isJump(direction) || direction === alphaTab.model.Direction.TargetFine;
 
 /**
  * Keeps the song's form when `removed` goes: what opens a passage moves to
@@ -76,9 +78,9 @@ function carryForm(removed: MasterBar, previous: MasterBar | undefined, next: Ma
   }
   if (next && removed.section && !next.section) next.section = removed.section;
   for (const direction of removed.directions ?? []) {
-    if (!isJump(direction)) {
+    if (!closes(direction)) {
       next?.addDirection(direction);
-    } else if (previous && ![...(previous.directions ?? [])].some(isJump)) {
+    } else if (previous && (!isJump(direction) || ![...(previous.directions ?? [])].some(isJump))) {
       previous.addDirection(direction);
     }
   }

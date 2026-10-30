@@ -190,7 +190,8 @@ export type EditCommand =
   | { op: 'toggleRepeatStart' }
   /** `count` plays; 0 removes the repeat end. */
   | { op: 'setRepeatEnd'; count: number }
-  | { op: 'setEndings'; endings: number[] }
+  /** Adds or removes one ending, 1–8. */
+  | { op: 'toggleEnding'; ending: number }
   | { op: 'toggleDirection'; direction: DirectionId };
 
 export type EditPayload = { command: EditCommand };

@@ -181,7 +181,7 @@ class EditorCubit extends Cubit<EditorState> {
   /// 0 removes the repeat end.
   Future<void> setRepeatEnd(int count) => _atCursor(SetRepeatEnd(count));
 
-  Future<void> setEndings(List<int> endings) => _atCursor(SetEndings(endings));
+  Future<void> toggleEnding(int ending) => _atCursor(ToggleEnding(ending));
 
   Future<void> toggleDirection(String direction) =>
       _atCursor(ToggleDirection(direction));

@@ -6,6 +6,7 @@ import {
   setEndings,
   setRepeatEnd,
   structureAt,
+  toggleEnding,
   toggleDirection,
   toggleRepeatStart,
 } from '../../src/editing/structure';
@@ -117,4 +118,13 @@ test('structure survives the .gp round-trip and plays the same', () => {
   const read = (song: alphaTab.model.Score) => song.masterBars.map((_, i) => structureAt(song, at(i)));
   expect(read(reloaded)).toEqual(read(s));
   expect(playOrder(reloaded)).toEqual(playOrder(s));
+});
+
+test('toggleEnding adds and removes one ending', () => {
+  toggleEnding(s, at(2), 2);
+  toggleEnding(s, at(2), 1);
+  expect(structureAt(s, at(2)).endings).toEqual([1, 2]);
+  toggleEnding(s, at(2), 2);
+  expect(structureAt(s, at(2)).endings).toEqual([1]);
+  expect(() => toggleEnding(s, at(2), 9)).toThrow('ending 9 out of range');
 });
