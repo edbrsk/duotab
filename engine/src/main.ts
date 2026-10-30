@@ -2,6 +2,7 @@ import * as alphaTab from '@coderline/alphatab';
 
 import { LevelMeter } from './levels';
 import { Mixer } from './mixer';
+import { drawEveryBar, withFileRests } from './multi_bar_rests';
 import { glideFinely, playEffectsUnderTremolo, startChannelsUnbent } from './midi_effects';
 import { Limiter, limitOutput } from './output_level';
 import { movesTicks, TRACK_OPS } from './editing/commands';
@@ -260,6 +261,8 @@ let openedMarks = new Map<number, NoteMark[]>();
 // Only a file's own staff flags are replaced, before alphaTab's first render
 // of it; a score restored by undo keeps the owner's choice.
 api.scoreLoaded.on((score) => {
+  // Before alphaTab lays out, looks up ticks and makes MIDI, which all follow this event.
+  drawEveryBar(score);
   // Fingered before alphaTab makes the MIDI and draws, which follow this event.
   if (opens.waitingFromFile) {
     try {
@@ -416,14 +419,16 @@ async function run(request: Request): Promise<unknown> {
     case 'exportGp': {
       if (!api.score) throw new Error('no song open');
       const score = api.score;
-      return { base64: base64(mixer.withFileLevels(() => new alphaTab.exporter.Gp7Exporter().export(score, settings))) };
+      const exported = withFileRests(() => mixer.withFileLevels(() => new alphaTab.exporter.Gp7Exporter().export(score, settings)));
+      return { base64: base64(exported) };
     }
     case 'exportPdf': {
       if (!api.score) throw new Error('no song open');
       const track = api.score.tracks[session.track];
       if (!track || !isGuitar(track)) throw new Error('no guitar track');
       const fontUrl = pageUrl('./alphatab/font/Bravura.woff2');
-      const pages = printPages(api.score, session.track, settings.display.staveProfile, fontUrl);
+      // Printed as Guitar Pro prints it, with the file's multi-bar rests.
+      const pages = withFileRests(() => printPages(api.score!, session.track, settings.display.staveProfile, fontUrl));
       return { pages, baseUrl: `${location.origin}/` } satisfies ExportPdfReply;
     }
     case 'exportFileGp': {

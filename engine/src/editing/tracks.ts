@@ -1,5 +1,6 @@
 import * as alphaTab from '@coderline/alphatab';
 
+import { drawEveryBar } from '../multi_bar_rests';
 import { classifyTrack } from '../track_kind';
 import { idSource } from './ids';
 import { restsFilling } from './operations';
@@ -27,6 +28,8 @@ function remapStylesheet(score: Score, newIndex: Map<number, number>): void {
     sheet.perTrackMultiBarRest = new Set(
       [...sheet.perTrackMultiBarRest].flatMap((i) => (newIndex.has(i) ? [newIndex.get(i)!] : [])),
     );
+    // alphaTab rebuilds its tick lookup from this set before drawing again.
+    drawEveryBar(score);
   }
   const remap = (flags: Map<number, boolean> | null) =>
     flags && new Map([...flags].flatMap(([i, on]) => (newIndex.has(i) ? [[newIndex.get(i)!, on] as [number, boolean]] : [])));
