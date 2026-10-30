@@ -18,12 +18,13 @@ type Score = alphaTab.model.Score;
 const shape = (score: Score, at: EditPosition) => {
   const staff = staffOf(score, { ...at, track: Math.min(at.track, score.tracks.length - 1) });
   const tracks = score.tracks.map((t) => `${t.name}:${t.staves[0].tuning}:${t.playbackInfo.primaryChannel}`);
-  return `${score.title}|${tracks}|${staff.bars
+  const chords = [...(staff.chords?.values() ?? [])].map((c) => `${c.strings}${c.showDiagram}`);
+  return `${score.title}|${tracks}|${staff.stringTuning.name}${chords}|${staff.bars
     .map((bar) => {
       const master = bar.masterBar;
       const tempo = master.tempoAutomations.map((a) => `${a.ratioPosition}@${a.value}`);
       const form = `${master.isRepeatStart}${master.repeatCount}E${master.alternateEndings}D${[...(master.directions ?? [])]}`;
-      return `${master.timeSignatureNumerator}/${master.timeSignatureDenominator}T${tempo}F${form}K${bar.keySignature}${bar.keySignatureType}C${bar.clef}${bar.clefOttava}:${bar.voices
+      return `${master.timeSignatureNumerator}/${master.timeSignatureDenominator}${master.timeSignatureCommon}T${tempo}F${form}K${bar.keySignature}${bar.keySignatureType}C${bar.clef}${bar.clefOttava}:${bar.voices
         .map((voice) =>
           voice.beats
             .map((b) => {
@@ -31,7 +32,7 @@ const shape = (score: Score, at: EditPosition) => {
               const position = { ...at, bar: bar.index, voice: voice.index, beat: b.index };
               const notes = b.notes.map((n) => {
                 const note = { ...position, string: n.string };
-                return `${n.string}/${n.fret}${activeTechniques(score, note)}${JSON.stringify(bendAt(score, note))}`;
+                return `${n.string}/${n.fret}a${n.accidentalMode}${activeTechniques(score, note)}${JSON.stringify(bendAt(score, note))}`;
               });
               // String 0 has no note, so it lists only the beat techniques.
               return `${value}${activeTechniques(score, { ...position, string: 0 })}:${notes.sort()}`;

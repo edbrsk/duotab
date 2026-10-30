@@ -42,6 +42,8 @@ export function setTimeSignature(
   }
   const first = score.masterBars[at.bar];
   const old = [first.timeSignatureNumerator, first.timeSignatureDenominator];
+  // The same numbers keep how the bar shows them, such as "C" for 4/4.
+  if (old[0] === numerator && old[1] === denominator) return at;
   const changed = runFrom(score.masterBars.length, at.bar, (i) => {
     const m = score.masterBars[i];
     return m.timeSignatureNumerator === old[0] && m.timeSignatureDenominator === old[1];

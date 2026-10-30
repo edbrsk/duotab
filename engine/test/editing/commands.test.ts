@@ -183,3 +183,35 @@ test('a track edit is an edit and undoes', async () => {
     expect(alphaTab.model.JsonConverter.scoreToJson((await history.undo(s))!), command.op).toBe(before);
   }
 });
+
+test('every model change the palette can make is an edit', () => {
+  const settings = new alphaTab.Settings();
+  const at = { track: 0, bar: 0, voice: 0, beat: 0, string: 1 };
+
+  const common = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+\ts common 0.6.1 | 0.6.1`);
+  const history = new History();
+  expect(runCommand(common, at, { op: 'setTimeSignature', numerator: 3, denominator: 4 }, history, settings).edited).toBe(true);
+  expect(history.canUndo).toBe(true);
+
+  const natural = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+0.6{acc forceNatural}.1`);
+  expect(runCommand(natural, at, { op: 'toggle', technique: 'natural' }, new History(), settings).edited).toBe(true);
+
+  const unplayable = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+\chord "Hi" 5 x x x x x
+5.1{ch "Hi"}.1`);
+  const before = unplayable.tracks[0].staves[0].chords!.get('hi00')!.showDiagram;
+  const retuned = runCommand(unplayable, at, { op: 'retune', track: 0, tuning: [64, 59, 55, 50, 45, 40], octave: 2 }, new History(), settings);
+  expect(before).toBe(true);
+  expect(unplayable.tracks[0].staves[0].chords!.get('hi00')!.showDiagram).toBe(false);
+  expect(retuned.edited).toBe(true);
+});
+
+test('4/4 on a common-time bar that already reads 4/4 changes nothing', () => {
+  const common = score(String.raw`\track "G" \tuning E4 B3 G3 D3 A2 E2
+\ts common 0.6.1`);
+  const at = { track: 0, bar: 0, voice: 0, beat: 0, string: 1 };
+  expect(runCommand(common, at, { op: 'setTimeSignature', numerator: 4, denominator: 4 }, new History()).edited).toBe(false);
+  expect(common.masterBars[0].timeSignatureCommon).toBe(true);
+});
