@@ -174,9 +174,13 @@ void main() {
         dynamicMark: 'mf',
         tuplet: 3,
         hasNote: true,
+        bendKind: 'prebend',
+        bendAmount: 8,
       ),
     );
     await editor.command(const Place(_at));
+    expect(editor.state.bendKind, 'prebend');
+    expect(editor.state.bendAmount, 8);
     expect(editor.state.techniques, {'bend'});
     expect(editor.state.dynamicMark, 'mf');
     expect(editor.state.tuplet, 3);
@@ -193,6 +197,8 @@ void main() {
     verify(() => engine.edit(const SetTuplet(5))).called(1);
     await editor.addGrace();
     verify(() => engine.edit(const AddGrace())).called(1);
+    await editor.setBend('bend', 2);
+    verify(() => engine.edit(const SetBend('bend', 2))).called(1);
   });
 
   test('technique commands wait for a cursor', () async {
@@ -200,6 +206,7 @@ void main() {
     await editor.setDynamic('ff');
     await editor.setTuplet(3);
     await editor.addGrace();
+    await editor.setBend('bend', 4);
     verifyNever(() => engine.edit(any()));
   });
 }

@@ -28,6 +28,7 @@ void main() {
     when(() => editor.setDynamic(any())).thenAnswer((_) async {});
     when(() => editor.setTuplet(any())).thenAnswer((_) async {});
     when(() => editor.addGrace()).thenAnswer((_) async {});
+    when(() => editor.setBend(any(), any())).thenAnswer((_) async {});
   });
 
   Future<void> pump(WidgetTester tester, EditorState state) async {
@@ -166,6 +167,38 @@ void main() {
     await pump(tester, const EditorState(position: _at, hasNote: true));
     await tester.tap(find.byTooltip('Slide'));
     verify(() => editor.toggle('slide')).called(1);
+  });
+
+  testWidgets('the bend chip opens the bend menu', (tester) async {
+    await pump(tester, const EditorState(position: _at, hasNote: true));
+    await tester.tap(find.byTooltip('Bend'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Bend and release'));
+    verify(() => editor.setBend('bendRelease', 4)).called(1);
+    await tester.tap(find.byTooltip('1½ tones'));
+    verify(() => editor.setBend('bend', 6)).called(1);
+  });
+
+  testWidgets('the bend menu shows the bend at the cursor', (tester) async {
+    await pump(
+      tester,
+      const EditorState(
+        position: _at,
+        hasNote: true,
+        techniques: {'bend'},
+        bendKind: 'prebend',
+        bendAmount: 2,
+      ),
+    );
+    expect(chip(tester, 'Bend').selected, isTrue);
+    await tester.tap(find.byTooltip('Bend'));
+    await tester.pumpAndSettle();
+    expect(chip(tester, 'Pre-bend').selected, isTrue);
+    expect(chip(tester, '½ tone').selected, isTrue);
+    await tester.tap(find.byTooltip('1½ tones'));
+    verify(() => editor.setBend('prebend', 6)).called(1);
+    await tester.tap(find.text('Remove bend'));
+    verify(() => editor.setBend(null, 2)).called(1);
   });
 
   testWidgets('note techniques need a note on the cursor string', (

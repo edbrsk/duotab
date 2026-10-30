@@ -4,7 +4,7 @@ import type { EditCommand, EditPosition } from '../protocol';
 import { History } from './history';
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from './operations';
 import { clampPosition, staffOf } from './position';
-import { activeTechniques, addGrace, setDynamic, setTuplet, toggleTechnique } from './techniques';
+import { activeTechniques, addGrace, bendAt, setBend, setDynamic, setTuplet, toggleTechnique } from './techniques';
 
 type Score = alphaTab.model.Score;
 
@@ -19,7 +19,10 @@ const shape = (score: Score, at: EditPosition) => {
             .map((b) => {
               const value = `${b.duration}.${b.dots}${b.isEmpty ? 'e' : ''}g${b.graceType}t${b.tupletNumerator}:${b.tupletDenominator}d${b.dynamics}`;
               const position = { ...at, bar: bar.index, voice: voice.index, beat: b.index };
-              const notes = b.notes.map((n) => `${n.string}/${n.fret}${activeTechniques(score, { ...position, string: n.string })}`);
+              const notes = b.notes.map((n) => {
+                const note = { ...position, string: n.string };
+                return `${n.string}/${n.fret}${activeTechniques(score, note)}${JSON.stringify(bendAt(score, note))}`;
+              });
               // String 0 has no note, so it lists only the beat techniques.
               return `${value}${activeTechniques(score, { ...position, string: 0 })}:${notes.sort()}`;
             })
@@ -72,6 +75,8 @@ export function runCommand(
         return setTuplet(score, at, command.tuplet, settings);
       case 'addGrace':
         return addGrace(score, at, settings);
+      case 'setBend':
+        return setBend(score, at, command.bend, settings);
     }
   })();
   const edited = shape(score, at) !== shapeBefore;

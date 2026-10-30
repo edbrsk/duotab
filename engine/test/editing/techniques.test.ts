@@ -5,14 +5,16 @@ import { checkBars } from '../../src/editing/bar_check';
 import {
   activeTechniques,
   addGrace,
+  bendAt,
   dynamicAt,
+  setBend,
   setDynamic,
   setTuplet,
   toggleTechnique,
   tupletAt,
 } from '../../src/editing/techniques';
 import { deleteNote, selectVoice, setDuration, setFret } from '../../src/editing/operations';
-import type { EditPosition, TechniqueId } from '../../src/protocol';
+import type { BendKind, EditPosition, TechniqueId } from '../../src/protocol';
 import { lineOfEighths, score, twoGuitarsAndDrums } from '../fixtures';
 
 const at = (bar: number, beat: number, string = 1, voice = 0): EditPosition => ({ track: 0, bar, voice, beat, string });
@@ -245,4 +247,57 @@ test('typing a fret on a tied note takes off the tie', () => {
   setFret(s, at(0, 5, 4), 3);
   expect(note(0, 5, 4)!.fret).toBe(3);
   expect(activeTechniques(s, at(0, 5, 4))).not.toContain('tie');
+});
+
+const BEND_POINTS: Record<BendKind, [number, number][]> = {
+  bend: [[0, 0], [15, 8], [60, 8]],
+  bendRelease: [[0, 0], [15, 8], [30, 8], [45, 0]],
+  prebend: [[0, 8], [60, 8]],
+  prebendRelease: [[0, 8], [15, 8], [45, 0]],
+};
+
+test('each bend kind sets its points', () => {
+  for (const kind of Object.keys(BEND_POINTS) as BendKind[]) {
+    setBend(s, at(0, 0, 4), { kind, amount: 8 });
+    expect(note(0, 0, 4)!.bendPoints!.map((p) => [p.offset, p.value]), kind).toEqual(BEND_POINTS[kind]);
+    expect(bendAt(s, at(0, 0, 4))).toEqual({ kind, amount: 8 });
+    expect(activeTechniques(s, at(0, 0, 4))).toContain('bend');
+  }
+});
+
+test('a bend survives the .gp round-trip', () => {
+  const kinds = Object.keys(BEND_POINTS) as BendKind[];
+  const positions = kinds.flatMap((kind, i) => [
+    [at(0, i, 4), { kind, amount: 2 }],
+    [at(1, i % 4, 1), { kind, amount: 12 }],
+  ] as const);
+  for (const kind of kinds) {
+    const settings = new alphaTab.Settings();
+    s = score(lineOfEighths);
+    for (const [position, bend] of positions.filter(([, b]) => b.kind === kind)) setBend(s, position, bend);
+    const reloaded = alphaTab.importer.ScoreLoader.loadScoreFromBytes(
+      new alphaTab.exporter.Gp7Exporter().export(s, settings),
+      settings,
+    );
+    for (const [position, bend] of positions.filter(([, b]) => b.kind === kind)) {
+      expect(bendAt(reloaded, position), `${kind} ${bend.amount}`).toEqual(bend);
+    }
+  }
+});
+
+test('setBend null removes the bend', () => {
+  setBend(s, at(0, 0, 4), { kind: 'prebend', amount: 4 });
+  setBend(s, at(0, 0, 4), null);
+  expect(bendAt(s, at(0, 0, 4))).toBeNull();
+  expect(activeTechniques(s, at(0, 0, 4))).not.toContain('bend');
+});
+
+test('an out-of-range bend amount is refused', () => {
+  expect(() => setBend(s, at(0, 0, 4), { kind: 'bend', amount: 0 })).toThrow('bend amount 0 out of range');
+  expect(() => setBend(s, at(0, 0, 4), { kind: 'bend', amount: 13 })).toThrow('bend amount 13 out of range');
+});
+
+test('a bend on an empty string does nothing', () => {
+  setBend(s, at(0, 0, 1), { kind: 'bend', amount: 4 });
+  expect(bendAt(s, at(0, 0, 1))).toBeNull();
 });

@@ -63,7 +63,10 @@ test('the state lists the techniques at the cursor', () => {
     dynamic: 'f',
     tuplet: 1,
     hasNote: true,
+    bend: null,
   });
+  session.command(s, { op: 'setBend', bend: { kind: 'bendRelease', amount: 6 } });
+  expect(session.state(s, true).beat?.bend).toEqual({ kind: 'bendRelease', amount: 6 });
   session.command(s, { op: 'move', direction: 'up' });
   expect(session.state(s, false).beat).toMatchObject({ techniques: [], hasNote: false });
 });

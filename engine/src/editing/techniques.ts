@@ -1,6 +1,6 @@
 import * as alphaTab from '@coderline/alphatab';
 
-import type { Dynamic, EditPosition, TechniqueId, Tuplet } from '../protocol';
+import type { Bend, BendKind, Dynamic, EditPosition, TechniqueId, Tuplet } from '../protocol';
 import { finishEdit } from './finish';
 import { idSource } from './ids';
 import { beatOf, voiceOf } from './position';
@@ -85,14 +85,8 @@ const TECHNIQUES: Record<TechniqueId, Technique> = {
   slide: noteField((n) => n.slideOutType, (n, v) => (n.slideOutType = v), SlideOutType.Shift, SlideOutType.None),
   bend: {
     level: 'note',
-    get: (n) => n.bendType === BendType.Bend,
-    set: (n, on) => {
-      n.bendPoints = null;
-      n.maxBendPoint = null;
-      n.bendType = on ? BendType.Bend : BendType.None;
-      // A full bend, in quarter tones, as Guitar Pro's default.
-      if (on) for (const [offset, value] of [[0, 0], [15, 4], [60, 4]]) n.addBendPoint(new BendPoint(offset, value));
-    },
+    get: (n) => n.hasBend,
+    set: (n, on) => applyBend(n, on ? { kind: 'bend', amount: 4 } : null),
   },
   vibrato: noteField((n) => n.vibrato, (n, v) => (n.vibrato = v), VibratoType.Slight, VibratoType.None),
   palmMute: noteFlag('isPalmMute'),
@@ -158,6 +152,47 @@ const TECHNIQUES: Record<TechniqueId, Technique> = {
   crescendo: crescendo(CrescendoType.Crescendo),
   diminuendo: crescendo(CrescendoType.Decrescendo),
 };
+
+// Offsets 0–60 across the note, with `a` the amount. Guitar Pro files hold at
+// most four points, and alphaTab writes no bend with more.
+const BEND_SHAPES: Record<BendKind, { type: alphaTab.model.BendType; points: (a: number) => [number, number][] }> = {
+  bend: { type: BendType.Bend, points: (a) => [[0, 0], [15, a], [60, a]] },
+  bendRelease: { type: BendType.BendRelease, points: (a) => [[0, 0], [15, a], [30, a], [45, 0]] },
+  prebend: { type: BendType.Prebend, points: (a) => [[0, a], [60, a]] },
+  prebendRelease: { type: BendType.PrebendRelease, points: (a) => [[0, a], [15, a], [45, 0]] },
+};
+
+const MAX_BEND = 12;
+
+function applyBend(n: Note, bend: Bend | null): void {
+  n.bendPoints = null;
+  n.maxBendPoint = null;
+  n.bendType = BendType.None;
+  if (!bend) return;
+  const shape = BEND_SHAPES[bend.kind];
+  n.bendType = shape.type;
+  for (const [offset, value] of shape.points(bend.amount)) n.addBendPoint(new BendPoint(offset, value));
+}
+
+/** A string without a note changes nothing. */
+export function setBend(score: Score, at: EditPosition, bend: Bend | null, settings = defaultSettings): EditPosition {
+  if (bend && (!Number.isInteger(bend.amount) || bend.amount < 1 || bend.amount > MAX_BEND)) {
+    throw new Error(`bend amount ${bend.amount} out of range`);
+  }
+  const note = noteAt(beatOf(score, at), at.string);
+  if (!note) return at;
+  applyBend(note, bend);
+  finishEdit(score, at, settings);
+  return at;
+}
+
+export function bendAt(score: Score, at: EditPosition): Bend | null {
+  const note = noteAt(beatOf(score, at), at.string);
+  if (!note?.hasBend || !note.bendPoints) return null;
+  const kind = (Object.keys(BEND_SHAPES) as BendKind[]).find((k) => BEND_SHAPES[k].type === note.bendType);
+  const amount = Math.max(...note.bendPoints.map((p) => p.value));
+  return kind && amount >= 1 && amount <= MAX_BEND ? { kind, amount } : null;
+}
 
 const TECHNIQUE_IDS = Object.keys(TECHNIQUES) as TechniqueId[];
 

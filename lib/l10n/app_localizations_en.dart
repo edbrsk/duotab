@@ -308,6 +308,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get vibrato => 'Vibrato';
 
   @override
+  String get bendRelease => 'Bend and release';
+
+  @override
+  String get prebend => 'Pre-bend';
+
+  @override
+  String get prebendRelease => 'Pre-bend and release';
+
+  @override
+  String get bendKind => 'Type';
+
+  @override
+  String get bendAmount => 'Amount';
+
+  @override
+  String get removeBend => 'Remove bend';
+
+  @override
+  String get fullBend => 'Full';
+
+  @override
+  String bendTone(String amount) {
+    return '$amount tone';
+  }
+
+  @override
+  String bendTones(String amount) {
+    return '$amount tones';
+  }
+
+  @override
   String get palmMute => 'Palm mute';
 
   @override

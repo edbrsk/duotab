@@ -24,6 +24,8 @@ class EditorState {
   final String? dynamicMark;
   final int tuplet;
   final bool hasNote;
+  final String? bendKind;
+  final int bendAmount;
 
   const EditorState({
     this.position,
@@ -36,6 +38,8 @@ class EditorState {
     this.dynamicMark,
     this.tuplet = 1,
     this.hasNote = false,
+    this.bendKind,
+    this.bendAmount = 4,
   });
 
   EditorState copyWith({int? duration, int? dots}) => EditorState(
@@ -49,6 +53,8 @@ class EditorState {
     dynamicMark: dynamicMark,
     tuplet: tuplet,
     hasNote: hasNote,
+    bendKind: bendKind,
+    bendAmount: bendAmount,
   );
 }
 
@@ -111,6 +117,10 @@ class EditorCubit extends Cubit<EditorState> {
 
   Future<void> addGrace() => _atCursor(const AddGrace());
 
+  /// A null [kind] removes the bend.
+  Future<void> setBend(String? kind, int amount) =>
+      _atCursor(SetBend(kind, amount));
+
   Future<void> _atCursor(EditCommand edit) async {
     if (state.position != null) await command(edit);
   }
@@ -138,6 +148,8 @@ class EditorCubit extends Cubit<EditorState> {
         dynamicMark: reply.dynamicMark,
         tuplet: reply.tuplet,
         hasNote: reply.hasNote,
+        bendKind: reply.bendKind,
+        bendAmount: reply.bendAmount,
       ),
     );
     if (reply.edited) {

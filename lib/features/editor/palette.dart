@@ -218,7 +218,7 @@ class Palette extends StatelessWidget {
             children: [
               technique('hammerPull', l10n.hammerPull, const _Text('H/P')),
               technique('slide', l10n.slide, const _Text('sl.')),
-              technique('bend', l10n.bend, const _Text('⤴')),
+              _BendChip(onNote: onNote),
               technique('vibrato', l10n.vibrato, const _Glyph(Smufl.vibrato)),
               technique('palmMute', l10n.palmMute, const _Text('P.M.')),
               technique('letRing', l10n.letRing, const _Text('let ring')),
@@ -361,3 +361,112 @@ class _Text extends StatelessWidget {
   Widget build(BuildContext context) =>
       Text(text, style: const TextStyle(fontSize: 14, height: 1));
 }
+
+/// Opens a menu of bend types and amounts, as Guitar Pro's bend dialog.
+class _BendChip extends StatelessWidget {
+  final bool onNote;
+
+  const _BendChip({required this.onNote});
+
+  static const _amounts = [
+    '¼',
+    '½',
+    '¾',
+    'full',
+    '1¼',
+    '1½',
+    '1¾',
+    '2',
+    '2¼',
+    '2½',
+    '2¾',
+    '3',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final editor = context.read<EditorCubit>();
+    final state = context.watch<EditorCubit>().state;
+    final kinds = {
+      'bend': l10n.bend,
+      'bendRelease': l10n.bendRelease,
+      'prebend': l10n.prebend,
+      'prebendRelease': l10n.prebendRelease,
+    };
+    String amountName(int amount, String label) => switch (amount) {
+      < 4 => l10n.bendTone(label),
+      4 => l10n.fullBend,
+      _ => l10n.bendTones(label),
+    };
+    final heading = Theme.of(context).textTheme.labelSmall;
+
+    return MenuAnchor(
+      menuChildren: [
+        Padding(
+          padding: const EdgeInsets.all(Spacing.sm),
+          child: SizedBox(
+            width: _bendMenuWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.bendKind.toUpperCase(), style: heading),
+                const SizedBox(height: Spacing.xs),
+                Wrap(
+                  spacing: Spacing.xs,
+                  runSpacing: Spacing.xs,
+                  children: [
+                    for (final MapEntry(key: kind, value: name)
+                        in kinds.entries)
+                      _Chip(
+                        tooltip: name,
+                        label: _Text(name),
+                        selected: state.bendKind == kind,
+                        onSelected: () =>
+                            editor.setBend(kind, state.bendAmount),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: Spacing.sm),
+                Text(l10n.bendAmount.toUpperCase(), style: heading),
+                const SizedBox(height: Spacing.xs),
+                Wrap(
+                  spacing: Spacing.xs,
+                  runSpacing: Spacing.xs,
+                  children: [
+                    for (final (i, label) in _amounts.indexed)
+                      _Chip(
+                        tooltip: amountName(i + 1, label),
+                        label: _Text(label),
+                        selected:
+                            state.bendKind != null && state.bendAmount == i + 1,
+                        onSelected: () =>
+                            editor.setBend(state.bendKind ?? 'bend', i + 1),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: Spacing.sm),
+                TextButton(
+                  onPressed:
+                      state.bendKind == null &&
+                          !state.techniques.contains('bend')
+                      ? null
+                      : () => editor.setBend(null, state.bendAmount),
+                  child: Text(l10n.removeBend),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+      builder: (context, controller, _) => _Chip(
+        tooltip: l10n.bend,
+        label: const _Text('⤴'),
+        selected: state.techniques.contains('bend'),
+        onSelected: onNote ? controller.open : null,
+      ),
+    );
+  }
+}
+
+const _bendMenuWidth = 280.0;

@@ -309,10 +309,10 @@ From the first simulator check:
 
 **Interfaces:**
 - Produces (protocol):
-  - `type BendKind = 'bend' | 'bendRelease' | 'release' | 'prebend' | 'prebendRelease'`;
+  - `type BendKind = 'bend' | 'bendRelease' | 'prebend' | 'prebendRelease'`. There is no Release: Guitar Pro reads one only on a tied note after a bend, and elsewhere it reads as a pre-bend and release;
   - `type Bend = { kind: BendKind; amount: number }`, where `amount` is in quarter tones, from 1 (¼) to 12 (3 tones);
   - `EditCommand` gains `{ op: 'setBend'; bend: Bend | null }`, where null removes the bend;
-  - `EditState.beat` gains `bend: Bend | null`. It is null for no bend, and for a bend shape outside the five kinds.
+  - `EditState.beat` gains `bend: Bend | null`. It is null for no bend, and for a bend shape outside the four kinds.
 - Produces (engine), in `techniques.ts`:
   - `setBend(score, at, bend: Bend | null)`, a no-op on a string with no note;
   - `bendAt(score, at): Bend | null`.
@@ -322,18 +322,17 @@ From the first simulator check:
   - `SetBend(String? kind, int amount)`;
   - `EditState` and `EditorState` gain `bendKind` (`String?`) and `bendAmount` (`int`, default 4);
   - `EditorCubit.setBend(String? kind, int amount)`, which waits for a cursor.
-- **The bend points** are in alphaTab's offset 0–60 and value in quarter tones, with `a` the amount:
+- **The bend points** are in alphaTab's offset 0–60 and value in quarter tones, with `a` the amount. Each shape has at most four points, because alphaTab writes no bend with more:
 
   | Kind | Points |
   |---|---|
   | `bend` | (0, 0) (15, a) (60, a) |
-  | `bendRelease` | (0, 0) (15, a) (30, a) (45, 0) (60, 0) |
-  | `release` | (0, a) (30, 0) (60, 0) |
+  | `bendRelease` | (0, 0) (15, a) (30, a) (45, 0) |
   | `prebend` | (0, a) (60, a) |
-  | `prebendRelease` | (0, a) (15, a) (45, 0) (60, 0) |
+  | `prebendRelease` | (0, a) (15, a) (45, 0) |
 
 - **Palette.** The Bend chip opens a menu instead of toggling. The menu has:
-  - a Type row of five chips: Bend, Bend and release, Release, Pre-bend, Pre-bend and release;
+  - a Type row of four chips: Bend, Bend and release, Pre-bend, Pre-bend and release;
   - an Amount row of twelve chips: ¼ ½ ¾ full 1¼ 1½ 1¾ 2 2¼ 2½ 2¾ 3;
   - a Remove bend button.
 

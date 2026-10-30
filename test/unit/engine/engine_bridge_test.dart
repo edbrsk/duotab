@@ -89,6 +89,7 @@ void main() {
           'dynamic': 'pp',
           'tuplet': 3,
           'hasNote': true,
+          'bend': {'kind': 'bendRelease', 'amount': 6},
         },
       },
     });
@@ -98,6 +99,8 @@ void main() {
     expect(s.dynamicMark, 'pp');
     expect(s.tuplet, 3);
     expect(s.hasNote, isTrue);
+    expect(s.bendKind, 'bendRelease');
+    expect(s.bendAmount, 6);
     expect(s.position!.bar, 2);
     expect(s.position!.string, 3);
     expect(s.issues.single.ticksOff, -480);
@@ -153,6 +156,11 @@ void main() {
     });
     expect(const SetTuplet(5).toJson(), {'op': 'setTuplet', 'tuplet': 5});
     expect(const AddGrace().toJson(), {'op': 'addGrace'});
+    expect(const SetBend('prebend', 8).toJson(), {
+      'op': 'setBend',
+      'bend': {'kind': 'prebend', 'amount': 8},
+    });
+    expect(const SetBend(null, 4).toJson(), {'op': 'setBend', 'bend': null});
   });
 
   test('answers a request with the reply carrying the same id', () async {

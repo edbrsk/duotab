@@ -664,6 +664,60 @@ abstract class AppLocalizations {
   /// **'Vibrato'**
   String get vibrato;
 
+  /// No description provided for @bendRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Bend and release'**
+  String get bendRelease;
+
+  /// No description provided for @prebend.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-bend'**
+  String get prebend;
+
+  /// No description provided for @prebendRelease.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-bend and release'**
+  String get prebendRelease;
+
+  /// No description provided for @bendKind.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get bendKind;
+
+  /// No description provided for @bendAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get bendAmount;
+
+  /// No description provided for @removeBend.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove bend'**
+  String get removeBend;
+
+  /// No description provided for @fullBend.
+  ///
+  /// In en, this message translates to:
+  /// **'Full'**
+  String get fullBend;
+
+  /// No description provided for @bendTone.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} tone'**
+  String bendTone(String amount);
+
+  /// No description provided for @bendTones.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} tones'**
+  String bendTones(String amount);
+
   /// No description provided for @palmMute.
   ///
   /// In en, this message translates to:

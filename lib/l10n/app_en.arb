@@ -137,6 +137,29 @@
   "slide": "Slide",
   "bend": "Bend",
   "vibrato": "Vibrato",
+  "bendRelease": "Bend and release",
+  "prebend": "Pre-bend",
+  "prebendRelease": "Pre-bend and release",
+  "bendKind": "Type",
+  "bendAmount": "Amount",
+  "removeBend": "Remove bend",
+  "fullBend": "Full",
+  "bendTone": "{amount} tone",
+  "@bendTone": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "bendTones": "{amount} tones",
+  "@bendTones": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "palmMute": "Palm mute",
   "letRing": "Let ring",
   "deadNote": "Dead note",

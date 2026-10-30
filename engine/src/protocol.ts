@@ -120,6 +120,11 @@ export type Dynamic = 'ppp' | 'pp' | 'p' | 'mp' | 'mf' | 'f' | 'ff' | 'fff';
 /** 1 is no tuplet; 3, 5 and 6 are 3:2, 5:4 and 6:4. */
 export type Tuplet = 1 | 3 | 5 | 6;
 
+export type BendKind = 'bend' | 'bendRelease' | 'prebend' | 'prebendRelease';
+
+/** `amount` in quarter tones: 1 is ¼ tone, 4 a full bend, 12 three tones. */
+export type Bend = { kind: BendKind; amount: number };
+
 export type EditCommand =
   | { op: 'setFret'; fret: number }
   | { op: 'deleteNote' }
@@ -131,7 +136,8 @@ export type EditCommand =
   | { op: 'toggle'; technique: TechniqueId }
   | { op: 'setDynamic'; dynamic: Dynamic }
   | { op: 'setTuplet'; tuplet: Tuplet }
-  | { op: 'addGrace' };
+  | { op: 'addGrace' }
+  | { op: 'setBend'; bend: Bend | null };
 
 export type EditPayload = { command: EditCommand };
 
@@ -155,6 +161,8 @@ export type EditState = {
     tuplet: Tuplet;
     /** The cursor string has a note, so note techniques apply. */
     hasNote: boolean;
+    /** Null also for a bend shape outside the four kinds. */
+    bend: Bend | null;
   } | null;
 };
 

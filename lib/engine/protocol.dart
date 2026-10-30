@@ -268,6 +268,13 @@ class EditState {
   /// The cursor string has a note, so note techniques apply.
   final bool hasNote;
 
+  /// `bend`, `bendRelease`, `prebend` or `prebendRelease`; null for no bend
+  /// or a shape the palette doesn't offer.
+  final String? bendKind;
+
+  /// In quarter tones, 1–12.
+  final int bendAmount;
+
   const EditState({
     required this.position,
     required this.issues,
@@ -281,10 +288,13 @@ class EditState {
     this.dynamicMark,
     this.tuplet = 1,
     this.hasNote = false,
+    this.bendKind,
+    this.bendAmount = 4,
   });
 
   factory EditState.fromJson(Map<String, dynamic> json) {
     final beat = json['beat'] as Map<String, dynamic>?;
+    final bend = beat?['bend'] as Map<String, dynamic>?;
     return EditState(
       position: switch (json['position']) {
         final Map<String, dynamic> p => EditPosition.fromJson(p),
@@ -307,6 +317,8 @@ class EditState {
       dynamicMark: beat?['dynamic'] as String?,
       tuplet: beat?['tuplet'] as int? ?? 1,
       hasNote: beat?['hasNote'] as bool? ?? false,
+      bendKind: bend?['kind'] as String?,
+      bendAmount: bend?['amount'] as int? ?? 4,
     );
   }
 }
@@ -315,7 +327,7 @@ class EditState {
 sealed class EditCommand {
   const EditCommand();
 
-  Map<String, Object> toJson();
+  Map<String, Object?> toJson();
 
   // Value equality, so a command can be matched in mocks and tests.
   @override
@@ -420,6 +432,22 @@ class AddGrace extends EditCommand {
 
   @override
   Map<String, Object> toJson() => {'op': 'addGrace'};
+}
+
+class SetBend extends EditCommand {
+  /// Null removes the bend.
+  final String? kind;
+
+  /// In quarter tones, 1–12.
+  final int amount;
+
+  const SetBend(this.kind, this.amount);
+
+  @override
+  Map<String, Object?> toJson() => {
+    'op': 'setBend',
+    'bend': kind == null ? null : {'kind': kind, 'amount': amount},
+  };
 }
 
 class Place extends EditCommand {

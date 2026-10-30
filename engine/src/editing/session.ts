@@ -6,7 +6,7 @@ import { checkBars } from './bar_check';
 import { runCommand } from './commands';
 import { History } from './history';
 import { beatOf, clampPosition } from './position';
-import { activeTechniques, dynamicAt, tupletAt } from './techniques';
+import { activeTechniques, bendAt, dynamicAt, tupletAt } from './techniques';
 
 type Score = alphaTab.model.Score;
 
@@ -75,6 +75,7 @@ export class EditSession {
               dynamic: dynamicAt(score, at),
               tuplet: tupletAt(score, at),
               hasNote: beat.notes.some((n) => n.string === at.string),
+              bend: bendAt(score, at),
             }
           : null,
     };
