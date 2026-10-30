@@ -332,6 +332,14 @@
   "deleteSongBody": "The file is removed from this iPhone and can't be recovered.",
   "deleteEditedBody": "The original file and your edited copy are removed from this iPhone and can't be recovered.",
   "edited": "Edited",
+  "songChangeFailed": "Couldn't change the song: {error}",
+  "@songChangeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "exportAsGp": "Export as .gp",
   "exportAsPdf": "Export as PDF",
   "revertToOriginal": "Revert to original",

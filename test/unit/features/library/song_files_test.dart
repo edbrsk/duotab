@@ -168,6 +168,18 @@ void main() {
       expect(doc('a.gp').existsSync(), isTrue);
     });
 
+    test("a copy not named after its original keeps a copy's name", () async {
+      doc('y.gp').writeAsBytesSync([8]);
+      doc('x (DuoScore).gp').writeAsBytesSync([2]);
+      await owned.addCopy('x (DuoScore).gp', of: 'y.gp');
+      expect(
+        await files.rename('x (DuoScore).gp', 'Z', original: 'y.gp'),
+        isNull,
+      );
+      expect(doc('Z.gp').readAsBytesSync(), [8]);
+      expect(doc('Z (DuoScore).gp').readAsBytesSync(), [2]);
+    });
+
     test('a later copy keeps its counter', () async {
       doc('a (DuoScore) (2).gp').writeAsBytesSync([2]);
       await owned.addCopy('a (DuoScore) (2).gp', of: 'a.gp');

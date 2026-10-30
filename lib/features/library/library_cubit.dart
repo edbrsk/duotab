@@ -27,37 +27,42 @@ class LibraryState {
 
 final _copyName = RegExp(r'^(.*) \(DuoScore\)( \(\d+\))?$');
 
-/// Each edited copy and the opened file it was made from, both in [paths].
-/// Copies made before the app recorded their original pair by name: an owned
-/// `X (DuoScore).gp` with an unowned `X` song beside it.
-Map<String, String> pairCopies(
+/// Recorded copies whose original is still in [paths], beside them.
+Map<String, String> recordedPairs(
   List<String> paths,
   Set<String> owned,
   Map<String, String> recorded,
 ) {
   final present = paths.toSet();
+  return {
+    for (final MapEntry(key: copy, value: original) in recorded.entries)
+      if (present.contains(copy) &&
+          owned.contains(copy) &&
+          present.contains(original) &&
+          !owned.contains(original))
+        copy: original,
+  };
+}
+
+/// Copies made before the app recorded their original, paired by name: an
+/// owned `X (DuoScore).gp` with exactly one unowned `X` song beside it.
+Map<String, String> namePairs(
+  List<String> paths,
+  Set<String> owned,
+  Map<String, String> recorded,
+) {
   final pairs = <String, String>{};
   for (final copy in paths) {
-    if (!owned.contains(copy)) continue;
-    final original =
-        recorded[copy] ??
-        switch (_copyName.firstMatch(p.basenameWithoutExtension(copy))) {
-          final match? =>
-            paths
-                .where(
-                  (o) =>
-                      !owned.contains(o) &&
-                      p.dirname(o) == p.dirname(copy) &&
-                      p.basenameWithoutExtension(o) == match.group(1),
-                )
-                .firstOrNull,
-          null => null,
-        };
-    if (original != null &&
-        present.contains(original) &&
-        !owned.contains(original)) {
-      pairs[copy] = original;
-    }
+    if (!owned.contains(copy) || recorded.containsKey(copy)) continue;
+    final match = _copyName.firstMatch(p.basenameWithoutExtension(copy));
+    if (match == null) continue;
+    final candidates = paths.where(
+      (o) =>
+          !owned.contains(o) &&
+          p.dirname(o) == p.dirname(copy) &&
+          p.basenameWithoutExtension(o) == match.group(1),
+    );
+    if (candidates.length == 1) pairs[copy] = candidates.single;
   }
   return pairs;
 }
@@ -86,11 +91,18 @@ class LibraryCubit extends Cubit<LibraryState> {
     ]);
     final paths = summarized.map((e) => e.path).toSet();
     _cache.removeWhere((path, _) => !paths.contains(path));
-    final pairs = pairCopies(
-      (paths.toList()..sort()),
-      await owned.all(),
-      await owned.originals(),
-    );
+    final sorted = paths.toList()..sort();
+    final ownedPaths = await owned.all();
+    // Once, for copies made before the app recorded them: a match by name
+    // later could hide, and then delete, another song the owner imported.
+    if (!await owned.pairedByName()) {
+      final named = namePairs(sorted, ownedPaths, await owned.originals());
+      for (final MapEntry(key: copy, value: original) in named.entries) {
+        await owned.addCopy(copy, of: original);
+      }
+      await owned.markPairedByName();
+    }
+    final pairs = recordedPairs(sorted, ownedPaths, await owned.originals());
     // The original stays as a backup; its copy is the song the owner edits.
     // The first copy by name, `X (DuoScore)`, takes the original's name.
     summarized.sort(

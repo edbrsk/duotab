@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/export/song_exporter.dart';
@@ -261,6 +263,80 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
     await tester.pumpAndSettle();
     expect(deleted, ['a (DuoScore).gp', 'a.gp']);
+  });
+
+  testWidgets('deleting one of two copies keeps the original', (tester) async {
+    final deleted = <String>[];
+    await pumpPage(
+      tester,
+      const LibraryState(
+        loading: false,
+        songs: [
+          SongListEntry(
+            path: 'a (DuoScore).gp',
+            name: 'a',
+            tuningLabel: null,
+            stringCount: 6,
+            readable: true,
+            original: 'a.gp',
+          ),
+          SongListEntry(
+            path: 'a (DuoScore) (2).gp',
+            name: 'a (DuoScore) (2)',
+            tuningLabel: null,
+            stringCount: 6,
+            readable: true,
+            original: 'a.gp',
+          ),
+        ],
+      ),
+      onDelete: (path) async => deleted.add(path),
+    );
+    await tester.tap(find.byTooltip('Song actions').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text("The file is removed from this iPhone and can't be recovered."),
+      findsOneWidget,
+    );
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+    expect(deleted, ['a (DuoScore) (2).gp']);
+  });
+
+  testWidgets('a delete that fails says so and still refreshes', (
+    tester,
+  ) async {
+    final library = await pumpPage(
+      tester,
+      riff,
+      onDelete: (_) async => throw const FileSystemException('locked'),
+    );
+    await chooseFromMenu(tester, 'Delete');
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining("Couldn't change the song"), findsOneWidget);
+    verify(library.refresh).called(2);
+  });
+
+  testWidgets('a rename that fails says so and still refreshes', (
+    tester,
+  ) async {
+    final library = await pumpPage(
+      tester,
+      riff,
+      onRename: (_, _, {original}) async =>
+          throw const FileSystemException('locked'),
+    );
+    await chooseFromMenu(tester, 'Rename');
+    await tester.enterText(find.byType(TextField), 'Other');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Rename'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
+    expect(find.textContaining("Couldn't change the song"), findsOneWidget);
+    verify(library.refresh).called(2);
   });
 
   testWidgets('renaming an edited song passes its original', (tester) async {

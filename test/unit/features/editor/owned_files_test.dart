@@ -46,4 +46,12 @@ void main() {
     await owned.remove('b.gp');
     expect(await owned.originals(), isEmpty);
   });
+
+  test('remembers that copies were paired once', () async {
+    expect(await owned.pairedByName(), isFalse);
+    await owned.markPairedByName();
+    expect(await owned.pairedByName(), isTrue);
+    await owned.add('a.gp');
+    expect(await owned.pairedByName(), isTrue);
+  });
 }

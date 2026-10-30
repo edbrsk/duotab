@@ -95,47 +95,84 @@ class _LibraryPageState extends State<LibraryPage> {
     return confirmed == true;
   }
 
-  Future<void> _delete(SongListEntry entry) async {
+  /// Another edited copy still stands for [entry]'s original.
+  bool _sharesOriginal(SongListEntry entry) => context
+      .read<LibraryCubit>()
+      .state
+      .songs
+      .any((e) => e.path != entry.path && e.original == entry.original);
+
+  /// Runs a change to the song files, then lists the songs as they are,
+  /// whether or not it got through.
+  Future<void> _change(Future<void> Function() change) async {
     final library = context.read<LibraryCubit>();
+    try {
+      await change();
+    } on Object catch (e) {
+      _reportFailure(e);
+    } finally {
+      await library.refresh();
+    }
+  }
+
+  void _reportFailure(Object e) {
     final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l10n.songChangeFailed('$e'))));
+  }
+
+  Future<void> _delete(SongListEntry entry) async {
+    final l10n = AppLocalizations.of(context)!;
+    final withOriginal = entry.original != null && !_sharesOriginal(entry);
     final confirmed = await _confirm(
       title: l10n.deleteSongQuestion(entry.name),
-      body: entry.original == null
-          ? l10n.deleteSongBody
-          : l10n.deleteEditedBody,
+      body: withOriginal ? l10n.deleteEditedBody : l10n.deleteSongBody,
       action: l10n.delete,
     );
     if (!confirmed) return;
-    await widget.onDelete(entry.path);
-    if (entry.original case final original?) await widget.onDelete(original);
-    await library.refresh();
+    await _change(() async {
+      await widget.onDelete(entry.path);
+      if (withOriginal) await widget.onDelete(entry.original!);
+    });
   }
 
-  /// Deletes the edited copy; the original it stood for is listed again.
+  /// Deletes the edited copy; the original it stood for is listed again,
+  /// unless another copy stands for it.
   Future<void> _revert(SongListEntry entry) async {
-    final library = context.read<LibraryCubit>();
     final l10n = AppLocalizations.of(context)!;
     final confirmed = await _confirm(
       title: l10n.revertSongQuestion(entry.name),
-      body: l10n.revertSongBody,
+      body: _sharesOriginal(entry) ? l10n.deleteSongBody : l10n.revertSongBody,
       action: l10n.revert,
     );
     if (!confirmed) return;
-    await widget.onDelete(entry.path);
-    await library.refresh();
+    await _change(() => widget.onDelete(entry.path));
   }
 
   Future<void> _rename(SongListEntry entry) async {
-    final library = context.read<LibraryCubit>();
-    final renamed = await showDialog<bool>(
+    Object? failure;
+    await showDialog<bool>(
       context: context,
       builder: (_) => _RenameDialog(
         name: entry.name,
-        onRename: (name) =>
-            widget.onRename(entry.path, name, original: entry.original),
+        // A failed move closes the dialog; the library then says so.
+        onRename: (name) async {
+          try {
+            return await widget.onRename(
+              entry.path,
+              name,
+              original: entry.original,
+            );
+          } on Object catch (e) {
+            failure = e;
+            return null;
+          }
+        },
       ),
     );
-    if (renamed == true) await library.refresh();
+    if (!mounted) return;
+    if (failure case final e?) _reportFailure(e);
+    await context.read<LibraryCubit>().refresh();
   }
 
   @override

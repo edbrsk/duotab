@@ -209,6 +209,24 @@ void main() {
       ).called(1);
     });
 
+    test(
+      'a first edit saved by the export is exported from its copy',
+      () async {
+        File(p.join(documents.path, 'a (DuoScore).gp')).writeAsBytesSync([6]);
+        var path = 'a.gp';
+        when(() => score.state).thenAnswer(
+          (_) => ScoreState(
+            song: const SongSummary(title: 'a', tracks: []),
+            path: path,
+          ),
+        );
+        when(() => saver.flush())
+            .thenAnswer((_) async => path = 'a (DuoScore).gp');
+        await exporter.shareFile('a.gp', 'a', ExportFormat.gp, anchor);
+        expect(await File(exportPath('a.gp')).readAsBytes(), [6]);
+      },
+    );
+
     test('pending edits are saved before the export', () async {
       File(p.join(documents.path, 'a.gp')).writeAsBytesSync([1]);
       await exporter.shareFile('a.gp', 'a', ExportFormat.gp, anchor);

@@ -206,6 +206,25 @@ void main() {
       },
     );
 
+    test('copies are paired by name only once', () async {
+      File('${documents.path}/c (DuoScore).gp').writeAsBytesSync([3]);
+      await owned.add('c (DuoScore).gp');
+      await songs();
+      File('${documents.path}/c.gp').writeAsBytesSync([4]);
+      final entries = await songs();
+      expect(entries.map((e) => e.name), ['a', 'b', 'c', 'c (DuoScore)']);
+      expect(entries.every((e) => e.original == null), isTrue);
+    });
+
+    test('a copy whose name fits two songs pairs with neither', () async {
+      File('${documents.path}/b.gpx').writeAsBytesSync([5]);
+      File('${documents.path}/b (DuoScore).gp').writeAsBytesSync([3]);
+      await owned.add('b (DuoScore).gp');
+      final entries = await songs();
+      expect(entries.every((e) => e.original == null), isTrue);
+      expect(entries, hasLength(4));
+    });
+
     test('a second copy of one original keeps its own name', () async {
       File('${documents.path}/b (DuoScore).gp').writeAsBytesSync([3]);
       File('${documents.path}/b (DuoScore) (2).gp').writeAsBytesSync([4]);

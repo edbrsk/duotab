@@ -1312,6 +1312,12 @@ abstract class AppLocalizations {
   /// **'Edited'**
   String get edited;
 
+  /// No description provided for @songChangeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change the song: {error}'**
+  String songChangeFailed(String error);
+
   /// No description provided for @exportAsGp.
   ///
   /// In en, this message translates to:

@@ -680,6 +680,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get edited => 'Edited';
 
   @override
+  String songChangeFailed(String error) {
+    return 'Couldn\'t change the song: $error';
+  }
+
+  @override
   String get exportAsGp => 'Export as .gp';
 
   @override

@@ -54,20 +54,26 @@ class SongExporter {
     ExportFormat format,
     Rect anchor,
   ) async {
-    // The open song's file may be behind its edits.
+    // The open song's file may be behind its edits, and its first edit makes
+    // the copy that holds them.
+    final open = score.state.path == path;
     await saver.flush();
     await saver.idle;
+    final source = open ? score.state.path ?? path : path;
     final file = await _exportFile(name, format);
     switch (format) {
       case ExportFormat.gp:
-        if (p.extension(path).toLowerCase() == '.gp') {
-          await File(p.join(documents.path, path)).copy(file.path);
+        if (p.extension(source).toLowerCase() == '.gp') {
+          await File(p.join(documents.path, source)).copy(file.path);
         } else {
-          await file.writeAsBytes(await engine.exportFileGp(path), flush: true);
+          await file.writeAsBytes(
+            await engine.exportFileGp(source),
+            flush: true,
+          );
         }
       case ExportFormat.pdf:
-        final tracks = (await practice.load(path))?.tracks ?? const {};
-        final pages = await engine.exportFilePdf(path, [
+        final tracks = (await practice.load(source))?.tracks ?? const {};
+        final pages = await engine.exportFilePdf(source, [
           for (final MapEntry(key: index, value: track) in tracks.entries)
             StaffView(
               index: index,

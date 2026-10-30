@@ -14,6 +14,16 @@ class OwnedFiles {
   /// Each edited copy and the opened file it was made from.
   Future<Map<String, String>> originals() async => (await _read()).originals;
 
+  /// Copies made before the app recorded their original were paired by name,
+  /// once; from then on only records pair.
+  Future<bool> pairedByName() async =>
+      (await file.read())['pairedByName'] == true;
+
+  Future<void> markPairedByName() async {
+    final state = await _read();
+    await _write(state, pairedByName: true);
+  }
+
   Future<void> add(String path) async {
     final state = await _read();
     if (state.paths.add(path)) await _write(state);
@@ -72,7 +82,11 @@ class OwnedFiles {
   }
 
   Future<void> _write(
-    ({Set<String> paths, Map<String, String> originals}) state,
-  ) =>
-      file.write({'paths': state.paths.toList(), 'originals': state.originals});
+    ({Set<String> paths, Map<String, String> originals}) state, {
+    bool? pairedByName,
+  }) async => file.write({
+    'paths': state.paths.toList(),
+    'originals': state.originals,
+    'pairedByName': pairedByName ?? await this.pairedByName(),
+  });
 }

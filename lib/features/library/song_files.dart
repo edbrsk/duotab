@@ -50,6 +50,11 @@ class SongFiles {
       if (original != null) (original, _renamed(original, trimmed)),
       (path, _renamed(path, _copyName(path, original, trimmed))),
     ];
+    // Two files moved onto one name would leave only the second.
+    if (moves.length == 2 &&
+        moves.first.$2.toLowerCase() == moves.last.$2.toLowerCase()) {
+      return NameProblem.taken;
+    }
     for (final (from, to) in moves) {
       // Only the case changing finds the song itself on a case-insensitive disk.
       if (to != from &&
@@ -68,14 +73,13 @@ class SongFiles {
       p.normalize(p.join(p.dirname(path), '$name${p.extension(path)}'));
 
   /// A copy named after its original keeps what follows that name, such as
-  /// " (DuoScore) (2)".
+  /// " (DuoScore) (2)"; any other copy is named as a first copy would be.
   static String _copyName(String copy, String? original, String name) {
+    if (original == null) return name;
     final copyName = p.basenameWithoutExtension(copy);
-    final originalName = original == null
-        ? null
-        : p.basenameWithoutExtension(original);
-    if (originalName == null || !copyName.startsWith(originalName)) {
-      return name;
+    final originalName = p.basenameWithoutExtension(original);
+    if (!copyName.startsWith('$originalName (DuoScore)')) {
+      return '$name (DuoScore)';
     }
     return '$name${copyName.substring(originalName.length)}';
   }
