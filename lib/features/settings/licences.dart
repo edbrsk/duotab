@@ -13,7 +13,7 @@ void registerBundledLicences(AssetBundle bundle) {
       'Bravura',
     ], await bundle.loadString('assets/engine/alphatab/font/Bravura-OFL.txt'));
     yield LicenseEntryWithLineBreaks(const [
-      'Sonivox SoundFont',
-    ], await bundle.loadString('assets/engine/alphatab/soundfont/LICENSE'));
+      'GeneralUser GS',
+    ], await bundle.loadString('assets/engine/soundfont/LICENSE.txt'));
   });
 }

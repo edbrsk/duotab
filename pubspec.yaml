@@ -60,7 +60,7 @@ flutter:
     - assets/engine/
     - assets/engine/alphatab/
     - assets/engine/alphatab/font/
-    - assets/engine/alphatab/soundfont/
+    - assets/engine/soundfont/
   # Bravura (SIL OFL), from the engine build: the palette draws real notation symbols.
   fonts:
     - family: Bravura

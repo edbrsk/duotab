@@ -59,7 +59,7 @@ const settings = new alphaTab.Settings();
 settings.core.fontDirectory = pageUrl('./alphatab/font/');
 settings.display.staveProfile = alphaTab.StaveProfile.ScoreTab;
 settings.player.playerMode = alphaTab.PlayerMode.EnabledSynthesizer;
-settings.player.soundFont = pageUrl('./alphatab/soundfont/sonivox.sf2');
+settings.player.soundFont = pageUrl('./soundfont/GeneralUser-GS.sf2');
 settings.player.enableCursor = true;
 settings.player.scrollElement = document.scrollingElement as HTMLElement;
 // Taps are resolved to strings from the layout, which only exists on the page

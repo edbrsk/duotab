@@ -22,7 +22,8 @@ await build({
 });
 
 cpSync(join(here, 'index.html'), join(out, 'index.html'));
-for (const name of ['alphaTab.mjs', 'alphaTab.core.mjs', 'alphaTab.worker.mjs', 'alphaTab.worklet.mjs', 'font', 'soundfont']) {
+for (const name of ['alphaTab.mjs', 'alphaTab.core.mjs', 'alphaTab.worker.mjs', 'alphaTab.worklet.mjs', 'font']) {
   cpSync(join(dist, name), join(out, 'alphatab', name), { recursive: true });
 }
 cpSync(join(here, 'node_modules', '@coderline', 'alphatab', 'LICENSE'), join(out, 'alphatab', 'LICENSE'));
+cpSync(join(here, 'soundfont'), join(out, 'soundfont'), { recursive: true });

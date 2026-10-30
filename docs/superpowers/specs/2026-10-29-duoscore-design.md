@@ -42,7 +42,7 @@ These count as failures even if every feature works:
 - **Toolchain**: Flutter 3.47.8 stable (installed), Xcode 27.1 with the iOS 27.1 SDK. Apps built with this SDK draw edge to edge on both displays and get vertical toolbars below the status bar ([Apple: Prepare](https://developer.apple.com/iphone-duo/prepare/)).
 - **Apple's layout rules for iPhone Duo** apply: size from the view or window and re-read it on every resize, no layout decisions from device orientation, idiom or fixed screen sizes, any size-class combination can occur.
 - **Flutter has no fold awareness on iOS**: `MediaQuery.displayFeatures` is always empty there ([flutter/flutter#192515](https://github.com/flutter/flutter/issues/192515), open). Resizing and the asymmetric safe areas do reach Dart through `LayoutBuilder` and `MediaQuery.paddingOf`. The hinge and the vertical-bar edge need native bridges.
-- **Licences**: bundled code and assets must allow redistribution in an app, and each licence is shown in the app's licence screen: alphaTab (MPL-2.0, shipped unmodified, with a link to its source), the Bravura font (SIL OFL), the Sonivox SoundFont (Apache-2.0). LGPL Dart packages are avoided because the app ships as a single statically linked binary.
+- **Licences**: bundled code and assets must allow redistribution in an app, and each licence is shown in the app's licence screen: alphaTab (MPL-2.0, shipped unmodified, with a link to its source), the Bravura font (SIL OFL), the GeneralUser GS SoundFont (its own licence: free to use in software projects). LGPL Dart packages are avoided because the app ships as a single statically linked binary.
 
 ## Decisions
 
@@ -97,7 +97,7 @@ Chosen by the [engine spike](../spikes/2026-10-29-engine-spike.md): on the owner
 ### Playback
 
 - **Player**: alphaTab's synthesizer, which turns the song (all tracks, tempo changes, dynamics and techniques) into MIDI and plays it in the web view. The engine exposes play, pause, seek, speed, loop range, mute/solo, program change, count-in, metronome and a single-note preview for editing, and pushes the playback position so the cursor (drawn by alphaTab) and Flutter's transport stay in step.
-- **SoundFont**: `sonivox.sf2` (1.3 MB, Apache-2.0), shipped with alphaTab.
+- **SoundFont**: `GeneralUser-GS.sf2` v2.0.3 (32 MB), chosen by ear over MuseScore General, FluidR3 GM and Sonivox. The engine raises its output 2× through a peak limiter, which keeps loud songs from clipping.
 - **Tones** map to General MIDI programs (1-based): Clean = 28 Electric Guitar (clean), Overdrive = 30 Overdriven Guitar, High gain = 31 Distortion Guitar. A guitar track starts with its file's program when that is one of these three, otherwise Clean.
 - **Practice settings** (tone, mute/solo, volume, speed, loop, the staves drawn) are kept by the app per file, outside the song file, so practising never modifies or copies a file. When the song is saved, each guitar track's tone is written as its MIDI program and each track's volume as its mixer volume.
 - **Other tracks** play with their file's program; drums play with the SoundFont's percussion bank.
@@ -186,7 +186,6 @@ If alphaTab cannot draw or play inside `WKWebView` on the device, the plan stops
 ## Later phases (separate designs)
 
 - **Drums**: drum tracks drawn and edited as drum notation, with their own palette and input. The v1 model already records each track's instrument kind, so drums add a view and an editor without changing the model.
-- **Sound bank**: the three tones sound alike with Sonivox. A throwaway comparison in the app (GeneralUser GS, MuseScore General, FluidR3 GM, Sonivox) lets the owner choose by ear the bank closest to Guitar Pro 8's MIDI sound; the chosen bank replaces Sonivox and its licence joins the licence screen.
 
 ## References
 
