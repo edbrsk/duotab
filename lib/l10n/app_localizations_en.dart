@@ -559,6 +559,57 @@ class AppLocalizationsEn extends AppLocalizations {
   String get changeTitle => 'Change title';
 
   @override
+  String get retune => 'Retune…';
+
+  @override
+  String retuneHeading(String track) {
+    return 'Retune $track';
+  }
+
+  @override
+  String get retuneHint => 'Every note keeps its pitch; frets move.';
+
+  @override
+  String get retuneConfirm => 'Retune';
+
+  @override
+  String retuneReport(int moved, int unplayable) {
+    String _temp0 = intl.Intl.pluralLogic(
+      moved,
+      locale: localeName,
+      other: '$moved notes moved to another string',
+      one: '1 note moved to another string',
+      zero: 'No notes moved',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      unplayable,
+      locale: localeName,
+      other: '$unplayable can\'t be played',
+      one: '1 can\'t be played',
+      zero: 'all can be played',
+    );
+    return '$_temp0, $_temp1';
+  }
+
+  @override
+  String get octaveUp => 'Octave up';
+
+  @override
+  String get octaveDown => 'Octave down';
+
+  @override
+  String unplayableOnOpen(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count notes can\'t be played in this tuning. They\'re marked in red.',
+      one: '1 note can\'t be played in this tuning. It\'s marked in red.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get export => 'Export';
 
   @override

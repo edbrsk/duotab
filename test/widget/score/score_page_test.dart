@@ -69,16 +69,18 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: MultiBlocProvider(
-          providers: [
-            BlocProvider.value(value: cubit),
-            BlocProvider<PlaybackCubit>.value(value: playback),
-            BlocProvider<EditorCubit>.value(value: editor),
-            BlocProvider<SettingsCubit>.value(value: settings),
-          ],
-          child: ScorePage(
-            engineView: const Text('engine view'),
-            onExport: onExport,
+        home: Scaffold(
+          body: MultiBlocProvider(
+            providers: [
+              BlocProvider.value(value: cubit),
+              BlocProvider<PlaybackCubit>.value(value: playback),
+              BlocProvider<EditorCubit>.value(value: editor),
+              BlocProvider<SettingsCubit>.value(value: settings),
+            ],
+            child: ScorePage(
+              engineView: const Text('engine view'),
+              onExport: onExport,
+            ),
           ),
         ),
       ),
@@ -95,6 +97,34 @@ void main() {
     await cubit.open('fixture.gp');
     await tester.pump();
     expect(find.byType(ExportButton), findsOneWidget);
+  });
+
+  testWidgets('an opened song with unplayable notes says so once', (
+    tester,
+  ) async {
+    when(() => engine.open('xml.musicxml')).thenAnswer(
+      (_) async => SongSummary(
+        title: 'Part',
+        tracks: drumsAndTwoGuitars.tracks,
+        unplayableNotes: 3,
+      ),
+    );
+    await pumpPage(tester);
+    await cubit.open('xml.musicxml');
+    await tester.pump();
+    const message =
+        "3 notes can't be played in this tuning. They're marked in red.";
+    expect(find.text(message), findsOneWidget);
+
+    cubit.applyEdit(
+      SongSummary(
+        title: 'Part',
+        tracks: drumsAndTwoGuitars.tracks,
+        unplayableNotes: 3,
+      ),
+    );
+    await tester.pump();
+    expect(find.text(message), findsOneWidget);
   });
 
   testWidgets('a long title beside the export button does not overflow', (

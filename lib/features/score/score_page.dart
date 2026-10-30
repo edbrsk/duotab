@@ -44,85 +44,96 @@ class ScorePage extends StatelessWidget {
       (c) => c.state.paletteCollapsed,
     );
 
-    return WorkspaceLayout(
-      palette: state.song != null ? const Palette() : null,
-      paletteCollapsed: paletteCollapsed,
-      onTogglePalette: () => context.read<SettingsCubit>().setPaletteCollapsed(
-        collapsed: !paletteCollapsed,
+    return BlocListener<ScoreCubit, ScoreState>(
+      // Once per opened song: edits replace the song but keep its openId.
+      listenWhen: (before, after) =>
+          after.openId != before.openId &&
+          (after.song?.unplayableNotes ?? 0) > 0,
+      listener: (context, state) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.unplayableOnOpen(state.song!.unplayableNotes)),
+        ),
       ),
-      trackPanel: const TrackInfoPanel(),
-      trackPanelCollapsed: collapsed,
-      onToggleTrackPanel: () => context
-          .read<SettingsCubit>()
-          .setTrackPanelCollapsed(collapsed: !collapsed),
-      transport: state.song != null ? const TransportBar() : null,
-      drawer: state.song != null ? const TrackDrawer() : null,
-      score: Column(
-        children: [
-          if (state.song case final song?)
-            Padding(
-              padding: EdgeInsets.only(
-                top: MediaQuery.paddingOf(context).top + Spacing.sm,
-                bottom: Spacing.xs,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Tooltip(
-                      message: l10n.changeTitle,
-                      child: TextButton.icon(
-                        onPressed: () async {
-                          final editor = context.read<EditorCubit>();
-                          final title = await showDialog<String>(
-                            context: context,
-                            builder: (_) => TitleDialog(title: song.title),
-                          );
-                          if (title != null) await editor.setTitle(title);
-                        },
-                        iconAlignment: IconAlignment.end,
-                        icon: const Icon(Icons.edit, color: Colors.black38),
-                        label: Text(
-                          song.title,
-                          style: textTheme.titleMedium?.copyWith(
-                            color: Colors.black87,
-                            fontFamily: 'Georgia',
+      child: WorkspaceLayout(
+        palette: state.song != null ? const Palette() : null,
+        paletteCollapsed: paletteCollapsed,
+        onTogglePalette: () => context
+            .read<SettingsCubit>()
+            .setPaletteCollapsed(collapsed: !paletteCollapsed),
+        trackPanel: const TrackInfoPanel(),
+        trackPanelCollapsed: collapsed,
+        onToggleTrackPanel: () => context
+            .read<SettingsCubit>()
+            .setTrackPanelCollapsed(collapsed: !collapsed),
+        transport: state.song != null ? const TransportBar() : null,
+        drawer: state.song != null ? const TrackDrawer() : null,
+        score: Column(
+          children: [
+            if (state.song case final song?)
+              Padding(
+                padding: EdgeInsets.only(
+                  top: MediaQuery.paddingOf(context).top + Spacing.sm,
+                  bottom: Spacing.xs,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Tooltip(
+                        message: l10n.changeTitle,
+                        child: TextButton.icon(
+                          onPressed: () async {
+                            final editor = context.read<EditorCubit>();
+                            final title = await showDialog<String>(
+                              context: context,
+                              builder: (_) => TitleDialog(title: song.title),
+                            );
+                            if (title != null) await editor.setTitle(title);
+                          },
+                          iconAlignment: IconAlignment.end,
+                          icon: const Icon(Icons.edit, color: Colors.black38),
+                          label: Text(
+                            song.title,
+                            style: textTheme.titleMedium?.copyWith(
+                              color: Colors.black87,
+                              fontFamily: 'Georgia',
+                            ),
                           ),
                         ),
                       ),
                     ),
+                    if (onExport case final onExport?)
+                      ExportButton(
+                        onExport: onExport,
+                        canExportPdf: song.guitarTracks.isNotEmpty,
+                      ),
+                  ],
+                ),
+              ),
+            Expanded(
+              // The engine stays mounted even with nothing to show: it also
+              // answers the library's requests.
+              child: Stack(
+                children: [
+                  Offstage(
+                    offstage: message != null,
+                    child: engineView ?? const EngineView(),
                   ),
-                  if (onExport case final onExport?)
-                    ExportButton(
-                      onExport: onExport,
-                      canExportPdf: song.guitarTracks.isNotEmpty,
+                  if (message != null)
+                    Center(
+                      child: Text(
+                        message,
+                        style: textTheme.titleMedium?.copyWith(
+                          color: Colors.black54,
+                        ),
+                      ),
                     ),
+                  if (state.loading) const LinearProgressIndicator(),
                 ],
               ),
             ),
-          Expanded(
-            // The engine stays mounted even with nothing to show: it also
-            // answers the library's requests.
-            child: Stack(
-              children: [
-                Offstage(
-                  offstage: message != null,
-                  child: engineView ?? const EngineView(),
-                ),
-                if (message != null)
-                  Center(
-                    child: Text(
-                      message,
-                      style: textTheme.titleMedium?.copyWith(
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ),
-                if (state.loading) const LinearProgressIndicator(),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

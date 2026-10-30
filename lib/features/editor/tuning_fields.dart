@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/design/design_tokens.dart';
@@ -37,7 +38,11 @@ Widget labelledField(String label, Widget child) => Padding(
 class TuningFields extends StatefulWidget {
   final ValueChanged<List<int>> onChanged;
 
-  const TuningFields({required this.onChanged, super.key});
+  /// Where the fields start, top string first; ignored when the dropdowns
+  /// cannot show it, which then start at the first 6-string preset.
+  final List<int>? initial;
+
+  const TuningFields({required this.onChanged, this.initial, super.key});
 
   @override
   State<TuningFields> createState() => _TuningFieldsState();
@@ -49,6 +54,28 @@ class _TuningFieldsState extends State<TuningFields> {
   /// A preset's name, or null for a custom tuning.
   String? _preset = tuningPresets(6).first.name;
   var _tuning = [...tuningPresets(6).first.tuning];
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    if (initial == null || !_fits(initial)) return;
+    _strings = initial.length;
+    _tuning = [...initial];
+    _preset = tuningPresets(_strings)
+        .where((p) => listEquals(p.tuning, initial))
+        .firstOrNull
+        ?.name;
+  }
+
+  /// A custom string's dropdown spans an octave either side of the preset.
+  static bool _fits(List<int> tuning) {
+    if (!const [6, 7, 8].contains(tuning.length)) return false;
+    final base = tuningPresets(tuning.length).first.tuning;
+    return [
+      for (final (i, note) in tuning.indexed) (note - base[i]).abs() <= 12,
+    ].every((ok) => ok);
+  }
 
   void _changed() => widget.onChanged([..._tuning]);
 

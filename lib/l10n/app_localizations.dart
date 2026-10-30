@@ -1138,6 +1138,54 @@ abstract class AppLocalizations {
   /// **'Change title'**
   String get changeTitle;
 
+  /// No description provided for @retune.
+  ///
+  /// In en, this message translates to:
+  /// **'Retune…'**
+  String get retune;
+
+  /// No description provided for @retuneHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Retune {track}'**
+  String retuneHeading(String track);
+
+  /// No description provided for @retuneHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Every note keeps its pitch; frets move.'**
+  String get retuneHint;
+
+  /// No description provided for @retuneConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Retune'**
+  String get retuneConfirm;
+
+  /// No description provided for @retuneReport.
+  ///
+  /// In en, this message translates to:
+  /// **'{moved, plural, =0{No notes moved} =1{1 note moved to another string} other{{moved} notes moved to another string}}, {unplayable, plural, =0{all can be played} =1{1 can\'t be played} other{{unplayable} can\'t be played}}'**
+  String retuneReport(int moved, int unplayable);
+
+  /// No description provided for @octaveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Octave up'**
+  String get octaveUp;
+
+  /// No description provided for @octaveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Octave down'**
+  String get octaveDown;
+
+  /// No description provided for @unplayableOnOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 note can\'t be played in this tuning. It\'s marked in red.} other{{count} notes can\'t be played in this tuning. They\'re marked in red.}}'**
+  String unplayableOnOpen(int count);
+
   /// No description provided for @export.
   ///
   /// In en, this message translates to:

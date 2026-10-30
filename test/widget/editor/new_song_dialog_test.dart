@@ -104,4 +104,13 @@ void main() {
     expect(options.tempo, 120);
     expect([options.numerator, options.denominator], [4, 4]);
   });
+
+  testWidgets('new song still starts at 6-string standard E', (tester) async {
+    final result = await open(tester);
+    await tester.enterText(find.byKey(const Key('title')), 'Riff');
+    await tester.pump();
+    await tester.tap(find.text('Create'));
+    await tester.pumpAndSettle();
+    expect((await result)!.tuning, [64, 59, 55, 50, 45, 40]);
+  });
 }

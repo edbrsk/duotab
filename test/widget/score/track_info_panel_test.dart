@@ -165,4 +165,75 @@ void main() {
     await tester.pumpAndSettle();
     verify(() => editor.renameTrack(1, 'Lead')).called(1);
   });
+
+  testWidgets('Retune opens the dialog and sends the chosen tuning', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(951, 1400);
+    when(() => editor.retune(any(), any(), octave: any(named: 'octave')))
+        .thenAnswer((_) async {});
+    await pump(tester, drawn);
+    tester.view.physicalSize = const Size(951, 1400);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retune…'));
+    await tester.pumpAndSettle();
+    expect(find.text('Retune Guitar 1'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('tuning')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Standard E').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Retune'));
+    await tester.pumpAndSettle();
+    verify(() => editor.retune(1, [64, 59, 55, 50, 45, 40])).called(1);
+  });
+
+  EditorState reported({int moved = 12, int unplayable = 3, int octave = 0}) =>
+      EditorState(
+        retune: RetuneReport(
+          track: 1,
+          tuning: const [64, 59, 55, 50, 45, 40],
+          octave: octave,
+          moved: moved,
+          unplayable: unplayable,
+        ),
+      );
+
+  testWidgets('the report shows the counts with Undo and the octave buttons', (
+    tester,
+  ) async {
+    when(() => editor.state).thenReturn(reported());
+    when(() => editor.undo()).thenAnswer((_) async {});
+    when(() => editor.retuneOctave(any())).thenAnswer((_) async {});
+    await pump(tester, drawn);
+    expect(
+      find.text("12 notes moved to another string, 3 can't be played"),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.text('Octave up'));
+    await tester.tap(find.text('Undo'));
+    await tester.tap(find.text('Octave up'));
+    await tester.tap(find.text('Octave down'));
+    verify(() => editor.undo()).called(1);
+    verify(() => editor.retuneOctave(1)).called(1);
+    verify(() => editor.retuneOctave(-1)).called(1);
+  });
+
+  testWidgets('Octave up is disabled at +2', (tester) async {
+    when(() => editor.state).thenReturn(reported(octave: 2));
+    await pump(tester, drawn);
+    final up = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Octave up'),
+    );
+    final down = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Octave down'),
+    );
+    expect(up.onPressed, isNull);
+    expect(down.onPressed, isNotNull);
+  });
+
+  testWidgets('no report shows when both counts are zero', (tester) async {
+    when(() => editor.state).thenReturn(reported(moved: 0, unplayable: 0));
+    await pump(tester, drawn);
+    expect(find.text('Octave up'), findsNothing);
+  });
 }
