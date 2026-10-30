@@ -1,12 +1,14 @@
 import * as alphaTab from '@coderline/alphatab';
 import { expect, test } from 'vitest';
 
-import { playEffectsUnderTremolo } from '../src/midi_effects';
+import { glideFinely, playEffectsUnderTremolo } from '../src/midi_effects';
 import { score } from './fixtures';
 
 // A subclass, so alphaTab's own generator stays for comparison.
 class Fixed extends alphaTab.midi.MidiFileGenerator {}
 playEffectsUnderTremolo(Fixed);
+// alphaTab reads the step sizes from its own class, so both generators glide finely.
+glideFinely(alphaTab.midi.MidiFileGenerator);
 
 const BAR = 3840;
 
@@ -146,4 +148,10 @@ test('tied tremolo-picked notes strike once on every eighth', () => {
     .filter((e) => e instanceof alphaTab.midi.NoteOnEvent)
     .map((e) => e.tick);
   expect(strikes).toEqual(Array.from({ length: 32 }, (_, i) => i * 480));
+});
+
+test('a dive glides in steps too small to hear', () => {
+  const curve = pitchCurve(dive(true), 3 * BAR, 10) as number[];
+  const steps = curve.slice(1).map((p, i) => Math.abs(p - curve[i]));
+  expect(Math.max(...steps)).toBeLessThanOrEqual(0.05);
 });

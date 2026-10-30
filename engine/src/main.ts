@@ -1,7 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import { Mixer } from './mixer';
-import { playEffectsUnderTremolo } from './midi_effects';
+import { glideFinely, playEffectsUnderTremolo } from './midi_effects';
 import { Limiter, limitOutput } from './output_level';
 import { movesTicks, TRACK_OPS } from './editing/commands';
 import { hitTest } from './editing/hit_test';
@@ -58,6 +58,7 @@ const pageUrl = (relative: string) => new URL(relative, location.href).href;
 const songUrl = (path: string) => pageUrl(`../songs/${path.split('/').map(encodeURIComponent).join('/')}`);
 
 playEffectsUnderTremolo(alphaTab.midi.MidiFileGenerator);
+glideFinely(alphaTab.midi.MidiFileGenerator);
 
 const settings = new alphaTab.Settings();
 settings.core.fontDirectory = pageUrl('./alphatab/font/');

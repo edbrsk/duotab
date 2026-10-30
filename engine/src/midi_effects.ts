@@ -136,3 +136,14 @@ function unbend(g: Generator, wheel: Map<number, number>, note: Note, tick: numb
   const channel = g.determineChannel(track, note);
   if ((wheel.get(channel) ?? CENTRE) !== CENTRE) handler.addBend(track.index, tick, channel, CENTRE);
 }
+
+/**
+ * Moves bends, whammy, slides and vibrato in steps of about 3 cents every 10 ms
+ * or less. alphaTab steps a sixth of a semitone at a time, which a held note
+ * plays as an audible staircase.
+ */
+export function glideFinely(generator: typeof alphaTab.midi.MidiFileGenerator): void {
+  const steps = generator as unknown as { MinBreakpointsPerSemitone: number; MillisecondsPerBreakpoint: number };
+  steps.MinBreakpointsPerSemitone = 32;
+  steps.MillisecondsPerBreakpoint = 10;
+}
