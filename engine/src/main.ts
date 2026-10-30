@@ -111,7 +111,10 @@ scoreElement.addEventListener('touchcancel', (e) => touchSelection.touchEnd(e), 
 const session = new EditSession(settings);
 
 function redrawOverlay() {
-  if (api.score) drawOverlay(scoreElement, api.renderer, api.score, session.position, session.issues);
+  if (api.score) {
+    const marks = session.marks.get(session.track) ?? [];
+    drawOverlay(scoreElement, api.renderer, api.score, session.position, session.issues, session.track, marks);
+  }
 }
 api.postRenderFinished.on(redrawOverlay);
 
@@ -270,7 +273,7 @@ async function run(request: Request): Promise<unknown> {
       api.load(bytes, []);
       const score = await loaded;
       startSong();
-      session.open(score, 0, fileName(path).replace(/\.[^.]+$/, ''));
+      session.open(score, 0, fileName(path).replace(/\.[^.]+$/, ''), openedMarks);
       redrawOverlay();
       const unplayable = [...openedMarks.values()].reduce((sum, marks) => sum + marks.length, 0);
       return describeOpened(score, fileName(path), unplayable);

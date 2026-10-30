@@ -2,7 +2,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { beforeAll, expect, test } from 'vitest';
 
 import { hitTest } from '../../src/editing/hit_test';
-import { cursorRect, issueRect } from '../../src/editing/overlay';
+import { cursorRect, issueRect, markRects } from '../../src/editing/overlay';
 import { fourQuarters, score } from '../fixtures';
 
 let renderer: alphaTab.rendering.ScoreRenderer;
@@ -111,4 +111,11 @@ test('taps and the cursor work through the renderer wrapper the page uses', () =
   const tab = staffLines('TabBarRenderer');
   expect(hitTest(wrapper, 0, 0, beatX(1), tab.y(0))?.string).toBe(6);
   expect(cursorRect(wrapper, song, { track: 0, bar: 0, voice: 0, beat: 1, string: 6 })).not.toBeNull();
+});
+
+test('mark rects sit on their tab string like the cursor', () => {
+  const at = { track: 0, bar: 0, voice: 0, beat: 1, string: 6 };
+  const rects = markRects(renderer, song, 0, [{ bar: 0, voice: 0, beat: 1, string: 6, kind: 'moved' }]);
+  expect(rects).toEqual([{ rect: cursorRect(renderer, song, at), kind: 'moved' }]);
+  expect(rects[0].rect).not.toBeNull();
 });

@@ -1,6 +1,7 @@
 import type * as alphaTab from '@coderline/alphatab';
 
 import type { BarIssue, EditPosition } from '../protocol';
+import type { NoteMark } from './fingering';
 import { describeOff } from './bar_check';
 import { layoutOf, tabLineY } from './hit_test';
 
@@ -27,6 +28,19 @@ export function issueRect(renderer: Renderer, bar: number): Rect | null {
   return bounds ? { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h } : null;
 }
 
+/** Tints the size of the cursor over each marked note's tab fret. */
+export function markRects(
+  renderer: Renderer,
+  score: alphaTab.model.Score,
+  track: number,
+  marks: NoteMark[],
+): { rect: Rect; kind: NoteMark['kind'] }[] {
+  return marks.flatMap(({ kind, ...at }) => {
+    const rect = cursorRect(renderer, score, { ...at, track });
+    return rect ? [{ rect, kind }] : [];
+  });
+}
+
 const place = (element: HTMLElement, rect: Rect) => {
   Object.assign(element.style, { left: `${rect.x}px`, top: `${rect.y}px`, width: `${rect.w}px`, height: `${rect.h}px` });
 };
@@ -38,8 +52,16 @@ export function drawOverlay(
   score: alphaTab.model.Score,
   at: EditPosition | null,
   issues: BarIssue[],
+  track: number,
+  marks: NoteMark[],
 ): void {
-  for (const old of container.querySelectorAll('.dt-edit-cursor, .dt-bar-issue')) old.remove();
+  for (const old of container.querySelectorAll('.dt-edit-cursor, .dt-bar-issue, .dt-note-moved, .dt-note-unplayable')) old.remove();
+  for (const { rect, kind } of markRects(renderer, score, track, marks)) {
+    const tint = document.createElement('div');
+    tint.className = kind === 'moved' ? 'dt-note-moved' : 'dt-note-unplayable';
+    place(tint, rect);
+    container.appendChild(tint);
+  }
   for (const bar of new Set(issues.map((i) => i.bar))) {
     const rect = issueRect(renderer, bar);
     if (!rect) continue;

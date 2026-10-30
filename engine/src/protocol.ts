@@ -210,6 +210,9 @@ export type EditCommand =
 
 export type EditPayload = { command: EditCommand };
 
+/** After a retune, until the next edit, undo or redo. */
+export type RetuneReport = { track: number; tuning: number[]; octave: number; moved: number; unplayable: number };
+
 /** The reply to `edit`, `undo` and `redo`; `edited` is true when the song changed. */
 export type EditState = {
   /** Null until the owner taps a string. */
@@ -240,6 +243,7 @@ export type EditState = {
   canPaste: boolean;
   /** The track the engine draws, which track edits can change. */
   drawnTrack: number;
+  retune: RetuneReport | null;
 };
 
 /** Posted for a tap on the drawn track. */

@@ -3,7 +3,7 @@ import { expect, test } from 'vitest';
 
 import { setDuration } from '../../src/editing/operations';
 import { EditSession } from '../../src/editing/session';
-import { fourQuarters, guitarsAndDrums, lineOfEighths, score, sixBars, twoGuitarsAndDrums, twoTracksThreeBars } from '../fixtures';
+import { dStandardRiff, fourQuarters, guitarsAndDrums, lineOfEighths, score, sevenString, sixBars, twoGuitarsAndDrums, twoTracksThreeBars } from '../fixtures';
 
 test("opening a song checks its bars and clears the cursor and history", async () => {
   const s = score(fourQuarters);
@@ -149,4 +149,52 @@ test('undoing a move keeps the drawn track and its cursor', async () => {
   expect(session.track).toBe(0);
   expect(undone.tracks[0].name).toBe('Guitar A');
   expect(session.position?.track).toBe(0);
+});
+
+const E_STANDARD = [64, 59, 55, 50, 45, 40];
+
+test('a retune reports its counts until the next edit', () => {
+  const s = score(dStandardRiff);
+  const session = new EditSession();
+  session.open(s, 0);
+  expect(session.command(s, { op: 'retune', track: 0, tuning: E_STANDARD, octave: 0 }).edited).toBe(true);
+  expect(session.state(s, true).retune).toEqual({ track: 0, tuning: E_STANDARD, octave: 0, moved: 1, unplayable: 1 });
+  expect(session.marks.get(0)).toHaveLength(2);
+
+  session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 1 } });
+  expect(session.state(s, false).retune).not.toBeNull();
+  session.command(s, { op: 'setFret', fret: 5 });
+  expect(session.state(s, true).retune).toBeNull();
+  expect(session.marks.size).toBe(0);
+});
+
+test('undo clears the retune report and marks', async () => {
+  const s = score(dStandardRiff);
+  const session = new EditSession();
+  session.open(s, 0);
+  session.command(s, { op: 'retune', track: 0, tuning: E_STANDARD, octave: 0 });
+  const restored = (await session.history.undo(s))!;
+  session.restored(restored, s);
+  expect(session.state(restored, true).retune).toBeNull();
+  expect(session.marks.size).toBe(0);
+});
+
+test('a retune to fewer strings keeps the cursor on a real string', () => {
+  const s = score(sevenString);
+  const session = new EditSession();
+  session.open(s, 0);
+  session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 7 } });
+  session.command(s, { op: 'retune', track: 0, tuning: E_STANDARD, octave: 0 });
+  expect(session.position!.string).toBeLessThanOrEqual(6);
+  expect(session.position!.track).toBe(0);
+});
+
+test('opening with fingering marks keeps them until the next edit', () => {
+  const s = score(fourQuarters);
+  const session = new EditSession();
+  session.open(s, 0, 'Edit', new Map([[0, [{ bar: 0, voice: 0, beat: 0, string: 6, kind: 'unplayable' as const }]]]));
+  expect(session.marks.get(0)).toHaveLength(1);
+  session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 1 } });
+  session.command(s, { op: 'setFret', fret: 5 });
+  expect(session.marks.size).toBe(0);
 });

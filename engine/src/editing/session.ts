@@ -1,8 +1,9 @@
 import * as alphaTab from '@coderline/alphatab';
 
-import type { BarIssue, EditCommand, EditPosition, EditState } from '../protocol';
+import type { BarIssue, EditCommand, EditPosition, EditState, RetuneReport } from '../protocol';
 import { describeOpened } from '../summary';
 import { checkBars } from './bar_check';
+import type { NoteMark } from './fingering';
 import { type Clipboard, copyBars } from './bar_structure';
 import { barProperties } from './bars';
 import { runCommand, TRACK_OPS } from './commands';
@@ -20,6 +21,9 @@ export class EditSession {
   position: EditPosition | null = null;
   issues: BarIssue[] = [];
   track = 0;
+  /** Notes the last retune, or fingering on open, moved or could not place, per track; until the next edit. */
+  marks = new Map<number, NoteMark[]>();
+  private report: RetuneReport | null = null;
   readonly history: History;
   private name = '';
   /** Kept when another song opens, so bars can be copied between songs. */
@@ -30,8 +34,10 @@ export class EditSession {
   }
 
   /** `name` names an untitled song, as the library does. */
-  open(score: Score, track: number, name = score.title): void {
+  open(score: Score, track: number, name = score.title, marks = new Map<number, NoteMark[]>()): void {
     this.name = name;
+    this.marks = marks;
+    this.report = null;
     this.track = track;
     this.position = null;
     this.history.clear();
@@ -52,7 +58,9 @@ export class EditSession {
     }
     if (command.op === 'setTitle') {
       const at = this.position ?? { track: this.track, bar: 0, voice: 0, beat: 0, string: 1 };
-      return { edited: runCommand(score, at, command, this.history, this.settings).edited };
+      const { edited } = runCommand(score, at, command, this.history, this.settings);
+      if (edited) this.clearMarks();
+      return { edited };
     }
     if (TRACK_OPS.has(command.op)) return this.trackCommand(score, command);
     if (!this.position) throw new Error('no cursor');
@@ -64,7 +72,10 @@ export class EditSession {
     }
     const result = runCommand(score, this.position, command, this.history, this.settings, this.clipboard);
     this.position = result.position;
-    if (result.edited) this.issues = checkBars(score, this.track);
+    if (result.edited) {
+      this.issues = checkBars(score, this.track);
+      this.clearMarks();
+    }
     return { edited: result.edited };
   }
 
@@ -72,12 +83,19 @@ export class EditSession {
   private trackCommand(score: Score, command: EditCommand): { edited: boolean } {
     const drawn = score.tracks[this.track];
     const at = this.position ?? { track: this.track, bar: 0, voice: 0, beat: 0, string: 1 };
-    const { edited } = runCommand(score, at, command, this.history, this.settings);
+    const { edited, marks } = runCommand(score, at, command, this.history, this.settings);
     if (!edited) return { edited };
+    this.clearMarks();
+    if (command.op === 'retune') {
+      this.marks = new Map([[command.track, marks]]);
+      const count = (kind: NoteMark['kind']) => marks.filter((m) => m.kind === kind).length;
+      this.report = { track: command.track, tuning: [...command.tuning], octave: command.octave, moved: count('moved'), unplayable: count('unplayable') };
+    }
     const index = command.op === 'addTrack' ? -1 : score.tracks.indexOf(drawn);
     if (index >= 0) {
       this.track = index;
-      if (this.position) this.position = { ...this.position, track: index };
+      // A retune to fewer strings can take the cursor's string away.
+      if (this.position) this.position = clampPosition(score, { ...this.position, track: index });
     } else {
       this.track = command.op === 'addTrack' ? score.tracks.length - 1 : nearestGuitar(score, this.track);
       this.position = null;
@@ -88,6 +106,7 @@ export class EditSession {
 
   /** After undo or redo replaced `previous` with `score`; the drawn track, found by its channel, stays drawn. */
   restored(score: Score, previous?: Score): void {
+    this.clearMarks();
     const channel = previous?.tracks[this.track]?.playbackInfo.primaryChannel;
     const same = score.tracks.findIndex((t) => t.playbackInfo.primaryChannel === channel);
     if (same >= 0 && isGuitar(score.tracks[same])) {
@@ -127,6 +146,12 @@ export class EditSession {
       structure: at ? structureAt(score, at) : null,
       canPaste: this.clipboard !== null,
       drawnTrack: this.track,
+      retune: this.report,
     };
+  }
+
+  private clearMarks(): void {
+    this.marks = new Map();
+    this.report = null;
   }
 }
