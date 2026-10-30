@@ -13,6 +13,7 @@ class LibraryPage extends StatefulWidget {
   final void Function(String path) onOpen;
   final Future<void> Function(NewSongOptions options) onNewSong;
   final Future<void> Function(String path) onDelete;
+  final Future<void> Function() onImport;
 
   /// Null when renamed.
   final Future<NameProblem?> Function(String path, String name) onRename;
@@ -22,6 +23,7 @@ class LibraryPage extends StatefulWidget {
     required this.onNewSong,
     required this.onDelete,
     required this.onRename,
+    required this.onImport,
     super.key,
   });
 
@@ -110,6 +112,12 @@ class _LibraryPageState extends State<LibraryPage> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                   ),
+                  OutlinedButton.icon(
+                    onPressed: widget.onImport,
+                    icon: const Icon(Icons.file_open_outlined),
+                    label: Text(l10n.importSongs),
+                  ),
+                  const SizedBox(width: Spacing.sm),
                   FilledButton.icon(
                     onPressed: () async {
                       final options = await showDialog<NewSongOptions>(

@@ -20,6 +20,7 @@ void main() {
     Future<void> Function(NewSongOptions options)? onNewSong,
     Future<void> Function(String path)? onDelete,
     Future<NameProblem?> Function(String path, String name)? onRename,
+    Future<void> Function()? onImport,
   }) async {
     final library = _Library();
     whenListen(
@@ -39,6 +40,7 @@ void main() {
             onNewSong: onNewSong ?? (_) async {},
             onDelete: onDelete ?? (_) async {},
             onRename: onRename ?? (_, _) async => null,
+            onImport: onImport ?? () async {},
           ),
         ),
       ),
@@ -85,9 +87,7 @@ void main() {
     await pumpPage(tester, const LibraryState(loading: false, songs: []));
 
     expect(
-      find.text(
-        'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoScore',
-      ),
+      find.text('Tap Import to add Guitar Pro or MusicXML files'),
       findsOneWidget,
     );
   });
@@ -190,5 +190,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Another song already has this name'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
+  });
+
+  testWidgets('Import opens the Files picker', (tester) async {
+    var imports = 0;
+    await pumpPage(
+      tester,
+      const LibraryState(loading: false, songs: []),
+      onImport: () async => imports++,
+    );
+    await tester.tap(find.text('Import'));
+    expect(imports, 1);
   });
 }

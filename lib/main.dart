@@ -9,6 +9,7 @@ import 'core/duo/hinge_status_provider.dart';
 import 'core/duo/vertical_bar_edge_provider.dart';
 import 'features/editor/editor_cubit.dart';
 import 'features/editor/song_saver.dart';
+import 'features/import/song_picker.dart';
 import 'features/library/library_cubit.dart';
 import 'features/library/library_page.dart';
 import 'features/library/song_files.dart';
@@ -51,6 +52,7 @@ Future<void> main() async {
                 },
                 onDelete: getIt<SongFiles>().delete,
                 onRename: getIt<SongFiles>().rename,
+                onImport: () => const SongPicker().pick(),
                 onNewSong: (options) async {
                   getIt<NavigationCubit>().select(AppTab.editor);
                   try {

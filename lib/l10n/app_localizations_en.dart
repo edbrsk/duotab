@@ -31,8 +31,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get widerToEdit => 'Make DuoScore wider to edit';
 
   @override
-  String get libraryEmpty =>
-      'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoScore';
+  String get libraryEmpty => 'Tap Import to add Guitar Pro or MusicXML files';
+
+  @override
+  String get importSongs => 'Import';
 
   @override
   String get unreadableFile => 'Can\'t open this file';

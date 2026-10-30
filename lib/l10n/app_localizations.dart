@@ -139,8 +139,14 @@ abstract class AppLocalizations {
   /// No description provided for @libraryEmpty.
   ///
   /// In en, this message translates to:
-  /// **'Add Guitar Pro or MusicXML files in the Files app, under On My iPhone › DuoScore'**
+  /// **'Tap Import to add Guitar Pro or MusicXML files'**
   String get libraryEmpty;
+
+  /// No description provided for @importSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get importSongs;
 
   /// No description provided for @unreadableFile.
   ///

@@ -48,8 +48,10 @@ class SettingsPage extends StatelessWidget {
             ListTile(
               title: Text(l10n.licences),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () =>
-                  showLicensePage(context: context, applicationName: 'DuoScore'),
+              onTap: () => showLicensePage(
+                context: context,
+                applicationName: 'DuoScore',
+              ),
             ),
           ],
         ),

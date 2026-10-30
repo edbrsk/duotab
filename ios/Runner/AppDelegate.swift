@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import UniformTypeIdentifiers
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -20,6 +21,9 @@ import UIKit
     }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "IncomingFiles") {
       IncomingFilesStreamHandler.shared.register(with: registrar)
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SongPicker") {
+      SongPicker.shared.register(with: registrar)
     }
   }
 }
@@ -205,5 +209,64 @@ final class IncomingFilesStreamHandler: NSObject, @preconcurrency FlutterStreamH
     let payload: [String: Any] = ["original": original, "staged": staged ?? NSNull()]
     guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return nil }
     return String(data: data, encoding: .utf8)
+  }
+}
+
+/// Shows the Files picker for songs. Chosen files go through
+/// `IncomingFilesStreamHandler`, as files opened from other apps do.
+@MainActor
+final class SongPicker: NSObject, UIDocumentPickerDelegate {
+  static let shared = SongPicker()
+
+  /// The song types declared in Info.plist.
+  private static let types: [UTType] = [
+    "com.arobas-music.guitarpro.document",
+    "com.arobas-music.guitarpro6.document",
+    "com.arobas-music.guitarpro5.document",
+    "com.arobas-music.guitarpro4.document",
+    "com.arobas-music.guitarpro3.document",
+    "com.recordare.musicxml.uncompressed",
+    "com.recordare.musicxml",
+  ].compactMap { UTType($0) } + [.xml]
+
+  private weak var registrar: FlutterPluginRegistrar?
+  private var pending: FlutterResult?
+
+  func register(with registrar: FlutterPluginRegistrar) {
+    self.registrar = registrar
+    FlutterMethodChannel(
+      name: "dev.edbrsk.duoscore/song_picker",
+      binaryMessenger: registrar.messenger()
+    ).setMethodCallHandler { [weak self] call, result in
+      // Flutter calls method handlers on the platform (main) thread.
+      MainActor.assumeIsolated {
+        guard call.method == "pick" else { return result(FlutterMethodNotImplemented) }
+        self?.present(result)
+      }
+    }
+  }
+
+  private func present(_ result: @escaping FlutterResult) {
+    guard pending == nil, let viewController = registrar?.viewController else {
+      return result(FlutterError(code: "unavailable", message: "picker already open or no view", details: nil))
+    }
+    let picker = UIDocumentPickerViewController(forOpeningContentTypes: Self.types, asCopy: true)
+    picker.allowsMultipleSelection = true
+    picker.delegate = self
+    pending = result
+    viewController.present(picker, animated: true)
+  }
+
+  func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+    IncomingFilesStreamHandler.shared.receive(urls)
+    // The picker's own copies; receive has staged its own.
+    urls.forEach { try? FileManager.default.removeItem(at: $0) }
+    pending?(urls.count)
+    pending = nil
+  }
+
+  func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+    pending?(0)
+    pending = nil
   }
 }
