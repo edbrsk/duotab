@@ -20,12 +20,21 @@ class PracticeStore {
     }
   }
 
-  // One at a time: each save rewrites the whole file from what it read. A
-  // failed save fails only its own caller.
-  Future<void> save(String path, PracticeSettings settings) {
+  Future<void> save(String path, PracticeSettings settings) =>
+      _change((all) => all[path] = settings.toJson());
+
+  Future<void> remove(String path) => _change((all) => all.remove(path));
+
+  Future<void> rename(String from, String to) => _change((all) {
+    if (all.remove(from) case final song?) all[to] = song;
+  });
+
+  // One at a time: each change rewrites the whole file from what it read. A
+  // failed change fails only its own caller.
+  Future<void> _change(void Function(Map<String, dynamic> all) change) {
     final save = _saves.then((_) async {
       final all = await file.read();
-      all[path] = settings.toJson();
+      change(all);
       await file.write(all);
     });
     _saves = save.then<void>((_) {}, onError: (Object _) {});

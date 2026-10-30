@@ -11,6 +11,7 @@ import 'features/editor/editor_cubit.dart';
 import 'features/editor/song_saver.dart';
 import 'features/library/library_cubit.dart';
 import 'features/library/library_page.dart';
+import 'features/library/song_files.dart';
 import 'features/playback/playback_cubit.dart';
 import 'features/score/score_cubit.dart';
 import 'features/score/score_page.dart';
@@ -48,6 +49,8 @@ Future<void> main() async {
                   await getIt<SongSaver>().flush();
                   await getIt<ScoreCubit>().open(path);
                 },
+                onDelete: getIt<SongFiles>().delete,
+                onRename: getIt<SongFiles>().rename,
                 onNewSong: (options) async {
                   getIt<NavigationCubit>().select(AppTab.editor);
                   try {

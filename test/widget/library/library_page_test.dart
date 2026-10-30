@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:duotab/engine/protocol.dart';
 import 'package:duotab/features/library/library_cubit.dart';
 import 'package:duotab/features/library/library_page.dart';
+import 'package:duotab/features/library/song_files.dart';
 import 'package:duotab/features/library/song_list_entry.dart';
 import 'package:duotab/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,8 @@ void main() {
     LibraryState state, {
     void Function(String path)? onOpen,
     Future<void> Function(NewSongOptions options)? onNewSong,
+    Future<void> Function(String path)? onDelete,
+    Future<NameProblem?> Function(String path, String name)? onRename,
   }) async {
     final library = _Library();
     whenListen(
@@ -34,6 +37,8 @@ void main() {
           child: LibraryPage(
             onOpen: onOpen ?? (_) {},
             onNewSong: onNewSong ?? (_) async {},
+            onDelete: onDelete ?? (_) async {},
+            onRename: onRename ?? (_, _) async => null,
           ),
         ),
       ),
@@ -50,14 +55,14 @@ void main() {
         songs: [
           SongListEntry(
             path: '07 Collateral Damage.gp',
-            title: 'Collateral Damage',
+            name: '07 Collateral Damage',
             tuningLabel: 'E♭ A♭ D♭ G♭ B♭ E♭',
             stringCount: 6,
             readable: true,
           ),
           SongListEntry(
             path: 'broken.gp5',
-            title: 'broken.gp5',
+            name: 'broken',
             tuningLabel: null,
             stringCount: null,
             readable: false,
@@ -67,12 +72,12 @@ void main() {
       onOpen: (path) => opened = path,
     );
 
-    expect(find.text('Collateral Damage'), findsOneWidget);
+    expect(find.text('07 Collateral Damage'), findsOneWidget);
     expect(find.textContaining('E♭ A♭ D♭ G♭ B♭ E♭'), findsOneWidget);
     expect(find.textContaining('6 strings'), findsOneWidget);
     expect(find.text("Can't open this file"), findsOneWidget);
 
-    await tester.tap(find.text('Collateral Damage'));
+    await tester.tap(find.text('07 Collateral Damage'));
     expect(opened, '07 Collateral Damage.gp');
   });
 
@@ -107,5 +112,83 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(created?.title, 'Riff');
+  });
+
+  const riff = LibraryState(
+    loading: false,
+    songs: [
+      SongListEntry(
+        path: 'Riff.gp',
+        name: 'Riff',
+        tuningLabel: 'E A D G B E',
+        stringCount: 6,
+        readable: true,
+      ),
+    ],
+  );
+
+  Future<void> chooseFromMenu(WidgetTester tester, String action) async {
+    await tester.tap(find.byTooltip('Song actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(action));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('delete asks first, then deletes and refreshes', (tester) async {
+    String? deleted;
+    final library = await pumpPage(
+      tester,
+      riff,
+      onDelete: (path) async => deleted = path,
+    );
+    await chooseFromMenu(tester, 'Delete');
+    expect(find.text('Delete "Riff"?'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+    expect(deleted, 'Riff.gp');
+    verify(library.refresh).called(2);
+  });
+
+  testWidgets('cancelling the delete keeps the song', (tester) async {
+    String? deleted;
+    await pumpPage(tester, riff, onDelete: (path) async => deleted = path);
+    await chooseFromMenu(tester, 'Delete');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(deleted, isNull);
+  });
+
+  testWidgets('rename asks for the new name', (tester) async {
+    (String, String)? renamed;
+    await pumpPage(
+      tester,
+      riff,
+      onRename: (path, name) async {
+        renamed = (path, name);
+        return null;
+      },
+    );
+    await chooseFromMenu(tester, 'Rename');
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'Riff',
+    );
+    await tester.enterText(find.byType(TextField), 'Riff 2');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Rename'));
+    await tester.pumpAndSettle();
+    expect(renamed, ('Riff.gp', 'Riff 2'));
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('rename says why a name is refused', (tester) async {
+    await pumpPage(tester, riff, onRename: (_, _) async => NameProblem.taken);
+    await chooseFromMenu(tester, 'Rename');
+    await tester.enterText(find.byType(TextField), 'Other');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Rename'));
+    await tester.pumpAndSettle();
+    expect(find.text('Another song already has this name'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
   });
 }

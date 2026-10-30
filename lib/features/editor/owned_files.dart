@@ -14,6 +14,19 @@ class OwnedFiles {
     if (paths.add(path)) await file.write({'paths': paths.toList()});
   }
 
+  Future<void> remove(String path) async {
+    final paths = await _paths();
+    if (paths.remove(path)) await file.write({'paths': paths.toList()});
+  }
+
+  Future<void> rename(String from, String to) async {
+    final paths = await _paths();
+    if (paths.remove(from)) {
+      paths.add(to);
+      await file.write({'paths': paths.toList()});
+    }
+  }
+
   Future<Set<String>> _paths() async => {
     ...((await file.read())['paths'] as List<dynamic>? ?? [])
         .whereType<String>(),

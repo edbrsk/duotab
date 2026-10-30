@@ -414,6 +414,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cancel => 'Cancel';
 
   @override
+  String get songActions => 'Song actions';
+
+  @override
+  String get rename => 'Rename';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String deleteSongQuestion(String name) {
+    return 'Delete \"$name\"?';
+  }
+
+  @override
+  String get deleteSongBody =>
+      'The file is removed from this iPhone and can\'t be recovered.';
+
+  @override
+  String get renameSong => 'Rename song';
+
+  @override
+  String get songName => 'Name';
+
+  @override
+  String get nameEmpty => 'Enter a name';
+
+  @override
+  String get nameInvalid => 'A name can\'t contain /, \\ or :';
+
+  @override
+  String get nameTaken => 'Another song already has this name';
+
+  @override
   String stringN(int number) {
     return 'String $number';
   }

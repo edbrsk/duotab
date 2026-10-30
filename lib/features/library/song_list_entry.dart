@@ -1,14 +1,16 @@
 class SongListEntry {
   /// Relative to the app's Documents folder.
   final String path;
-  final String title;
+
+  /// The file name without its extension, as the Files app shows it.
+  final String name;
   final String? tuningLabel;
   final int? stringCount;
   final bool readable;
 
   const SongListEntry({
     required this.path,
-    required this.title,
+    required this.name,
     required this.tuningLabel,
     required this.stringCount,
     required this.readable,

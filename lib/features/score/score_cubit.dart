@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../engine/engine_bridge.dart';
@@ -109,6 +110,16 @@ class ScoreCubit extends Cubit<ScoreState> {
       openId: state.openId,
     ),
   );
+
+  /// Nothing is open any more, as after its file was deleted.
+  Future<void> closeSong() async {
+    try {
+      await engine.stop();
+    } on Object catch (e) {
+      debugPrint('ScoreCubit: $e');
+    }
+    emit(ScoreState(openId: state.openId + 1));
+  }
 
   /// The open song is now saved at [path], such as its "(DuoTab)" copy.
   void moveTo(String path) => emit(

@@ -185,6 +185,23 @@
   "timeSignature": "Time signature",
   "create": "Create",
   "cancel": "Cancel",
+  "songActions": "Song actions",
+  "rename": "Rename",
+  "delete": "Delete",
+  "deleteSongQuestion": "Delete \"{name}\"?",
+  "@deleteSongQuestion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteSongBody": "The file is removed from this iPhone and can't be recovered.",
+  "renameSong": "Rename song",
+  "songName": "Name",
+  "nameEmpty": "Enter a name",
+  "nameInvalid": "A name can't contain /, \\ or :",
+  "nameTaken": "Another song already has this name",
   "stringN": "String {number}",
   "@stringN": {
     "placeholders": {

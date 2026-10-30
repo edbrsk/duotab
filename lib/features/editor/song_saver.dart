@@ -64,6 +64,9 @@ class SongSaver {
   /// hidden.
   Future<void> flush() => _dirty ? saveNow() : Future.value();
 
+  /// Done when no save is writing.
+  Future<void> get idle => _saves;
+
   /// One at a time, so two saves cannot both make a copy.
   Future<void> saveNow() {
     _timer?.cancel();

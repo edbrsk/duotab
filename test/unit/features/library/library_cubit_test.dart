@@ -42,15 +42,15 @@ void main() {
   tearDown(() => documents.delete(recursive: true));
 
   blocTest<LibraryCubit, LibraryState>(
-    'lists supported files sorted by title',
+    'lists supported files by file name, sorted',
     build: () => LibraryCubit(documents: documents, engine: engine),
     act: (cubit) => cubit.refresh(),
     expect: () => [
       isA<LibraryState>().having((s) => s.loading, 'loading', isTrue),
       isA<LibraryState>().having((s) => s.loading, 'loading', isFalse).having(
-        (s) => s.songs.map((e) => e.title),
-        'titles',
-        ['A', 'B'],
+        (s) => s.songs.map((e) => e.name),
+        'names',
+        ['a', 'b'],
       ),
     ],
   );
@@ -66,8 +66,8 @@ void main() {
 
     final broken = cubit.state.songs.singleWhere((e) => e.path == 'a.gp5');
     expect(broken.readable, isFalse);
-    expect(broken.title, 'a.gp5');
-    expect(cubit.state.songs.where((e) => e.readable).single.title, 'B');
+    expect(broken.name, 'a');
+    expect(cubit.state.songs.where((e) => e.readable).single.name, 'b');
   });
 
   test('asks the engine only about files that changed', () async {
@@ -94,7 +94,7 @@ void main() {
     when(() => engine.summarize('a.gp5')).thenAnswer((_) async => _song('A'));
     await cubit.refresh();
 
-    expect(cubit.state.songs.map((e) => e.title), ['A', 'B']);
+    expect(cubit.state.songs.map((e) => e.name), ['a', 'b']);
     verify(() => engine.summarize('a.gp5')).called(2);
   });
 

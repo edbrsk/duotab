@@ -868,6 +868,66 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get cancel;
 
+  /// No description provided for @songActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Song actions'**
+  String get songActions;
+
+  /// No description provided for @rename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get rename;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @deleteSongQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"?'**
+  String deleteSongQuestion(String name);
+
+  /// No description provided for @deleteSongBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The file is removed from this iPhone and can\'t be recovered.'**
+  String get deleteSongBody;
+
+  /// No description provided for @renameSong.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename song'**
+  String get renameSong;
+
+  /// No description provided for @songName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get songName;
+
+  /// No description provided for @nameEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name'**
+  String get nameEmpty;
+
+  /// No description provided for @nameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'A name can\'t contain /, \\ or :'**
+  String get nameInvalid;
+
+  /// No description provided for @nameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Another song already has this name'**
+  String get nameTaken;
+
   /// No description provided for @stringN.
   ///
   /// In en, this message translates to:

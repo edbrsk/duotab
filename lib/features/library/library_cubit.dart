@@ -45,7 +45,7 @@ class LibraryCubit extends Cubit<LibraryState> {
     final paths = entries.map((e) => e.path).toSet();
     _cache.removeWhere((path, _) => !paths.contains(path));
     entries.sort(
-      (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
     );
     if (!isClosed) emit(LibraryState(loading: false, songs: entries));
   }
@@ -68,7 +68,7 @@ class LibraryCubit extends Cubit<LibraryState> {
       final guitar = song.guitarTracks.firstOrNull;
       final entry = SongListEntry(
         path: path,
-        title: song.title,
+        name: p.basenameWithoutExtension(path),
         tuningLabel: guitar?.tuning == null
             ? null
             : tuningLabel(guitar!.tuning!),
@@ -79,7 +79,7 @@ class LibraryCubit extends Cubit<LibraryState> {
     } on Object catch (e) {
       final entry = SongListEntry(
         path: path,
-        title: p.basename(path),
+        name: p.basenameWithoutExtension(path),
         tuningLabel: null,
         stringCount: null,
         readable: false,

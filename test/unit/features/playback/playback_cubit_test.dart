@@ -158,6 +158,23 @@ void main() {
     await pumpEventQueue();
   }
 
+  test(
+    'closing the song stops showing playback and saves nothing for it',
+    () async {
+      await openFixture();
+      await playing(on: true);
+      events.add(const EngineEvent('position', {'bar': 7}));
+      await score.closeSong();
+      await pumpEventQueue();
+      expect(cubit.state.playing, isFalse);
+      expect(cubit.state.bar, 0);
+      await practice.remove('fixture.gp');
+      await cubit.setSpeed(0.5);
+      await pumpEventQueue();
+      expect(await practice.load('fixture.gp'), isNull);
+    },
+  );
+
   test('opening a song sends its resolved mix', () async {
     await openFixture();
     final mixes = _sentMixes(engine);

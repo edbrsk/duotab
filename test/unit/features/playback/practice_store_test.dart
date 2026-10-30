@@ -100,4 +100,19 @@ void main() {
       expect(Tone.fromProgram(24), isNull);
     });
   });
+
+  test('forgets a deleted song', () async {
+    await store.save('a.gp', settings);
+    await store.save('b.gp', settings);
+    await store.remove('a.gp');
+    expect(await store.load('a.gp'), isNull);
+    expect(await store.load('b.gp'), isNotNull);
+  });
+
+  test('moves settings to a renamed song', () async {
+    await store.save('a.gp', settings);
+    await store.rename('a.gp', 'c.gp');
+    expect(await store.load('a.gp'), isNull);
+    expect((await store.load('c.gp'))!.speed, 0.75);
+  });
 }

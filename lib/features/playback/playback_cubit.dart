@@ -81,7 +81,17 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   // the song's "(DuoTab)" copy keeps the same song.
   void _onScoreChanged(ScoreState scoreState) {
     final song = scoreState.song;
-    if (song == null) return;
+    if (song == null) {
+      // Closed, as when its file was deleted: nothing more is saved for it.
+      if (scoreState.openId != _openId && _openId != null) {
+        _openId = scoreState.openId;
+        _song = null;
+        _path = null;
+        _practiceReady = false;
+        emit(state.copyWith(playing: false, bar: 0));
+      }
+      return;
+    }
     if (scoreState.openId == _openId) {
       _song = song;
       if (scoreState.path != _path) {
