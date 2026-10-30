@@ -14,6 +14,7 @@ import type {
   EditPayload,
   EditState,
   EngineEvent,
+  ExportFilePayload,
   ExportPdfReply,
   NewSongOptions,
   PathPayload,
@@ -33,6 +34,7 @@ import { setStaves, showNotationAndTab } from './staves';
 import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
 import { LongPressSelection } from './touch_selection';
+import { fileGp, filePdf } from './file_export';
 import { printPages } from './print_pages';
 
 declare global {
@@ -362,6 +364,16 @@ async function run(request: Request): Promise<unknown> {
       if (!track || !isGuitar(track)) throw new Error('no guitar track');
       const fontUrl = pageUrl('./alphatab/font/Bravura.woff2');
       const pages = printPages(api.score, session.track, settings.display.staveProfile, fontUrl);
+      return { pages, baseUrl: `${location.origin}/` } satisfies ExportPdfReply;
+    }
+    case 'exportFileGp': {
+      const { path } = request.payload as ExportFilePayload;
+      return { base64: base64(fileGp(await fetchBytes(path))) };
+    }
+    case 'exportFilePdf': {
+      const { path, staves = [] } = request.payload as ExportFilePayload;
+      const fontUrl = pageUrl('./alphatab/font/Bravura.woff2');
+      const pages = filePdf(await fetchBytes(path), staves, settings.display.staveProfile, fontUrl);
       return { pages, baseUrl: `${location.origin}/` } satisfies ExportPdfReply;
     }
     case 'setStaves': {

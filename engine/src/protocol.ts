@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp' | 'exportPdf';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp' | 'exportPdf' | 'exportFileGp' | 'exportFilePdf';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -256,3 +256,6 @@ export type ExportGpReply = { base64: string };
 
 /** One HTML document per A4 page; `baseUrl` is the engine's origin, which serves the font. */
 export type ExportPdfReply = { pages: string[]; baseUrl: string };
+
+/** `exportFilePdf` prints the file's first guitar track; `staves` are the owner's choices, by track index. */
+export type ExportFilePayload = { path: string; staves?: StaffView[] };
