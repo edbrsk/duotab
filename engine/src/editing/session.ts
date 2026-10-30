@@ -89,7 +89,14 @@ export class EditSession {
     if (command.op === 'retune') {
       this.marks = new Map([[command.track, marks]]);
       const count = (kind: NoteMark['kind']) => marks.filter((m) => m.kind === kind).length;
-      this.report = { track: command.track, tuning: [...command.tuning], octave: command.octave, moved: count('moved'), unplayable: count('unplayable') };
+      this.report = {
+        track: command.track,
+        tuning: [...command.tuning],
+        octave: command.octave,
+        keep: command.keep ?? 'pitch',
+        moved: count('moved'),
+        unplayable: count('unplayable'),
+      };
     }
     const index = command.op === 'addTrack' ? -1 : score.tracks.indexOf(drawn);
     if (index >= 0) {

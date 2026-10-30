@@ -2,6 +2,7 @@ import * as alphaTab from '@coderline/alphatab';
 
 import { anchorBefore, isFree, MAX_FRET, type NoteMark, openPitches, positionCost, restring } from './fingering';
 import { finishEdit } from './finish';
+import type { RetuneKeep } from '../protocol';
 import { isGuitar } from './tracks';
 
 type Score = alphaTab.model.Score;
@@ -16,6 +17,7 @@ type Placing = {
   oldFret: number;
   oldOpen: number;
   natural: boolean;
+  dead: boolean;
 };
 
 const playable = (fret: number) => fret >= 0 && fret <= MAX_FRET;
@@ -35,9 +37,10 @@ const startsBefore = (a: Beat, b: Beat) =>
   a.voice.bar.index < b.voice.bar.index || (a.voice.bar.index === b.voice.bar.index && a.playbackStart < b.playbackStart);
 
 /**
- * Retunes a guitar track keeping every note's pitch; `octave` shifts them all
- * by octaves. Returns the notes moved to another string and those no string
- * can play, which keep their fret.
+ * Retunes a guitar track. Keeping `pitch`, every note keeps its sound and
+ * `octave` shifts them all by octaves; keeping `frets`, every note keeps its
+ * string and fret and sounds in the new tuning. Returns the notes moved to
+ * another string and those no string can play, which keep their fret.
  */
 export function retune(
   score: Score,
@@ -45,11 +48,13 @@ export function retune(
   tuning: number[],
   octave: number,
   settings = new alphaTab.Settings(),
+  keep: RetuneKeep = 'pitch',
 ): NoteMark[] {
   const track = score.tracks[trackIndex];
   if (!track || track.staves[0].isPercussion || !isGuitar(track)) throw new Error('only guitar tracks can be retuned');
   if (tuning.length < 1 || tuning.length > 10) throw new Error('a tuning needs 1 to 10 strings');
   if (!Number.isInteger(octave) || octave < -2 || octave > 2) throw new Error('octave must be -2 to 2');
+  if (keep === 'frets' && octave !== 0) throw new Error('keeping frets takes no octave');
   const staff = track.staves[0];
   const oldTuning = [...staff.tuning];
   if (octave === 0 && oldTuning.join() === tuning.join()) return [];
@@ -82,6 +87,7 @@ export function retune(
             oldFret: note.fret,
             oldOpen: oldOpen(note.string),
             natural,
+            dead: note.isDead,
           };
           placings.set(note, placing);
           order.push(placing);
@@ -91,6 +97,9 @@ export function retune(
   }
   /** The fret, or a natural harmonic's node, that sounds `p` on string `s`; null where none can. */
   const fretFor = (p: Placing, s: number): number | null => {
+    if (keep === 'frets') return p.oldFret;
+    // A dead note has no pitch to keep, only a place on the neck.
+    if (p.dead) return Math.min(MAX_FRET, Math.max(0, p.pitch - newOpen(s)));
     if (!p.natural) {
       const fret = p.pitch - newOpen(s);
       return playable(fret) ? fret : null;
@@ -133,10 +142,9 @@ export function retune(
     });
 
   const groups = linkedGroups(order, placings);
-  const marks: NoteMark[] = [];
+  const marked: { p: Placing; kind: NoteMark['kind'] }[] = [];
   const mark = (p: Placing, kind: NoteMark['kind']) => {
-    const beat = p.note.beat;
-    marks.push({ bar: beat.voice.bar.index, voice: beat.voice.index, beat: beat.index, string: p.note.string, kind });
+    if (!p.dead) marked.push({ p, kind });
   };
   const place = (p: Placing, string: number) => {
     p.note.string = string;
@@ -161,8 +169,28 @@ export function retune(
     return best;
   };
 
+  const nearestFree = (p: Placing, ignore: Set<Note>) => {
+    const beat = p.note.beat;
+    const free = strings.filter((s) => isFree(beat.voice.bar, s, beat, ignore) && !crossesLink(p, s, ignore));
+    return free.length ? nearestByPitch(p.oldOpen, free) : null;
+  };
+
   for (const group of groups) {
     if (!group.some(out)) continue;
+    if (keep === 'frets') {
+      // Only notes on a removed string move, to the nearest string by pitch.
+      for (const p of group.filter(out)) {
+        const string = nearestFree(p, new Set([p.note]));
+        if (string !== null) {
+          place(p, string);
+        } else {
+          p.note.string = nearestByPitch(p.oldOpen, strings);
+          mark(p, 'unplayable');
+        }
+      }
+      unlinkAcrossStrings(group);
+      continue;
+    }
     const together = cheapest(group);
     if (together !== null) {
       for (const p of group) place(p, together);
@@ -178,18 +206,27 @@ export function retune(
         const free = strings.filter((s) => isFree(beat.voice.bar, s, beat, new Set([p.note])));
         const home = p.mapped ?? nearestByPitch(p.oldOpen, strings);
         p.note.string = free.includes(home) || free.length === 0 ? home : nearestByPitch(p.oldOpen, free);
-        p.note.fret = p.oldFret;
+        setFret(p, p.oldFret);
         mark(p, 'unplayable');
       }
     }
     unlinkAcrossStrings(group);
   }
 
-  retuneChords(staff, oldTuning, tuning, octave);
+  retuneChords(staff, oldTuning, tuning, keep === 'frets' ? null : octave);
   staff.stringTuning.tunings = [...tuning];
   // Tuning.finish names only tunings it knows; an old name would outlive them.
   staff.stringTuning.name = '';
   for (const bar of staff.bars) for (const voice of bar.voices) for (const beat of voice.beats) restring(beat);
+  // A held note is the note it is tied from: it counts once, and the tab
+  // draws no fret for it to tint.
+  const held = (note: Note) => note.isTieDestination && note.tieOrigin?.string === note.string;
+  const marks = marked
+    .filter(({ p }) => !held(p.note))
+    .map(({ p, kind }) => {
+      const beat = p.note.beat;
+      return { bar: beat.voice.bar.index, voice: beat.voice.index, beat: beat.index, string: p.note.string, kind };
+    });
   finishEdit(score, { track: trackIndex, bar: 0, voice: 0, beat: 0, string: 1 }, settings);
   return marks;
 }
@@ -227,14 +264,14 @@ function unlinkAcrossStrings(group: Placing[]): void {
   }
 }
 
-/** Chord diagrams list frets from the top string, as tunings do. */
-function retuneChords(staff: alphaTab.model.Staff, oldTuning: number[], tuning: number[], octave: number): void {
+/** Chord diagrams list frets from the top string, as tunings do; a null `octave` keeps their frets. */
+function retuneChords(staff: alphaTab.model.Staff, oldTuning: number[], tuning: number[], octave: number | null): void {
   for (const chord of staff.chords?.values() ?? []) {
     let playableDiagram = true;
     const frets = tuning.map((open, i) => {
       const fret = i < oldTuning.length ? (chord.strings[i] ?? -1) : -1;
       if (fret < 0) return -1;
-      const moved = fret + oldTuning[i] - open + 12 * octave;
+      const moved = octave === null ? fret : fret + oldTuning[i] - open + 12 * octave;
       if (!playable(moved)) playableDiagram = false;
       return moved;
     });

@@ -108,6 +108,39 @@ test("a retune leaves no note findable on a string it left", () => {
   expect(beat.getNoteOnString(2)).toBeNull();
 });
 
+test('keeping frets keeps every string and fret', () => {
+  const song = score(dStandardRiff);
+  const before = [placed(song, 0), placed(song, 1)];
+  const pitches = notes(song).map((n) => n.realValue);
+  const marks = retune(song, 0, E, 0, undefined, 'frets');
+  expect([placed(song, 0), placed(song, 1)]).toEqual(before);
+  expect(notes(song).map((n) => n.realValue)).toEqual(pitches.map((v) => v + 2));
+  expect(marks).toEqual([]);
+  expect(song.tracks[0].staves[0].chords!.get('low00')!.strings).toEqual([-1, -1, -1, 2, 2, 0]);
+});
+
+test('keeping frets moves notes off a removed string', () => {
+  const song = score(sevenString);
+  const marks = retune(song, 0, E, 0, undefined, 'frets');
+  expect(placed(song, 0)).toEqual([['1/0'], ['6/5']]);
+  expect(marks).toEqual([{ bar: 0, voice: 0, beat: 0, string: 1, kind: 'moved' }]);
+});
+
+test('dead notes are never marked', () => {
+  const song = score(String.raw`\track "G" \tuning D4 A3 F3 C3 G2 D2
+x.6.4 r.4 r.2`);
+  expect(retune(song, 0, E, 0)).toEqual([]);
+  expect(placed(song, 0)[0]).toEqual(['1/0']);
+});
+
+test('a held note is marked once', () => {
+  const song = score(String.raw`\track "G" \tuning D4 A3 F3 C3 G2 D2
+0.2.2 -.2.2`);
+  const marks = retune(song, 0, E, 0);
+  expect(placed(song, 0)).toEqual([['4/2'], ['4/2']]);
+  expect(marks).toEqual([{ bar: 0, voice: 0, beat: 0, string: 4, kind: 'moved' }]);
+});
+
 test('fewer strings map from the top', () => {
   const song = score(sevenString);
   const marks = retune(song, 0, E, 0);
@@ -179,10 +212,15 @@ test.skipIf(!process.env.DUOSCORE_PRIVATE_SAMPLE)('the private sample keeps ever
     const marks = retune(song, 0, tuning, 0);
     const after = notes(song);
     expect(after).toHaveLength(before.length);
-    const unplayable = new Set(marks.filter((m) => m.kind === 'unplayable').map((m) => `${m.bar}/${m.voice}/${m.beat}/${m.string}`));
+    const key = (bar: number, beat: number, string: number) => `${bar}/${beat}/${string}`;
+    const unplayable = new Set(marks.filter((m) => m.kind === 'unplayable').map((m) => key(m.bar, m.beat, m.string)));
+    // A held note is marked through the note it is tied from.
+    const marked = (note: alphaTab.model.Note): boolean =>
+      unplayable.has(key(note.beat.voice.bar.index, note.beat.index, note.string)) ||
+      (note.isTieDestination && !!note.tieOrigin && marked(note.tieOrigin));
     for (const [i, note] of after.entries()) {
-      const key = `${note.beat.voice.bar.index}/${note.beat.voice.index}/${note.beat.index}/${note.string}`;
-      if (!unplayable.has(key)) expect(note.realValue).toBe(before[i]);
+      // A dead note has no pitch to keep.
+      if (!note.isDead && !marked(note)) expect(note.realValue).toBe(before[i]);
     }
   }
 }, 60_000);

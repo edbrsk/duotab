@@ -205,13 +205,16 @@ export type EditCommand =
   | { op: 'removeTrack'; track: number }
   | { op: 'moveTrack'; track: number; to: number }
   | { op: 'renameTrack'; track: number; name: string }
-  /** Keeps every pitch; `octave`, −2 to 2, shifts them all. */
-  | { op: 'retune'; track: number; tuning: number[]; octave: number };
+  /** Keeping `pitch` (the default), `octave`, −2 to 2, shifts every note; keeping `frets` takes octave 0. */
+  | { op: 'retune'; track: number; tuning: number[]; octave: number; keep?: RetuneKeep };
 
 export type EditPayload = { command: EditCommand };
 
+/** What a retune keeps: each note's sound, or its string and fret. */
+export type RetuneKeep = 'pitch' | 'frets';
+
 /** After a retune, until the next edit, undo or redo. */
-export type RetuneReport = { track: number; tuning: number[]; octave: number; moved: number; unplayable: number };
+export type RetuneReport = { track: number; tuning: number[]; octave: number; keep: RetuneKeep; moved: number; unplayable: number };
 
 /** The reply to `edit`, `undo` and `redo`; `edited` is true when the song changed. */
 export type EditState = {

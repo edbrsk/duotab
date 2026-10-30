@@ -158,7 +158,7 @@ test('a retune reports its counts until the next edit', () => {
   const session = new EditSession();
   session.open(s, 0);
   expect(session.command(s, { op: 'retune', track: 0, tuning: E_STANDARD, octave: 0 }).edited).toBe(true);
-  expect(session.state(s, true).retune).toEqual({ track: 0, tuning: E_STANDARD, octave: 0, moved: 1, unplayable: 1 });
+  expect(session.state(s, true).retune).toEqual({ track: 0, tuning: E_STANDARD, octave: 0, keep: 'pitch', moved: 1, unplayable: 1 });
   expect(session.marks.get(0)).toHaveLength(2);
 
   session.command(s, { op: 'place', position: { track: 0, bar: 0, voice: 0, beat: 0, string: 1 } });
@@ -166,6 +166,14 @@ test('a retune reports its counts until the next edit', () => {
   session.command(s, { op: 'setFret', fret: 5 });
   expect(session.state(s, true).retune).toBeNull();
   expect(session.marks.size).toBe(0);
+});
+
+test('a retune keeping frets reports so', () => {
+  const s = score(sevenString);
+  const session = new EditSession();
+  session.open(s, 0);
+  session.command(s, { op: 'retune', track: 0, tuning: E_STANDARD, octave: 0, keep: 'frets' });
+  expect(session.state(s, true).retune).toMatchObject({ keep: 'frets', moved: 1, unplayable: 0 });
 });
 
 test('undo clears the retune report and marks', async () => {

@@ -145,7 +145,7 @@ export function runCommand(
         renameTrack(score, command.track, command.name, settings);
         return at;
       case 'retune':
-        marks = retune(score, command.track, command.tuning, command.octave, settings);
+        marks = retune(score, command.track, command.tuning, command.octave, settings, command.keep ?? 'pitch');
         return at;
       case 'setTitle':
         score.title = command.title.trim();
