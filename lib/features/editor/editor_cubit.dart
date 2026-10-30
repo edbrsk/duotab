@@ -26,6 +26,14 @@ class EditorState {
   final bool hasNote;
   final String? bendKind;
   final int bendAmount;
+  final int barNumerator;
+  final int barDenominator;
+  final int barKey;
+  final bool barMinor;
+  final String? barClef;
+  final int barTempo;
+  final bool barTempoChange;
+  final bool canPaste;
 
   const EditorState({
     this.position,
@@ -40,6 +48,14 @@ class EditorState {
     this.hasNote = false,
     this.bendKind,
     this.bendAmount = 4,
+    this.barNumerator = 4,
+    this.barDenominator = 4,
+    this.barKey = 0,
+    this.barMinor = false,
+    this.barClef,
+    this.barTempo = 120,
+    this.barTempoChange = false,
+    this.canPaste = false,
   });
 
   EditorState copyWith({int? duration, int? dots}) => EditorState(
@@ -55,6 +71,14 @@ class EditorState {
     hasNote: hasNote,
     bendKind: bendKind,
     bendAmount: bendAmount,
+    barNumerator: barNumerator,
+    barDenominator: barDenominator,
+    barKey: barKey,
+    barMinor: barMinor,
+    barClef: barClef,
+    barTempo: barTempo,
+    barTempoChange: barTempoChange,
+    canPaste: canPaste,
   );
 }
 
@@ -121,6 +145,25 @@ class EditorCubit extends Cubit<EditorState> {
   Future<void> setBend(String? kind, int amount) =>
       _atCursor(SetBend(kind, amount));
 
+  Future<void> setTimeSignature(int numerator, int denominator) =>
+      _atCursor(SetTimeSignature(numerator, denominator));
+
+  /// Null removes the bar's tempo marking.
+  Future<void> setTempo(int? bpm) => _atCursor(SetTempo(bpm));
+
+  Future<void> setKeySignature(int key, {required bool minor}) =>
+      _atCursor(SetKeySignature(key, minor: minor));
+
+  Future<void> setClef(String clef) => _atCursor(SetClef(clef));
+
+  Future<void> insertBar() => _atCursor(const InsertBar());
+
+  Future<void> deleteBar() => _atCursor(const DeleteBar());
+
+  Future<void> copyBars() => _atCursor(const CopyBars());
+
+  Future<void> pasteBars() => _atCursor(const PasteBars());
+
   Future<void> setTitle(String title) => command(SetTitle(title));
 
   Future<void> _atCursor(EditCommand edit) async {
@@ -152,6 +195,14 @@ class EditorCubit extends Cubit<EditorState> {
         hasNote: reply.hasNote,
         bendKind: reply.bendKind,
         bendAmount: reply.bendAmount,
+        barNumerator: reply.barNumerator,
+        barDenominator: reply.barDenominator,
+        barKey: reply.barKey,
+        barMinor: reply.barMinor,
+        barClef: reply.barClef,
+        barTempo: reply.barTempo,
+        barTempoChange: reply.barTempoChange,
+        canPaste: reply.canPaste,
       ),
     );
     if (reply.edited) {

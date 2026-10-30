@@ -214,4 +214,71 @@ void main() {
     await editor.setTitle('Riff');
     verify(() => engine.edit(const SetTitle('Riff'))).called(1);
   });
+
+  test('the state follows the bar at the cursor', () async {
+    when(() => engine.edit(any())).thenAnswer(
+      (_) async => EditState(
+        position: _at,
+        issues: const [],
+        canUndo: false,
+        canRedo: false,
+        song: drumsAndTwoGuitars,
+        edited: false,
+        barNumerator: 6,
+        barDenominator: 8,
+        barKey: 2,
+        barMinor: true,
+        barClef: 'bass',
+        barTempo: 90,
+        barTempoChange: true,
+        canPaste: true,
+      ),
+    );
+    await editor.command(const Place(_at));
+    final state = editor.state;
+    expect(
+      [state.barNumerator, state.barDenominator, state.barKey, state.barMinor],
+      [6, 8, 2, true],
+    );
+    expect(
+      [state.barClef, state.barTempo, state.barTempoChange, state.canPaste],
+      ['bass', 90, true, true],
+    );
+  });
+
+  test('bar commands send their command', () async {
+    await editor.command(const Place(_at));
+    await editor.setTimeSignature(3, 4);
+    await editor.setTempo(null);
+    await editor.setKeySignature(-1, minor: false);
+    await editor.setClef('bass');
+    await editor.insertBar();
+    await editor.deleteBar();
+    await editor.copyBars();
+    await editor.pasteBars();
+    for (final command in const <EditCommand>[
+      SetTimeSignature(3, 4),
+      SetTempo(null),
+      SetKeySignature(-1, minor: false),
+      SetClef('bass'),
+      InsertBar(),
+      DeleteBar(),
+      CopyBars(),
+      PasteBars(),
+    ]) {
+      verify(() => engine.edit(command)).called(1);
+    }
+  });
+
+  test('bar commands wait for a cursor', () async {
+    await editor.setTimeSignature(3, 4);
+    await editor.setTempo(100);
+    await editor.setKeySignature(1, minor: false);
+    await editor.setClef('treble');
+    await editor.insertBar();
+    await editor.deleteBar();
+    await editor.copyBars();
+    await editor.pasteBars();
+    verifyNever(() => engine.edit(any()));
+  });
 }
