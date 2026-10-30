@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -5,6 +7,7 @@ import '../../core/design/design_tokens.dart';
 import '../../engine/engine_host.dart';
 import '../../l10n/app_localizations.dart';
 import '../../presentation/workspace/workspace_layout.dart';
+import '../editor/edit_failure.dart';
 import '../editor/editor_cubit.dart';
 import '../editor/palette.dart';
 import '../editor/title_dialog.dart';
@@ -54,87 +57,124 @@ class ScorePage extends StatelessWidget {
           content: Text(l10n.unplayableOnOpen(state.song!.unplayableNotes)),
         ),
       ),
-      child: WorkspaceLayout(
-        palette: state.song != null ? const Palette() : null,
-        paletteCollapsed: paletteCollapsed,
-        onTogglePalette: () => context
-            .read<SettingsCubit>()
-            .setPaletteCollapsed(collapsed: !paletteCollapsed),
-        trackPanel: const TrackInfoPanel(),
-        trackPanelCollapsed: collapsed,
-        onToggleTrackPanel: () => context
-            .read<SettingsCubit>()
-            .setTrackPanelCollapsed(collapsed: !collapsed),
-        transport: state.song != null ? const TransportBar() : null,
-        drawer: state.song != null ? const TrackDrawer() : null,
-        score: Column(
-          children: [
-            if (state.song case final song?)
-              Padding(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.paddingOf(context).top + Spacing.sm,
-                  bottom: Spacing.xs,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Flexible(
-                      child: Tooltip(
-                        message: l10n.changeTitle,
-                        child: TextButton.icon(
-                          onPressed: () async {
-                            final editor = context.read<EditorCubit>();
-                            final title = await showDialog<String>(
-                              context: context,
-                              builder: (_) => TitleDialog(title: song.title),
-                            );
-                            if (title != null) await editor.setTitle(title);
-                          },
-                          iconAlignment: IconAlignment.end,
-                          icon: const Icon(Icons.edit, color: Colors.black38),
-                          label: Text(
-                            song.title,
-                            style: textTheme.titleMedium?.copyWith(
-                              color: Colors.black87,
-                              fontFamily: 'Georgia',
+      child: _EditFailures(
+        child: WorkspaceLayout(
+          palette: state.song != null ? const Palette() : null,
+          paletteCollapsed: paletteCollapsed,
+          onTogglePalette: () => context
+              .read<SettingsCubit>()
+              .setPaletteCollapsed(collapsed: !paletteCollapsed),
+          trackPanel: const TrackInfoPanel(),
+          trackPanelCollapsed: collapsed,
+          onToggleTrackPanel: () => context
+              .read<SettingsCubit>()
+              .setTrackPanelCollapsed(collapsed: !collapsed),
+          transport: state.song != null ? const TransportBar() : null,
+          drawer: state.song != null ? const TrackDrawer() : null,
+          score: Column(
+            children: [
+              if (state.song case final song?)
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.paddingOf(context).top + Spacing.sm,
+                    bottom: Spacing.xs,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Tooltip(
+                          message: l10n.changeTitle,
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              final editor = context.read<EditorCubit>();
+                              final title = await showDialog<String>(
+                                context: context,
+                                builder: (_) => TitleDialog(title: song.title),
+                              );
+                              if (title != null) await editor.setTitle(title);
+                            },
+                            iconAlignment: IconAlignment.end,
+                            icon: const Icon(Icons.edit, color: Colors.black38),
+                            label: Text(
+                              song.title,
+                              style: textTheme.titleMedium?.copyWith(
+                                color: Colors.black87,
+                                fontFamily: 'Georgia',
+                              ),
                             ),
                           ),
                         ),
                       ),
+                      if (onExport case final onExport?)
+                        ExportButton(
+                          onExport: onExport,
+                          canExportPdf: song.guitarTracks.isNotEmpty,
+                        ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                // The engine stays mounted even with nothing to show: it also
+                // answers the library's requests.
+                child: Stack(
+                  children: [
+                    Offstage(
+                      offstage: message != null,
+                      child: engineView ?? const EngineView(),
                     ),
-                    if (onExport case final onExport?)
-                      ExportButton(
-                        onExport: onExport,
-                        canExportPdf: song.guitarTracks.isNotEmpty,
+                    if (message != null)
+                      Center(
+                        child: Text(
+                          message,
+                          style: textTheme.titleMedium?.copyWith(
+                            color: Colors.black54,
+                          ),
+                        ),
                       ),
+                    if (state.loading) const LinearProgressIndicator(),
                   ],
                 ),
               ),
-            Expanded(
-              // The engine stays mounted even with nothing to show: it also
-              // answers the library's requests.
-              child: Stack(
-                children: [
-                  Offstage(
-                    offstage: message != null,
-                    child: engineView ?? const EngineView(),
-                  ),
-                  if (message != null)
-                    Center(
-                      child: Text(
-                        message,
-                        style: textTheme.titleMedium?.copyWith(
-                          color: Colors.black54,
-                        ),
-                      ),
-                    ),
-                  if (state.loading) const LinearProgressIndicator(),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Says why an edit the engine refused didn't happen.
+class _EditFailures extends StatefulWidget {
+  final Widget child;
+
+  const _EditFailures({required this.child});
+
+  @override
+  State<_EditFailures> createState() => _EditFailuresState();
+}
+
+class _EditFailuresState extends State<_EditFailures> {
+  late final StreamSubscription<String> _failures;
+
+  @override
+  void initState() {
+    super.initState();
+    _failures = context.read<EditorCubit>().failures.listen((message) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(editFailureMessage(l10n, message))),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_failures.cancel());
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

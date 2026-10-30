@@ -6,14 +6,20 @@ import '../editor/tuning_presets.dart';
 
 /// Pops the new track's tuning, top string first, or null when cancelled.
 class AddTrackDialog extends StatefulWidget {
-  const AddTrackDialog({super.key});
+  /// Where the fields start: the drawn track's tuning, when they can show it.
+  final List<int>? tuning;
+
+  const AddTrackDialog({this.tuning, super.key});
 
   @override
   State<AddTrackDialog> createState() => _AddTrackDialogState();
 }
 
 class _AddTrackDialogState extends State<AddTrackDialog> {
-  var _tuning = [...tuningPresets(6).first.tuning];
+  late var _tuning = switch (widget.tuning) {
+    final tuning? when TuningFields.fits(tuning) => [...tuning],
+    _ => [...tuningPresets(6).first.tuning],
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +29,10 @@ class _AddTrackDialogState extends State<AddTrackDialog> {
       content: SizedBox(
         width: 420,
         child: SingleChildScrollView(
-          child: TuningFields(onChanged: (t) => setState(() => _tuning = t)),
+          child: TuningFields(
+            initial: widget.tuning,
+            onChanged: (t) => setState(() => _tuning = t),
+          ),
         ),
       ),
       actions: [

@@ -46,6 +46,7 @@ void main() {
     playback = _Playback();
     editor = _Editor();
     when(() => editor.state).thenReturn(const EditorState());
+    when(() => editor.failures).thenAnswer((_) => const Stream.empty());
     when(() => playback.state).thenReturn(const PlaybackState());
     settings = _Settings();
     when(() => settings.state).thenReturn(const AppSettings());
@@ -97,6 +98,19 @@ void main() {
     await cubit.open('fixture.gp');
     await tester.pump();
     expect(find.byType(ExportButton), findsOneWidget);
+  });
+
+  testWidgets('a failed track edit says why', (tester) async {
+    when(() => editor.failures)
+        .thenAnswer((_) => Stream.value('no free MIDI channel'));
+    await pumpPage(tester);
+    await cubit.open('fixture.gp');
+    await tester.pump();
+    await tester.pump();
+    expect(
+      find.text('No MIDI channel is free for another track'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('an opened song with unplayable notes says so once', (

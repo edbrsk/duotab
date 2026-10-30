@@ -159,6 +159,7 @@ void main() {
     await pump(tester, drawn);
     await tester.tap(find.byTooltip('Rename track'));
     await tester.pumpAndSettle();
+    expect(find.text('Track name'), findsOneWidget);
     await tester.enterText(find.byType(TextField), 'Lead');
     await tester.pump();
     await tester.tap(find.text('Save'));

@@ -58,7 +58,7 @@ class TrackInfoPanel extends StatelessWidget {
                     builder: (_) => TitleDialog(
                       title: track.name,
                       heading: l10n.renameTrack,
-                      label: l10n.songName,
+                      label: l10n.trackName,
                     ),
                   );
                   if (name != null) await editor.renameTrack(track.index, name);

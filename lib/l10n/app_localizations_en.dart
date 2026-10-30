@@ -680,6 +680,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get edited => 'Edited';
 
   @override
+  String get trackName => 'Track name';
+
+  @override
+  String get muteShort => 'M';
+
+  @override
+  String get soloShort => 'S';
+
+  @override
+  String get editFailed => 'Couldn\'t make that change';
+
+  @override
+  String get editFailedNoChannel => 'No MIDI channel is free for another track';
+
+  @override
+  String get editFailedNoName => 'A track needs a name';
+
+  @override
+  String get editFailedLastGuitar => 'The song keeps at least one guitar track';
+
+  @override
+  String get editFailedRepeat => 'This bar ends a repeat that can\'t move';
+
+  @override
   String songChangeFailed(String error) {
     return 'Couldn\'t change the song: $error';
   }

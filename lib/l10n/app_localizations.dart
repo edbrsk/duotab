@@ -1312,6 +1312,54 @@ abstract class AppLocalizations {
   /// **'Edited'**
   String get edited;
 
+  /// No description provided for @trackName.
+  ///
+  /// In en, this message translates to:
+  /// **'Track name'**
+  String get trackName;
+
+  /// No description provided for @muteShort.
+  ///
+  /// In en, this message translates to:
+  /// **'M'**
+  String get muteShort;
+
+  /// No description provided for @soloShort.
+  ///
+  /// In en, this message translates to:
+  /// **'S'**
+  String get soloShort;
+
+  /// No description provided for @editFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t make that change'**
+  String get editFailed;
+
+  /// No description provided for @editFailedNoChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'No MIDI channel is free for another track'**
+  String get editFailedNoChannel;
+
+  /// No description provided for @editFailedNoName.
+  ///
+  /// In en, this message translates to:
+  /// **'A track needs a name'**
+  String get editFailedNoName;
+
+  /// No description provided for @editFailedLastGuitar.
+  ///
+  /// In en, this message translates to:
+  /// **'The song keeps at least one guitar track'**
+  String get editFailedLastGuitar;
+
+  /// No description provided for @editFailedRepeat.
+  ///
+  /// In en, this message translates to:
+  /// **'This bar ends a repeat that can\'t move'**
+  String get editFailedRepeat;
+
   /// No description provided for @songChangeFailed.
   ///
   /// In en, this message translates to:

@@ -98,3 +98,38 @@ test('removing the drawn track draws the nearest guitar track', () => {
   expect(session.track).toBe(1);
   expect(session.position?.track).toBe(1);
 });
+
+test('removing or moving a track keeps its display flags with it', () => {
+  s = score(guitarsAndDrums);
+  s.stylesheet.perTrackMultiBarRest = new Set([1]);
+  s.stylesheet.perTrackDisplayTuning = new Map([[1, false]]);
+  moveTrack(s, 1, 0);
+  expect([...s.stylesheet.perTrackMultiBarRest!]).toEqual([0]);
+  expect([...s.stylesheet.perTrackDisplayTuning!]).toEqual([[0, false]]);
+  removeTrack(s, 0);
+  expect(s.stylesheet.perTrackMultiBarRest!.size).toBe(0);
+  expect(s.stylesheet.perTrackDisplayTuning!.size).toBe(0);
+});
+
+test('a rename renames a derived short name too', () => {
+  s = score(guitarsAndDrums);
+  renameTrack(s, 0, 'Rhythm guitar');
+  expect(s.tracks[0].shortName).toBe('Rhythm gui');
+
+  const custom = score(String.raw`\track "Guitar A" "Lead" \tuning E4 B3 G3 D3 A2 E2
+0.6.1`);
+  renameTrack(custom, 0, 'Rhythm');
+  expect(custom.tracks[0].shortName).toBe('Lead');
+
+  const prefix = score(String.raw`\track "Guitar A" "Gui" \tuning E4 B3 G3 D3 A2 E2
+0.6.1`);
+  renameTrack(prefix, 0, 'Bass line');
+  expect(prefix.tracks[0].shortName).toBe('Bass line');
+});
+
+test('move and rename refuse other tracks and indexes past the end', () => {
+  s = score(guitarsAndDrums);
+  expect(() => renameTrack(s, 9, 'X')).toThrow('no track 9');
+  expect(() => renameTrack(s, 2, 'X')).toThrow('only guitar tracks can be renamed');
+  expect(() => moveTrack(s, 2, 0)).toThrow('only guitar tracks can be moved');
+});

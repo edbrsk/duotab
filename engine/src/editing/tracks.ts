@@ -18,9 +18,33 @@ export const isGuitar = (track: Track) =>
     midiProgram: track.playbackInfo.program,
   }) === 'guitar';
 
+const SHORT_NAME_LENGTH = 10;
+
+/** The stylesheet keeps some display choices by track index; they follow their track. */
+function remapStylesheet(score: Score, newIndex: Map<number, number>): void {
+  const sheet = score.stylesheet;
+  if (sheet.perTrackMultiBarRest) {
+    sheet.perTrackMultiBarRest = new Set(
+      [...sheet.perTrackMultiBarRest].flatMap((i) => (newIndex.has(i) ? [newIndex.get(i)!] : [])),
+    );
+  }
+  const remap = (flags: Map<number, boolean> | null) =>
+    flags && new Map([...flags].flatMap(([i, on]) => (newIndex.has(i) ? [[newIndex.get(i)!, on] as [number, boolean]] : [])));
+  sheet.perTrackDisplayTuning = remap(sheet.perTrackDisplayTuning);
+  sheet.perTrackChordDiagramsOnTop = remap(sheet.perTrackChordDiagramsOnTop);
+}
+
 function reindex(score: Score, settings: alphaTab.Settings): void {
+  remapStylesheet(score, new Map(score.tracks.map((track, index) => [track.index, index])));
   for (const [index, track] of score.tracks.entries()) track.index = index;
   score.finish(settings);
+}
+
+function guitarAt(score: Score, index: number, verb: string): Track {
+  const track = score.tracks[index];
+  if (!track) throw new Error(`no track ${index}`);
+  if (!isGuitar(track)) throw new Error(`only guitar tracks can be ${verb}`);
+  return track;
 }
 
 /** The new track's index: the last. */
@@ -74,18 +98,26 @@ export function removeTrack(score: Score, index: number, settings = defaultSetti
 }
 
 export function moveTrack(score: Score, from: number, to: number, settings = defaultSettings): void {
-  const track = score.tracks[from];
-  if (!track || to < 0 || to >= score.tracks.length) throw new Error(`no track ${from} to move to ${to}`);
+  const track = guitarAt(score, from, 'moved');
+  if (to < 0 || to >= score.tracks.length) throw new Error(`no track ${from} to move to ${to}`);
   score.tracks.splice(from, 1);
   score.tracks.splice(to, 0, track);
   reindex(score, settings);
 }
 
-/** Sets the name only; a short name the file gave stays. */
+/**
+ * A short name taken from the old name (empty, or its start) follows the
+ * rename; one the file chose stays.
+ */
 export function renameTrack(score: Score, index: number, name: string, settings = defaultSettings): void {
+  const track = guitarAt(score, index, 'renamed');
   const trimmed = name.trim();
   if (!trimmed) throw new Error('a track needs a name');
-  score.tracks[index].name = trimmed;
+  const short = track.shortName.trim().toLowerCase();
+  if (!short || track.name.toLowerCase().startsWith(short)) {
+    track.shortName = trimmed.slice(0, SHORT_NAME_LENGTH);
+  }
+  track.name = trimmed;
   score.finish(settings);
 }
 

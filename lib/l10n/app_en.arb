@@ -332,6 +332,14 @@
   "deleteSongBody": "The file is removed from this iPhone and can't be recovered.",
   "deleteEditedBody": "The original file and your edited copy are removed from this iPhone and can't be recovered.",
   "edited": "Edited",
+  "trackName": "Track name",
+  "muteShort": "M",
+  "soloShort": "S",
+  "editFailed": "Couldn't make that change",
+  "editFailedNoChannel": "No MIDI channel is free for another track",
+  "editFailedNoName": "A track needs a name",
+  "editFailedLastGuitar": "The song keeps at least one guitar track",
+  "editFailedRepeat": "This bar ends a repeat that can't move",
   "songChangeFailed": "Couldn't change the song: {error}",
   "@songChangeFailed": {
     "placeholders": {

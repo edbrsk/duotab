@@ -62,6 +62,17 @@ void main() {
     await events.close();
   });
 
+  test('a failed command is reported', () async {
+    when(() => engine.edit(any()))
+        .thenThrow(const EngineException('no free MIDI channel'));
+    final failures = <String>[];
+    final sub = editor.failures.listen(failures.add);
+    addTearDown(sub.cancel);
+    await editor.addTrack(const [64, 59, 55, 50, 45, 40], 27);
+    await pumpEventQueue();
+    expect(failures, ['no free MIDI channel']);
+  });
+
   test('a command updates position, issues and history flags', () async {
     await editor.command(const SetFret(5));
     expect(editor.state.position, _at);

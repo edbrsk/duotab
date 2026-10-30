@@ -274,6 +274,38 @@ void main() {
     verify(() => editor.addTrack(tuningPresets(7).first.tuning, 27)).called(1);
   });
 
+  testWidgets("Add track starts at the drawn track's tuning", (tester) async {
+    tester.view.physicalSize = const Size(890, 1400);
+    await pump(
+      tester,
+      tracks: [
+        drumsAndTwoGuitars.tracks[0],
+        const TrackSummary(
+          index: 1,
+          name: 'Guitar 1',
+          kind: TrackKind.guitar,
+          stringCount: 6,
+          tuning: [62, 57, 53, 48, 43, 38],
+          midiProgram: 29,
+        ),
+        drumsAndTwoGuitars.tracks[2],
+      ],
+    );
+    tester.view.physicalSize = const Size(890, 1400);
+    await tester.tap(find.byTooltip('Add track'));
+    await tester.pumpAndSettle();
+    expect(find.text('Standard D'), findsOneWidget);
+  });
+
+  testWidgets('in Split View the drawer offers no track tools', (tester) async {
+    await pump(tester);
+    tester.view.physicalSize = const Size(500, 626);
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Add track'), findsNothing);
+    expect(find.byTooltip('Track actions'), findsNothing);
+    expect(find.byTooltip('Mixer'), findsOneWidget);
+  });
+
   testWidgets('the track menu moves and removes', (tester) async {
     await pump(tester);
     await tester.tap(rowMenu(2));

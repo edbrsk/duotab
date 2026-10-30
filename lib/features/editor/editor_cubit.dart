@@ -114,6 +114,7 @@ class EditorCubit extends Cubit<EditorState> {
   late final StreamSubscription<EngineEvent> _events;
   late final StreamSubscription<ScoreState> _songs;
   final _edited = StreamController<void>.broadcast();
+  final _failures = StreamController<String>.broadcast();
   int? _openId;
 
   EditorCubit({required this.engine, required this.score})
@@ -136,6 +137,9 @@ class EditorCubit extends Cubit<EditorState> {
 
   /// Fires after each change to the song, for saving.
   Stream<void> get edited => _edited.stream;
+
+  /// The engine's message for each command that failed.
+  Stream<String> get failures => _failures.stream;
 
   Future<void> command(EditCommand command) =>
       _apply(() => engine.edit(command));
@@ -249,6 +253,9 @@ class EditorCubit extends Cubit<EditorState> {
       reply = await request();
     } on Object catch (e) {
       debugPrint('EditorCubit: $e');
+      if (!_failures.isClosed) {
+        _failures.add(e is EngineException ? e.message : '$e');
+      }
       return false;
     }
     // A reply that arrives after another song opened belongs to the old one.
@@ -295,6 +302,7 @@ class EditorCubit extends Cubit<EditorState> {
     await _events.cancel();
     await _songs.cancel();
     await _edited.close();
+    await _failures.close();
     return super.close();
   }
 }

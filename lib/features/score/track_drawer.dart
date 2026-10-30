@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/design/design_tokens.dart';
 import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
+import '../../presentation/workspace/workspace_layout.dart';
 import '../editor/editor_cubit.dart';
 import '../playback/playback_cubit.dart';
 import '../playback/practice_settings.dart';
@@ -112,24 +113,30 @@ class _TrackDrawerState extends State<TrackDrawer> {
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
                   const Spacer(),
-                  IconButton(
-                    tooltip: l10n.addTrack,
-                    icon: const Icon(Icons.add),
-                    onPressed: () async {
-                      final editor = context.read<EditorCubit>();
-                      final tone = context
-                          .read<SettingsCubit>()
-                          .state
-                          .defaultTone;
-                      final tuning = await showDialog<List<int>>(
-                        context: context,
-                        builder: (_) => const AddTrackDialog(),
-                      );
-                      if (tuning != null) {
-                        await editor.addTrack(tuning, tone.program);
-                      }
-                    },
-                  ),
+                  // Split View is a player: editing waits for a wider window.
+                  if (!WorkspaceLayout.isCollapsed(context))
+                    IconButton(
+                      tooltip: l10n.addTrack,
+                      icon: const Icon(Icons.add),
+                      onPressed: () async {
+                        final editor = context.read<EditorCubit>();
+                        final score = context.read<ScoreCubit>().state;
+                        final tone = context
+                            .read<SettingsCubit>()
+                            .state
+                            .defaultTone;
+                        final drawn = score.song?.tracks
+                            .where((t) => t.index == score.selectedTrackIndex)
+                            .firstOrNull;
+                        final tuning = await showDialog<List<int>>(
+                          context: context,
+                          builder: (_) => AddTrackDialog(tuning: drawn?.tuning),
+                        );
+                        if (tuning != null) {
+                          await editor.addTrack(tuning, tone.program);
+                        }
+                      },
+                    ),
                   IconButton(
                     tooltip: l10n.mixer,
                     isSelected: _mixer,
@@ -320,18 +327,19 @@ class _TrackRow extends StatelessWidget {
             ),
           ),
           _MixToggle(
-            label: 'M',
+            label: l10n.muteShort,
             tooltip: l10n.muteTrack(track.name),
             active: practice.mute,
             onPressed: () => playback.setMute(track.index, on: !practice.mute),
           ),
           _MixToggle(
-            label: 'S',
+            label: l10n.soloShort,
             tooltip: l10n.soloTrack(track.name),
             active: practice.solo,
             onPressed: () => playback.setSolo(track.index, on: !practice.solo),
           ),
-          if (track.kind == TrackKind.guitar)
+          if (track.kind == TrackKind.guitar &&
+              !WorkspaceLayout.isCollapsed(context))
             PopupMenuButton<VoidCallback>(
               tooltip: l10n.trackActions,
               icon: const Icon(Icons.more_vert),
