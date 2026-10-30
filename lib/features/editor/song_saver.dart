@@ -94,7 +94,7 @@ class SongSaver {
         );
         await _write(copy, bytes);
         final copyPath = p.relative(copy.path, from: documents.path);
-        await owned.add(copyPath);
+        await owned.addCopy(copyPath, of: path);
         score.moveTo(copyPath);
       }
       await onSaved();

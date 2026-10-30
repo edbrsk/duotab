@@ -33,4 +33,17 @@ void main() {
     await owned.rename('a.gp', 'c.gp');
     expect(await owned.owns('c.gp'), isFalse);
   });
+
+  test('a copy remembers its original through renames and removal', () async {
+    await owned.addCopy('a (DuoScore).gp', of: 'a.gp');
+    expect(await owned.owns('a (DuoScore).gp'), isTrue);
+    expect(await owned.originals(), {'a (DuoScore).gp': 'a.gp'});
+
+    await owned.rename('a.gp', 'b.gp');
+    await owned.rename('a (DuoScore).gp', 'b (DuoScore).gp');
+    expect(await owned.originals(), {'b (DuoScore).gp': 'b.gp'});
+
+    await owned.remove('b.gp');
+    expect(await owned.originals(), isEmpty);
+  });
 }

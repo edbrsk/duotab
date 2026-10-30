@@ -58,7 +58,12 @@ Future<void> setupDependencies() async {
 
   final engine = EngineBridge(host.transport);
   host.onRestart = engine.restart;
-  final library = LibraryCubit(documents: documents, engine: engine);
+  final owned = OwnedFiles(JsonFile(File(p.join(support.path, 'owned.json'))));
+  final library = LibraryCubit(
+    documents: documents,
+    engine: engine,
+    owned: owned,
+  );
   final navigation = NavigationCubit();
   final score = ScoreCubit(engine: engine);
   final hinge = HingeStatusProvider();
@@ -71,7 +76,6 @@ Future<void> setupDependencies() async {
   );
 
   final editor = EditorCubit(engine: engine, score: score);
-  final owned = OwnedFiles(JsonFile(File(p.join(support.path, 'owned.json'))));
   final saver = SongSaver(
     documents: documents,
     engine: engine,

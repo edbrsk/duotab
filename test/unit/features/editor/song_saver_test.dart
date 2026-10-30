@@ -87,6 +87,12 @@ void main() {
     expect(saved, 1);
   });
 
+  test('the copy records the file it was made from', () async {
+    await openFile('a.gp');
+    await saver.saveNow();
+    expect(await owned.originals(), {'a (DuoScore).gp': 'a.gp'});
+  });
+
   test('later saves write the copy', () async {
     await openFile('a.gp');
     await saver.saveNow();

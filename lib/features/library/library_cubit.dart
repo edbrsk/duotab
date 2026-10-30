@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path/path.dart' as p;
 
 import '../../engine/engine_bridge.dart';
+import '../editor/owned_files.dart';
 import 'song_list_entry.dart';
 
 const supportedSongExtensions = {
@@ -24,13 +25,54 @@ class LibraryState {
   const LibraryState({required this.loading, required this.songs});
 }
 
+final _copyName = RegExp(r'^(.*) \(DuoScore\)( \(\d+\))?$');
+
+/// Each edited copy and the opened file it was made from, both in [paths].
+/// Copies made before the app recorded their original pair by name: an owned
+/// `X (DuoScore).gp` with an unowned `X` song beside it.
+Map<String, String> pairCopies(
+  List<String> paths,
+  Set<String> owned,
+  Map<String, String> recorded,
+) {
+  final present = paths.toSet();
+  final pairs = <String, String>{};
+  for (final copy in paths) {
+    if (!owned.contains(copy)) continue;
+    final original =
+        recorded[copy] ??
+        switch (_copyName.firstMatch(p.basenameWithoutExtension(copy))) {
+          final match? =>
+            paths
+                .where(
+                  (o) =>
+                      !owned.contains(o) &&
+                      p.dirname(o) == p.dirname(copy) &&
+                      p.basenameWithoutExtension(o) == match.group(1),
+                )
+                .firstOrNull,
+          null => null,
+        };
+    if (original != null &&
+        present.contains(original) &&
+        !owned.contains(original)) {
+      pairs[copy] = original;
+    }
+  }
+  return pairs;
+}
+
 class LibraryCubit extends Cubit<LibraryState> {
   final Directory documents;
   final EngineBridge engine;
+  final OwnedFiles owned;
   final _cache = <String, ({DateTime modified, SongListEntry entry})>{};
 
-  LibraryCubit({required this.documents, required this.engine})
-    : super(const LibraryState(loading: false, songs: []));
+  LibraryCubit({
+    required this.documents,
+    required this.engine,
+    required this.owned,
+  }) : super(const LibraryState(loading: false, songs: []));
 
   Future<void> refresh() async {
     emit(LibraryState(loading: true, songs: state.songs));
@@ -39,14 +81,30 @@ class LibraryCubit extends Cubit<LibraryState> {
           supportedSongExtensions.contains(p.extension(f.path).toLowerCase()),
     );
     // All at once, so a stalled engine costs one timeout, not one per file.
-    final entries = await Future.wait([
+    final summarized = await Future.wait([
       for (final file in files) _entryFor(file),
     ]);
-    final paths = entries.map((e) => e.path).toSet();
+    final paths = summarized.map((e) => e.path).toSet();
     _cache.removeWhere((path, _) => !paths.contains(path));
-    entries.sort(
-      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    final pairs = pairCopies(
+      (paths.toList()..sort()),
+      await owned.all(),
+      await owned.originals(),
     );
+    // The original stays as a backup; its copy is the song the owner edits.
+    // The first copy by name, `X (DuoScore)`, takes the original's name.
+    summarized.sort(
+      (a, b) =>
+          p.withoutExtension(a.path).compareTo(p.withoutExtension(b.path)),
+    );
+    final named = <String>{};
+    final entries = [
+      for (final entry in summarized)
+        if (pairs[entry.path] case final original?)
+          entry.standingFor(original, named: named.add(original))
+        else if (!pairs.containsValue(entry.path))
+          entry,
+    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
     if (!isClosed) emit(LibraryState(loading: false, songs: entries));
   }
 
