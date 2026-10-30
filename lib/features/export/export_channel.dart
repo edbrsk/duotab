@@ -7,15 +7,19 @@ class ExportChannel {
   const ExportChannel();
 
   /// [pages] are HTML documents, one per page, loaded relative to [baseUrl].
+  /// iOS gives up on a stalled page itself; the timeout keeps the Export
+  /// button from waiting forever if it never answers.
   Future<void> makePdf({
     required List<String> pages,
     required String baseUrl,
     required String path,
-  }) => _channel.invokeMethod<void>('pdf', {
-    'pages': pages,
-    'baseUrl': baseUrl,
-    'path': path,
-  });
+  }) => _channel
+      .invokeMethod<void>('pdf', {
+        'pages': pages,
+        'baseUrl': baseUrl,
+        'path': path,
+      })
+      .timeout(const Duration(minutes: 2));
 
   /// [anchor] is in global coordinates: in regular width the sheet is a
   /// popover pointing at it.

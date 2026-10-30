@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:duoscore/features/export/export_channel.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -56,5 +59,22 @@ void main() {
       const ExportChannel().makePdf(pages: [''], baseUrl: '', path: ''),
       throwsA(isA<PlatformException>()),
     );
+  });
+
+  test('a PDF that iOS never finishes fails after two minutes', () {
+    fakeAsync((async) {
+      messenger.setMockMethodCallHandler(
+        channel,
+        (_) => Completer<Object?>().future,
+      );
+      Object? failure;
+      const ExportChannel()
+          .makePdf(pages: [''], baseUrl: '', path: '')
+          .catchError((Object e) => failure = e);
+      async.elapse(const Duration(seconds: 119));
+      expect(failure, isNull);
+      async.elapse(const Duration(seconds: 2));
+      expect(failure, isA<TimeoutException>());
+    });
   });
 }

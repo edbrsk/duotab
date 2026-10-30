@@ -284,10 +284,12 @@ final class SongExport: NSObject, WKNavigationDelegate {
 
   private static let page = CGRect(x: 0, y: 0, width: 595, height: 842)
 
+  private static let pageLoadLimit: Duration = .seconds(20)
+
   private weak var registrar: FlutterPluginRegistrar?
   private var rendering = false
-  private var sharing = false
   private var loading: CheckedContinuation<Void, Error>?
+  private var loads = 0
 
   func register(with registrar: FlutterPluginRegistrar) {
     self.registrar = registrar
@@ -340,10 +342,7 @@ final class SongExport: NSObject, WKNavigationDelegate {
     defer { webView.removeFromSuperview() }
     let document = PDFDocument()
     for page in pages {
-      try await withCheckedThrowingContinuation { continuation in
-        loading = continuation
-        webView.loadHTMLString(page, baseURL: baseURL)
-      }
+      try await load(page, baseURL: baseURL, in: webView)
       // The music glyphs are text in Bravura; a page captured before the font
       // arrives shows boxes.
       _ = try await webView.callAsyncJavaScript(
@@ -357,27 +356,55 @@ final class SongExport: NSObject, WKNavigationDelegate {
     guard document.write(to: url) else { throw ExportError.notWritten }
   }
 
+  /// Fails after `pageLoadLimit`, so a load that never reports back cannot
+  /// hold the export, and every later one, forever.
+  private func load(_ page: String, baseURL: URL?, in webView: WKWebView) async throws {
+    loads += 1
+    let current = loads
+    try await withCheckedThrowingContinuation { continuation in
+      loading = continuation
+      webView.loadHTMLString(page, baseURL: baseURL)
+      Task { [weak self] in
+        try? await Task.sleep(for: Self.pageLoadLimit)
+        if self?.loads == current { self?.finishLoading(ExportError.pageTimedOut) }
+      }
+    }
+  }
+
+  private func finishLoading(_ error: Error?) {
+    guard let loading else { return }
+    self.loading = nil
+    if let error { loading.resume(throwing: error) } else { loading.resume() }
+  }
+
   func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-    loading?.resume()
-    loading = nil
+    finishLoading(nil)
   }
 
   func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-    loading?.resume(throwing: error)
-    loading = nil
+    finishLoading(error)
   }
 
   func webView(
     _ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error
   ) {
-    loading?.resume(throwing: error)
-    loading = nil
+    finishLoading(error)
+  }
+
+  func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+    finishLoading(ExportError.webViewEnded)
   }
 
   private func share(_ arguments: [String: Any], _ result: @escaping FlutterResult) {
-    guard !sharing, let paths = arguments["paths"] as? [String], let viewController = registrar?.viewController
-    else {
-      return result(FlutterError(code: "unavailable", message: "share sheet already open, or no view", details: nil))
+    guard let paths = arguments["paths"] as? [String], let viewController = registrar?.viewController else {
+      return result(FlutterError(code: "unavailable", message: "no view", details: nil))
+    }
+    // UIKit silently refuses to present from a controller that is already
+    // presenting, such as the Files picker, and would never complete.
+    var presenter: UIViewController = viewController
+    while let presented = presenter.presentedViewController { presenter = presented }
+    if presenter is UIActivityViewController {
+      return result(FlutterError(code: "unavailable", message: "share sheet already open", details: nil))
     }
     let anchor = CGRect(
       x: arguments["x"] as? Double ?? 0,
@@ -390,25 +417,30 @@ final class SongExport: NSObject, WKNavigationDelegate {
       applicationActivities: nil
     )
     // In regular width the sheet is a popover, which UIKit refuses to show
-    // without an anchor.
+    // without an anchor; the anchor is in the Flutter view's coordinates.
     sheet.popoverPresentationController?.sourceView = viewController.view
     sheet.popoverPresentationController?.sourceRect = anchor
-    sheet.completionWithItemsHandler = { [weak self] _, completed, _, _ in
-      MainActor.assumeIsolated { self?.sharing = false }
+    // It also fires when a cancelled activity such as Mail returns to the
+    // sheet; Flutter takes one reply.
+    var replied = false
+    sheet.completionWithItemsHandler = { _, completed, _, _ in
+      guard !replied else { return }
+      replied = true
       result(completed)
     }
-    sharing = true
-    viewController.present(sheet, animated: true)
+    presenter.present(sheet, animated: true)
   }
 }
 
 enum ExportError: LocalizedError {
-  case emptyPage, notWritten
+  case emptyPage, notWritten, pageTimedOut, webViewEnded
 
   var errorDescription: String? {
     switch self {
     case .emptyPage: "WebKit made an empty page"
     case .notWritten: "the PDF could not be written"
+    case .pageTimedOut: "a page took too long to load"
+    case .webViewEnded: "the page renderer stopped"
     }
   }
 }
