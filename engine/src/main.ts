@@ -1,6 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import { Mixer } from './mixer';
+import { Limiter, limitOutput } from './output_level';
 import { movesTicks, TRACK_OPS } from './editing/commands';
 import { hitTest } from './editing/hit_test';
 import { drawAfterTrackEdit } from './editing/track_render';
@@ -70,6 +71,7 @@ settings.core.useWorkers = false;
 settings.player.enableUserInteraction = false;
 
 const api = new alphaTab.AlphaTabApi(document.getElementById('score')!, settings);
+limitOutput(api.player!.output, new Limiter(api.player!.output.sampleRate));
 api.renderFinished.on(() => post({ event: 'rendered', payload: {} }));
 api.error.on((e) => post({ event: 'error', payload: { message: String(e?.message ?? e) } }));
 
