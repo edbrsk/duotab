@@ -240,7 +240,7 @@ api.playerPositionChanged.on((e) => {
 function postLevels(time: number) {
   if (!meters.on) return;
   const tracks = api.score?.tracks.map((t) => t.playbackInfo) ?? [];
-  const heard = heardAt(time, meters.outputLatencyMs, api.playbackSpeed);
+  const heard = heardAt(time, meters.outputLatencyMs);
   const levels = meter.release(heard, tracks, OUTPUT_GAIN, performance.now());
   if (levels) post({ event: 'levels', payload: levels });
 }

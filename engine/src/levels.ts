@@ -16,8 +16,8 @@ const pair = (left: number, right: number, gain: number): [number, number] | nul
   return l === null && r === null ? null : [l ?? FLOOR_DB, r ?? FLOOR_DB];
 };
 
-/** The song time heard at `time`: the speaker plays `latencyMs` behind the player, at `speed`. */
-export const heardAt = (time: number, latencyMs: number, speed: number): number => time - latencyMs * speed;
+/** The player time heard at `time`, which alphaTab counts in real milliseconds at any speed. */
+export const heardAt = (time: number, latencyMs: number): number => time - latencyMs;
 
 /**
  * The synth worker renders ahead of the speaker, so its level frames wait

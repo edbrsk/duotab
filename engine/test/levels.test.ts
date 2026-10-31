@@ -37,9 +37,9 @@ test('master shows the mix after the master fader its sound was played with', ()
   expect(meter.release(200, [track], gain, 100)!.master![0]).toBeCloseTo(-6, 0);
 });
 
-test('a level is heard after the output latency, in song time', () => {
-  expect(heardAt(1000, 200, 1)).toBe(800);
-  expect(heardAt(1000, 200, 0.5)).toBe(900);
+// alphaTab's player times run in real milliseconds at any speed.
+test('a level is heard the output latency after it plays', () => {
+  expect(heardAt(1000, 200)).toBe(800);
 });
 
 test('quiet is nothing', () => {
