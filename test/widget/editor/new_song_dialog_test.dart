@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  Future<Future<NewSongOptions?>> open(WidgetTester tester) async {
+  Future<Future<NewSongOptions?>> open(
+    WidgetTester tester, {
+    Size size = const Size(951, 1400),
+  }) async {
     tester.view
-      ..physicalSize = const Size(951, 1400)
+      ..physicalSize = size
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     late Future<NewSongOptions?> result;
@@ -60,6 +63,17 @@ void main() {
       expect([options.numerator, options.denominator], [6, 8]);
     },
   );
+
+  testWidgets('fits beside the vertical bar on the outer screen', (
+    tester,
+  ) async {
+    await open(tester, size: const Size(382, 678));
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('7'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('a custom tuning sets each string', (tester) async {
     final result = await open(tester);

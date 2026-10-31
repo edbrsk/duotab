@@ -110,6 +110,8 @@ class _TuningFieldsState extends State<TuningFields> {
         labelledField(
           l10n.strings,
           SegmentedButton<int>(
+            // Beside the outer screen's vertical bar a tick doesn't fit.
+            showSelectedIcon: false,
             segments: [
               for (final n in const [6, 7, 8])
                 ButtonSegment(value: n, label: Text('$n')),
