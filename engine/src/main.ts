@@ -1,6 +1,6 @@
 import * as alphaTab from '@coderline/alphatab';
 
-import { LevelMeter } from './levels';
+import { heardAt, LevelMeter } from './levels';
 import { Mixer } from './mixer';
 import { drawEveryBar, withFileRests } from './multi_bar_rests';
 import { glideFinely, playEffectsUnderTremolo, startChannelsUnbent } from './midi_effects';
@@ -33,12 +33,14 @@ import type {
   SetStavesPayload,
   SetSpeedPayload,
   SetMasterPayload,
+  SetMetersPayload,
+  SetOutputLatencyPayload,
   SetTracksPayload,
 } from './protocol';
 import { type HighlightApi, keepRangeHighlighted } from './range_highlight';
 import { setStaves, showNotationAndTab } from './staves';
 import { readGpMixer } from './gp_mixer';
-import type { LevelFrame, PanMessage } from './worker/synth_hooks';
+import type { LevelFrame, MeteringMessage, PanMessage } from './worker/synth_hooks';
 import { describeOpened, summarize } from './summary';
 import { barAtTick } from './timeline';
 import { LongPressSelection } from './touch_selection';
@@ -93,9 +95,17 @@ const OUTPUT_GAIN = 2;
 const limiter = new Limiter(api.player!.output.sampleRate, OUTPUT_GAIN);
 limitOutput(api.player!.output, limiter);
 const meter = new LevelMeter();
+// The worker posts a block's samples before its levels, so the limiter has just given them this gain.
 synth.worker?.addEventListener('message', (e: MessageEvent<LevelFrame>) => {
-  if (e.data?.cmd === 'duoscore.levels') meter.add(e.data);
+  if (e.data?.cmd === 'duoscore.levels') meter.add(e.data, limiter.gain);
 });
+const meters = { on: false, outputLatencyMs: 0 };
+const setMeters = (on: boolean) => {
+  meters.on = on;
+  meter.clear();
+  synth.worker?.postMessage({ cmd: 'duoscore.metering', on } satisfies MeteringMessage);
+};
+setMeters(false);
 api.renderFinished.on(() => post({ event: 'rendered', payload: {} }));
 api.error.on((e) => post({ event: 'error', payload: { message: String(e?.message ?? e) } }));
 
@@ -106,8 +116,8 @@ api.playerStateChanged.on((e) => {
   if (!playing) postSilence();
 });
 
-const mixer = new Mixer(api, (channel, pan) =>
-  synth.worker?.postMessage({ cmd: 'duoscore.pan', channel, pan } satisfies PanMessage),
+const mixer = new Mixer(api, (channel, shift) =>
+  synth.worker?.postMessage({ cmd: 'duoscore.pan', channel, shift } satisfies PanMessage),
 );
 
 function postSilence() {
@@ -228,8 +238,10 @@ api.playerPositionChanged.on((e) => {
 });
 
 function postLevels(time: number) {
+  if (!meters.on) return;
   const tracks = api.score?.tracks.map((t) => t.playbackInfo) ?? [];
-  const levels = meter.release(time, tracks, { track: OUTPUT_GAIN, master: limiter.gain }, performance.now());
+  const heard = heardAt(time, meters.outputLatencyMs);
+  const levels = meter.release(heard, tracks, OUTPUT_GAIN, performance.now());
   if (levels) post({ event: 'levels', payload: levels });
 }
 
@@ -376,6 +388,12 @@ async function run(request: Request): Promise<unknown> {
       limiter.gain = volumeDb === null ? 0 : OUTPUT_GAIN * 10 ** (volumeDb / 20);
       return {};
     }
+    case 'setMeters':
+      setMeters((request.payload as SetMetersPayload).on);
+      return {};
+    case 'setOutputLatency':
+      meters.outputLatencyMs = (request.payload as SetOutputLatencyPayload).ms;
+      return {};
     case 'setPlayerOptions': {
       const { countIn, metronome } = request.payload as PlayerOptionsPayload;
       api.countInVolume = countIn ? 1 : 0;

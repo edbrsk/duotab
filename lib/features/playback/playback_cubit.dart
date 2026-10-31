@@ -54,6 +54,9 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   ValueListenable<Levels?> get levels => _levels;
   late final StreamSubscription<ScoreState> _songs;
   late final StreamSubscription<AppSettings> _settings;
+  StreamSubscription<Duration>? _latencies;
+  var _metersOn = false;
+  Duration? _outputLatency;
   SongSummary? _song;
 
   /// Practice of tracks removed from the open song, by channel, for undo.
@@ -71,8 +74,13 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     required this.score,
     required this.practice,
     required this.settings,
+    Stream<Duration>? outputLatency,
   }) : super(const PlaybackState()) {
     _events = engine.events.listen(_onEngineEvent);
+    _latencies = outputLatency?.listen((latency) {
+      _outputLatency = latency;
+      unawaited(_send(() => engine.setOutputLatency(latency)));
+    });
     _songs = score.stream.listen(_onScoreChanged);
     _settings = settings.stream.listen((_) => unawaited(_sendPlayerOptions()));
     hinge.addListener(_onHingeChanged);
@@ -295,6 +303,11 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   Future<void> _show(PracticeSettings practice) async =>
       emit(state.copyWith(practice: practice));
 
+  Future<void> showMeters({required bool on}) {
+    _metersOn = on;
+    return _send(() => engine.setMeters(on: on));
+  }
+
   void _onEngineEvent(EngineEvent event) {
     switch (event.type) {
       case 'playerState':
@@ -313,6 +326,11 @@ class PlaybackCubit extends Cubit<PlaybackState> {
       case 'ready':
         emit(state.copyWith(playing: false));
         unawaited(_sendPlayerOptions());
+        // Its meters start off, with no latency.
+        if (_metersOn) unawaited(_send(() => engine.setMeters(on: true)));
+        if (_outputLatency case final latency?) {
+          unawaited(_send(() => engine.setOutputLatency(latency)));
+        }
     }
   }
 
@@ -343,6 +361,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     if (!isClosed) _levels.dispose();
     hinge.removeListener(_onHingeChanged);
     await _settings.cancel();
+    await _latencies?.cancel();
     await _songs.cancel();
     await _events.cancel();
     return super.close();

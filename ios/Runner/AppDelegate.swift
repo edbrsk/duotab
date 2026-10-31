@@ -1,3 +1,4 @@
+import AVFoundation
 import Flutter
 import PDFKit
 import UIKit
@@ -20,6 +21,9 @@ import WebKit
     }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "HingeStatus") {
       HingeStatusStreamHandler.register(with: registrar)
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OutputLatency") {
+      OutputLatencyStreamHandler.register(with: registrar)
     }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "IncomingFiles") {
       IncomingFilesStreamHandler.shared.register(with: registrar)
@@ -135,6 +139,49 @@ final class HingeStatusStreamHandler: NSObject, @preconcurrency FlutterStreamHan
     case .fullyOpen: eventSink?("fullyOpen")
     default: eventSink?("unknown")
     }
+  }
+}
+
+/// Streams, in seconds, how far the speaker plays behind what the app hands
+/// it: the route's latency (large on Bluetooth) plus one I/O buffer. Sent on
+/// listen and on every route change.
+@MainActor
+final class OutputLatencyStreamHandler: NSObject, @preconcurrency FlutterStreamHandler {
+  private var eventSink: FlutterEventSink?
+  private var observer: NSObjectProtocol?
+
+  static func register(with registrar: FlutterPluginRegistrar) {
+    FlutterEventChannel(
+      name: "dev.edbrsk.duoscore/output_latency",
+      binaryMessenger: registrar.messenger()
+    ).setStreamHandler(OutputLatencyStreamHandler())
+  }
+
+  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
+    -> FlutterError?
+  {
+    eventSink = events
+    observer = NotificationCenter.default.addObserver(
+      forName: AVAudioSession.routeChangeNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      MainActor.assumeIsolated { self?.send() }
+    }
+    send()
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    if let observer { NotificationCenter.default.removeObserver(observer) }
+    observer = nil
+    eventSink = nil
+    return nil
+  }
+
+  private func send() {
+    let session = AVAudioSession.sharedInstance()
+    eventSink?(session.outputLatency + session.ioBufferDuration)
   }
 }
 

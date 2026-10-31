@@ -39,18 +39,21 @@ void main() {
         .thenAnswer((_) async {});
   });
 
-  Future<void> pump(WidgetTester tester, Widget row) => tester.pumpWidget(
-    MaterialApp(
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: BlocProvider<PlaybackCubit>.value(
-          value: playback,
-          child: Center(child: SizedBox(width: 440, child: row)),
+  Future<void> pump(WidgetTester tester, Widget row, {double width = 440}) =>
+      tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: BlocProvider<PlaybackCubit>.value(
+              value: playback,
+              child: Center(
+                child: SizedBox(width: width, child: row),
+              ),
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 
   testWidgets('shows the level in dB', (tester) async {
     await pump(tester, const MixerRow(track: _guitar, volumeDb: -6, pan: 0));
@@ -77,6 +80,73 @@ void main() {
       verify(() => playback.setVolumeDb(0, any())).called(1);
     },
   );
+
+  testWidgets('a fader that goes mid-drag saves where it stopped', (
+    tester,
+  ) async {
+    await pump(tester, const MixerRow(track: _guitar, volumeDb: 0, pan: 0));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('fader-0'))),
+    );
+    for (var i = 0; i < 4; i++) {
+      await gesture.moveBy(const Offset(-10, 0));
+      await tester.pump();
+    }
+    final shown = verify(
+      () => playback.setVolumeDb(0, captureAny(), save: false),
+    ).captured.last;
+    await tester.pumpWidget(const SizedBox());
+    verify(() => playback.setVolumeDb(0, shown as double)).called(1);
+    await gesture.cancel();
+    await tester.pump(kDoubleTapTimeout);
+  });
+
+  testWidgets('a knob that goes mid-turn saves where it stopped', (
+    tester,
+  ) async {
+    await pump(tester, const MixerRow(track: _guitar, volumeDb: 0, pan: 0));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('pan-0'))),
+    );
+    for (var i = 0; i < 4; i++) {
+      await gesture.moveBy(const Offset(10, 0));
+      await tester.pump();
+    }
+    final shown = verify(() => playback.setPan(0, captureAny(), save: false))
+        .captured
+        .last;
+    await tester.pumpWidget(const SizedBox());
+    verify(() => playback.setPan(0, shown as double)).called(1);
+    await gesture.cancel();
+    await tester.pump(kDoubleTapTimeout);
+  });
+
+  testWidgets('in a narrow drawer the fader keeps most of the row', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      const MixerRow(track: _guitar, volumeDb: -6, pan: 0),
+      width: 165,
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('fader-0'))).width,
+      greaterThan(100),
+    );
+    expect(find.text('−6.0 dB'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('each meter repaints on its own', (tester) async {
+    await pump(tester, const MixerRow(track: _guitar, volumeDb: 0, pan: 0));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('meter-0')),
+        matching: find.byType(RepaintBoundary),
+      ),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('double-tapping the fader returns it to 0 dB', (tester) async {
     await pump(tester, const MixerRow(track: _guitar, volumeDb: -6, pan: 0));

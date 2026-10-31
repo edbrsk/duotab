@@ -29,6 +29,7 @@ void main() {
   late _Engine engine;
   late StreamController<EngineEvent> events;
   late StreamController<dynamic> hingeEvents;
+  late StreamController<Duration> latency;
   late HingeStatusProvider hinge;
   late ScoreCubit score;
   late Directory dir;
@@ -41,6 +42,7 @@ void main() {
     registerFallbackValue(<StaffView>[]);
     registerFallbackValue(const PlaybackRange(startTick: 0, endTick: 0));
     registerFallbackValue(const PracticeSettings());
+    registerFallbackValue(Duration.zero);
   });
 
   setUp(() async {
@@ -50,6 +52,7 @@ void main() {
     engine = _Engine();
     events = StreamController<EngineEvent>.broadcast();
     hingeEvents = StreamController<dynamic>();
+    latency = StreamController<Duration>();
     hinge = HingeStatusProvider(hingeEvents: hingeEvents.stream);
     when(() => engine.events).thenAnswer((_) => events.stream);
     when(() => engine.play()).thenAnswer((_) async {});
@@ -58,6 +61,8 @@ void main() {
     when(() => engine.seekBar(any())).thenAnswer((_) async {});
     when(() => engine.setTracks(any())).thenAnswer((_) async {});
     when(() => engine.setMaster(any())).thenAnswer((_) async {});
+    when(() => engine.setMeters(on: any(named: 'on'))).thenAnswer((_) async {});
+    when(() => engine.setOutputLatency(any())).thenAnswer((_) async {});
     when(() => engine.setStaves(any())).thenAnswer((_) async {});
     when(() => engine.setSpeed(any())).thenAnswer((_) async {});
     when(() => engine.setLooping(looping: any(named: 'looping')))
@@ -84,6 +89,7 @@ void main() {
       score: score,
       practice: practice,
       settings: settings,
+      outputLatency: latency.stream,
     );
   });
 
@@ -93,6 +99,7 @@ void main() {
     await settings.close();
     hinge.dispose();
     await hingeEvents.close();
+    await latency.close();
     await events.close();
     // Queued behind any save the cubit started without awaiting, so the
     // folder outlives it.
@@ -396,6 +403,34 @@ void main() {
     await cubit.setMasterDb(-6);
     verify(() => engine.setMaster(-6)).called(1);
     expect((await practice.load('fixture.gp'))!.masterDb, -6);
+  });
+
+  test('showMeters turns the engine meters on and off', () async {
+    await cubit.showMeters(on: true);
+    await cubit.showMeters(on: false);
+    verifyInOrder([
+      () => engine.setMeters(on: true),
+      () => engine.setMeters(on: false),
+    ]);
+  });
+
+  test('the output latency reaches the engine', () async {
+    latency.add(const Duration(milliseconds: 180));
+    await pumpEventQueue();
+    verify(() => engine.setOutputLatency(const Duration(milliseconds: 180)))
+        .called(1);
+  });
+
+  test('a restarted engine gets the meters and latency again', () async {
+    await cubit.showMeters(on: true);
+    latency.add(const Duration(milliseconds: 180));
+    await pumpEventQueue();
+    clearInteractions(engine);
+    events.add(const EngineEvent('ready', {}));
+    await pumpEventQueue();
+    verify(() => engine.setMeters(on: true)).called(1);
+    verify(() => engine.setOutputLatency(const Duration(milliseconds: 180)))
+        .called(1);
   });
 
   test('opening a song sends its master', () async {

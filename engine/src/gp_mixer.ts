@@ -12,8 +12,9 @@ export async function readGpMixer(bytes: Uint8Array): Promise<GpMixer | null> {
   const master = /<MasterTrack>([\s\S]*?)<\/MasterTrack>/.exec(gpif)?.[1] ?? '';
   const order = (/<Tracks>([^<]*)<\/Tracks>/.exec(master)?.[1] ?? '').trim().split(/\s+/).filter(Boolean);
   const strips = new Map<string, { volume: number; pan: number }>();
-  for (const [, id, body] of gpif.matchAll(/<Track id="(\d+)"[^>]*>([\s\S]*?)<\/Track>/g)) {
-    const values = /<ChannelStrip[^>]*>[\s\S]*?<Parameters>([^<]*)<\/Parameters>/.exec(body)?.[1].trim().split(/\s+/).map(Number);
+  for (const [, id, body] of gpif.matchAll(/<Track id="(\d+)"[^>]*?(?:\/>|>([\s\S]*?)<\/Track>)/g)) {
+    const strip = /<ChannelStrip(?:\s[^>]*)?(?<!\/)>([\s\S]*?)<\/ChannelStrip>/.exec(body ?? '')?.[1] ?? '';
+    const values = /<Parameters>([^<]*)<\/Parameters>/.exec(strip)?.[1].trim().split(/\s+/).map(Number);
     if (values && Number.isFinite(values[11]) && Number.isFinite(values[12])) strips.set(id, { volume: values[12], pan: values[11] });
   }
   const masterVolume = Number(/<Effect id="I01_VolumeAndPan">[\s\S]*?<Parameters>([^<]*)<\/Parameters>/.exec(master)?.[1].trim().split(/\s+/)[0]);

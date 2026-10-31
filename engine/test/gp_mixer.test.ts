@@ -63,6 +63,21 @@ test("reads the master from Guitar Pro's mixer", async () => {
   expect(mixer!.tracks[0]!.pan).toBeCloseTo(0.5, 6);
 });
 
+test('a self-closing channel strip is no strip', async () => {
+  const gpif = `<GPIF><MasterTrack><Tracks>0</Tracks></MasterTrack>
+<Tracks><Track id="0"><RSE><ChannelStrip version="E56"/><Pickups><Parameters>0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1</Parameters></Pickups></RSE></Track></Tracks></GPIF>`;
+  expect((await readGpMixer(storedZip('Content/score.gpif', gpif)))!.tracks).toEqual([null]);
+});
+
+test("a self-closing track doesn't take the next track's strip", async () => {
+  const gpif = `<GPIF><MasterTrack><Tracks>0 1</Tracks></MasterTrack>
+<Tracks><Track id="0"/><Track id="1"><RSE><ChannelStrip version="E56">
+<Parameters>0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0 0.5 0.25 0.68 0.5 0.5 0.5</Parameters></ChannelStrip></RSE></Track></Tracks></GPIF>`;
+  const mixer = await readGpMixer(storedZip('Content/score.gpif', gpif));
+  expect(mixer!.tracks[0]).toBeNull();
+  expect(mixer!.tracks[1]).toEqual({ volume: 0.68, pan: 0.25 });
+});
+
 test('anything else reads nothing', async () => {
   expect(await readGpMixer(new TextEncoder().encode('<score-partwise/>'))).toBeNull();
 });

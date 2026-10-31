@@ -1,9 +1,10 @@
 // Guitar Pro 8 stores mixer levels as 0–1 fractions; these laws were measured
 // from a file saved in Guitar Pro at known settings. A null dB is −∞.
 
-export const trackDbFromStored = (stored: number): number => 50 * stored - 40;
+export const trackDbFromStored = (stored: number): number | null => (stored <= 0 ? null : 50 * stored - 40);
 
-export const storedFromTrackDb = (db: number | null): number => (db === null ? 0 : Math.min(1, Math.max(0, (db + 40) / 50)));
+// −40 dB and below sit just above 0, which reads back as −∞.
+export const storedFromTrackDb = (db: number | null): number => (db === null ? 0 : Math.min(1, Math.max(0.0005, (db + 40) / 50)));
 
 export const masterDbFromStored = (stored: number): number => 40 * (stored - 0.76);
 

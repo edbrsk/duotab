@@ -189,7 +189,14 @@ test('a silent file track is baked at 0 dB once its fader rises', async () => {
 test("pan goes to both of a track's channels", async () => {
   const { mixerApi, pans, pan } = fakeApi([29]);
   await new Mixer(mixerApi, pan).apply([mix(0, 29, -0.5)]);
-  expect(pans).toEqual(expect.arrayContaining(['pan 0 -0.5', 'pan 1 -0.5']));
+  expect(pans.map((p) => p.replace(/(-?\d+\.\d{4})\d+/, '$1'))).toEqual(['pan 0 -0.5000', 'pan 1 -0.5000']);
+});
+
+test('pan moves a track from where its MIDI places it', async () => {
+  const { mixerApi, tracks, pans, pan } = fakeApi([29]);
+  tracks[0].playbackInfo.balance = 0;
+  await new Mixer(mixerApi, pan).apply([mix(0, 29, 0.5)]);
+  expect(pans).toEqual(expect.arrayContaining(['pan 0 1.5', 'pan 1 1.5']));
 });
 
 test('a new song drops the pans', async () => {

@@ -43,6 +43,29 @@ void main() {
     }
   });
 
+  test('setMeters and setOutputLatency send their values', () async {
+    await engineReady();
+    for (final (call, type, payload) in [
+      (() => bridge.setMeters(on: true), 'setMeters', {'on': true}),
+      (
+        () => bridge.setOutputLatency(const Duration(microseconds: 182500)),
+        'setOutputLatency',
+        {'ms': 182.5},
+      ),
+    ]) {
+      final done = call();
+      await pumpEventQueue();
+      expect(transport.lastRequest['type'], type);
+      expect(transport.lastRequest['payload'], payload);
+      transport.deliver({
+        'id': transport.lastRequest['id'],
+        'ok': true,
+        'payload': <String, Object>{},
+      });
+      await done;
+    }
+  });
+
   test('setStaves sends the views', () async {
     await engineReady();
     final done = bridge.setStaves(const [

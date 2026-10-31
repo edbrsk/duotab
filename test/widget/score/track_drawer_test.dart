@@ -78,6 +78,8 @@ void main() {
     when(() => playback.setVolumeDb(any(), any(), save: any(named: 'save')))
         .thenAnswer((_) async {});
     when(() => playback.levels).thenReturn(ValueNotifier<Levels?>(null));
+    when(() => playback.showMeters(on: any(named: 'on')))
+        .thenAnswer((_) async {});
     when(() => score.selectTrack(any())).thenAnswer((_) async {});
     when(() => playback.seekBar(any())).thenAnswer((_) async {});
     when(() => playback.setMute(any(), on: any(named: 'on')))
@@ -253,6 +255,20 @@ void main() {
     expect(find.text('Master'), findsOneWidget);
     expect(find.byKey(const ValueKey('fader-master')), findsOneWidget);
     expect(find.text('0.0 dB'), findsNWidgets(4));
+  });
+
+  testWidgets('the meters run only while the mixer shows', (tester) async {
+    await pump(tester);
+    await tester.tap(find.byTooltip('Mixer'));
+    await tester.pump();
+    verify(() => playback.showMeters(on: true)).called(1);
+    await tester.tap(find.byTooltip('Mixer'));
+    await tester.pump();
+    verify(() => playback.showMeters(on: false)).called(1);
+    await tester.tap(find.byTooltip('Mixer'));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox());
+    verify(() => playback.showMeters(on: false)).called(1);
   });
 
   testWidgets('dragging a fader previews, and letting go saves', (
