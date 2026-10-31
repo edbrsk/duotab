@@ -144,6 +144,28 @@ void main() {
     expect(find.text('count: 1'), findsOneWidget);
   });
 
+  testWidgets('pages keep their state when the vertical bar comes and goes', (
+    tester,
+  ) async {
+    await pumpShell(
+      tester,
+      barEdge: 'trailing',
+      padding: const EdgeInsets.only(right: 84),
+    );
+    await tester.tap(find.text('count: 0'));
+    await tester.pump();
+
+    edgeEvents.add('unspecified');
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('count: 1'), findsOneWidget);
+
+    edgeEvents.add('trailing');
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('count: 1'), findsOneWidget);
+  });
+
   group('bar actions', () {
     var tapped = 0;
     const menuTooltip = 'Show track panel';

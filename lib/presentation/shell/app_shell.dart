@@ -23,6 +23,9 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   final _barActions = BarActions();
+  // The pages move between a Scaffold body and a Stack as the vertical bar
+  // comes and goes; without the key, they and the engine's web view remount.
+  final _pagesKey = GlobalKey();
 
   @override
   void dispose() {
@@ -35,6 +38,7 @@ class _AppShellState extends State<AppShell> {
     final current = context.watch<NavigationCubit>().state;
     final navigation = context.read<NavigationCubit>();
     final pages = ChangeNotifierProvider.value(
+      key: _pagesKey,
       value: _barActions,
       child: IndexedStack(
         index: current.index,
