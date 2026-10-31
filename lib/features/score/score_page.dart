@@ -72,8 +72,8 @@ class _ScorePageState extends State<ScorePage> {
     final playOnly = WorkspaceLayout.isCollapsed(context);
     final hasPlayOnlyPanel = playOnly && state.song != null;
     final panelOpen = hasPlayOnlyPanel && _playOnlyPanelOpen;
-    final hasBar =
-        VerticalBarEdgeProvider.edgeOf(context) != VerticalBarEdge.unspecified;
+    final edge = VerticalBarEdgeProvider.edgeOf(context);
+    final hasBar = edge != VerticalBarEdge.unspecified;
     final panelButton = BarAction(
       icon: panelOpen ? Icons.close : Icons.menu,
       tooltip: panelOpen ? l10n.hideTrackPanel : l10n.showTrackPanel,
@@ -146,12 +146,19 @@ class _ScorePageState extends State<ScorePage> {
                   ],
                 ),
               ),
-              if (panelOpen)
+              if (hasPlayOnlyPanel)
                 Positioned.fill(
-                  child: _PlayOnlyPanel(
-                    closeButton: hasBar
-                        ? null
-                        : _PanelButton(action: panelButton),
+                  child: _PanelTransition(
+                    fromLeft:
+                        (edge == VerticalBarEdge.leading) !=
+                        (Directionality.of(context) == TextDirection.rtl),
+                    child: panelOpen
+                        ? _PlayOnlyPanel(
+                            closeButton: hasBar
+                                ? null
+                                : _PanelButton(action: panelButton),
+                          )
+                        : null,
                   ),
                 ),
             ],
@@ -233,7 +240,34 @@ class _PanelButton extends StatelessWidget {
   );
 }
 
-/// The track panel over the whole page, with nothing that edits.
+/// Slides the panel in from the side its button is on, and back out.
+class _PanelTransition extends StatelessWidget {
+  static const _duration = Duration(milliseconds: 220);
+  static const _slide = 0.12;
+
+  final bool fromLeft;
+  final Widget? child;
+
+  const _PanelTransition({required this.fromLeft, required this.child});
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+    duration: _duration,
+    switchInCurve: Curves.easeOutCubic,
+    switchOutCurve: Curves.easeInCubic,
+    layoutBuilder: (current, previous) =>
+        Stack(fit: StackFit.expand, children: [...previous, ?current]),
+    transitionBuilder: (child, animation) => SlideTransition(
+      position: Tween(
+        begin: Offset(fromLeft ? -_slide : _slide, 0),
+        end: Offset.zero,
+      ).animate(animation),
+      child: FadeTransition(opacity: animation, child: child),
+    ),
+    child: child ?? const SizedBox.shrink(),
+  );
+}
+
 class _PlayOnlyPanel extends StatelessWidget {
   /// Shown when no vertical bar carries the button.
   final Widget? closeButton;

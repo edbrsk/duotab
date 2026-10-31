@@ -115,7 +115,7 @@ void main() {
       await pumpPage(tester, width: 466);
 
       await tester.tap(find.byTooltip(show));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(panel, findsOneWidget);
       expect(
         find.descendant(of: panel, matching: find.byType(FretPad)),
@@ -123,7 +123,38 @@ void main() {
       );
 
       await tester.tap(find.byTooltip(hide));
+      await tester.pumpAndSettle();
+      expect(panel, findsNothing);
+    });
+
+    testWidgets('the panel slides in from the bar and back out', (
+      tester,
+    ) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466);
+      double slid() => tester
+          .widget<SlideTransition>(
+            find
+                .ancestor(of: panel, matching: find.byType(SlideTransition))
+                .first,
+          )
+          .position
+          .value
+          .dx;
+
+      await tester.tap(find.byTooltip(show));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(slid(), greaterThan(0));
+      await tester.pumpAndSettle();
+      expect(slid(), 0);
+
+      await tester.tap(find.byTooltip(hide));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(panel, findsOneWidget);
+      expect(slid(), greaterThan(0));
+      await tester.pumpAndSettle();
       expect(panel, findsNothing);
     });
 
