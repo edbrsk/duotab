@@ -96,6 +96,8 @@ class _TrackDrawerState extends State<TrackDrawer> {
               orElse: () => song.tracks.first,
             ),
           ];
+    // The play-only screen is short: collapsed, the drawer is its header.
+    final headerOnly = !_expanded && WorkspaceLayout.isCollapsed(context);
     final barCount = song.bars.length;
     final maxBody =
         MediaQuery.sizeOf(context).height * kDrawerMaxHeightFraction -
@@ -172,128 +174,132 @@ class _TrackDrawerState extends State<TrackDrawer> {
                 ],
               ),
             ),
-            SizedBox(
-              height: bodyHeight,
-              child: SingleChildScrollView(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: kTrackColumnWidth,
-                      child: Column(
-                        children: [
-                          for (final track in rows)
-                            _TrackRow(
-                              key: ValueKey('trackRow-${track.index}'),
-                              track: track,
-                              drawn: track.index == drawn,
-                              practice:
-                                  playback.practice.tracks[track.index] ??
-                                  const TrackPractice(),
-                              song: song,
-                            ),
-                          if (_mixer)
-                            SizedBox(
-                              height: kTrackRowHeight,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: Spacing.md,
-                                  ),
-                                  child: Text(l10n.master),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (_mixer)
-                      Expanded(
+            if (!headerOnly)
+              SizedBox(
+                height: bodyHeight,
+                child: SingleChildScrollView(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: kTrackColumnWidth,
                         child: Column(
                           children: [
                             for (final track in rows)
-                              MixerRow(
-                                key: ValueKey('mixerRow-${track.index}'),
+                              _TrackRow(
+                                key: ValueKey('trackRow-${track.index}'),
                                 track: track,
-                                volumeDb:
-                                    playback
-                                        .practice
-                                        .tracks[track.index]
-                                        ?.volumeDb ??
-                                    snapDb(track.volumeDb),
-                                pan:
-                                    playback
-                                        .practice
-                                        .tracks[track.index]
-                                        ?.pan ??
-                                    track.pan,
+                                drawn: track.index == drawn,
+                                practice:
+                                    playback.practice.tracks[track.index] ??
+                                    const TrackPractice(),
+                                song: song,
                               ),
-                            MasterRow(
-                              volumeDb:
-                                  playback.practice.masterDb ??
-                                  snapDb(song.masterDb),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Expanded(
-                        child: SingleChildScrollView(
-                          key: const Key('barGrid'),
-                          controller: _grid,
-                          scrollDirection: Axis.horizontal,
-                          child: SizedBox(
-                            width: barCount * kBarCellWidth,
-                            child: Stack(
-                              children: [
-                                Column(
-                                  children: [
-                                    for (final track in rows)
-                                      GestureDetector(
-                                        key: ValueKey('barRow-${track.index}'),
-                                        onTapUp: (details) => _tapCell(
-                                          track,
-                                          (details.localPosition.dx ~/
-                                                  kBarCellWidth)
-                                              .clamp(0, barCount - 1),
-                                          drawn,
-                                        ),
-                                        child: CustomPaint(
-                                          size: Size(
-                                            barCount * kBarCellWidth,
-                                            kTrackRowHeight,
-                                          ),
-                                          painter: _BarRowPainter(
-                                            barsWithNotes: track.barsWithNotes,
-                                            color: track.index == drawn
-                                                ? AppColors.accent
-                                                : Colors.white38,
-                                          ),
-                                        ),
-                                      ),
-                                    _SectionRow(bars: song.bars),
-                                  ],
-                                ),
-                                Positioned(
-                                  key: const Key('currentBarMarker'),
-                                  left: playback.bar * kBarCellWidth,
-                                  top: 0,
-                                  bottom: 0,
-                                  width: 2,
-                                  child: const ColoredBox(
-                                    color: AppColors.accent,
+                            if (_mixer)
+                              SizedBox(
+                                height: kTrackRowHeight,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: Spacing.md,
+                                    ),
+                                    child: Text(l10n.master),
                                   ),
                                 ),
-                              ],
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (_mixer)
+                        Expanded(
+                          child: Column(
+                            children: [
+                              for (final track in rows)
+                                MixerRow(
+                                  key: ValueKey('mixerRow-${track.index}'),
+                                  track: track,
+                                  volumeDb:
+                                      playback
+                                          .practice
+                                          .tracks[track.index]
+                                          ?.volumeDb ??
+                                      snapDb(track.volumeDb),
+                                  pan:
+                                      playback
+                                          .practice
+                                          .tracks[track.index]
+                                          ?.pan ??
+                                      track.pan,
+                                ),
+                              MasterRow(
+                                volumeDb:
+                                    playback.practice.masterDb ??
+                                    snapDb(song.masterDb),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: SingleChildScrollView(
+                            key: const Key('barGrid'),
+                            controller: _grid,
+                            scrollDirection: Axis.horizontal,
+                            child: SizedBox(
+                              width: barCount * kBarCellWidth,
+                              child: Stack(
+                                children: [
+                                  Column(
+                                    children: [
+                                      for (final track in rows)
+                                        GestureDetector(
+                                          key: ValueKey(
+                                            'barRow-${track.index}',
+                                          ),
+                                          onTapUp: (details) => _tapCell(
+                                            track,
+                                            (details.localPosition.dx ~/
+                                                    kBarCellWidth)
+                                                .clamp(0, barCount - 1),
+                                            drawn,
+                                          ),
+                                          child: CustomPaint(
+                                            size: Size(
+                                              barCount * kBarCellWidth,
+                                              kTrackRowHeight,
+                                            ),
+                                            painter: _BarRowPainter(
+                                              barsWithNotes:
+                                                  track.barsWithNotes,
+                                              color: track.index == drawn
+                                                  ? AppColors.accent
+                                                  : Colors.white38,
+                                            ),
+                                          ),
+                                        ),
+                                      _SectionRow(bars: song.bars),
+                                    ],
+                                  ),
+                                  Positioned(
+                                    key: const Key('currentBarMarker'),
+                                    left: playback.bar * kBarCellWidth,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: 2,
+                                    child: const ColoredBox(
+                                      color: AppColors.accent,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),

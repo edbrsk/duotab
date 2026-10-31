@@ -1,4 +1,5 @@
 import 'package:bloc_test/bloc_test.dart';
+import 'package:duoscore/core/design/design_tokens.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
 import 'package:duoscore/features/editor/tuning_presets.dart';
@@ -219,6 +220,28 @@ void main() {
     expect(find.byKey(const ValueKey('trackRow-1')), findsOneWidget);
     expect(find.byKey(const ValueKey('trackRow-0')), findsNothing);
     expect(find.byKey(const ValueKey('trackRow-2')), findsNothing);
+  });
+
+  testWidgets('play-only, collapsed is only the header', (tester) async {
+    await pump(tester);
+    tester.view.physicalSize = const Size(466, 626);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Mixer'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('drawerToggle')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('trackRow-1')), findsNothing);
+    expect(find.byKey(const ValueKey('mixerRow-1')), findsNothing);
+    expect(find.text('Master'), findsNothing);
+    expect(
+      tester.getSize(find.byType(TrackDrawer)).height,
+      AccessibleSizes.minTouchTarget,
+    );
+
+    await tester.tap(find.byKey(const Key('drawerToggle')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('mixerRow-1')), findsOneWidget);
   });
 
   testWidgets('caps its height at 40% of the screen', (tester) async {
