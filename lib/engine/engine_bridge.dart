@@ -158,6 +158,16 @@ class EngineBridge {
   Future<void> setMaster(double volumeDb) =>
       _request('setMaster', {'volumeDb': volumeDb.isFinite ? volumeDb : null});
 
+  /// Meters are measured and sent only while [on].
+  Future<void> setMeters({required bool on}) =>
+      _request('setMeters', {'on': on});
+
+  /// How far the speaker plays behind the player, so meters wait for it.
+  Future<void> setOutputLatency(Duration latency) => _request(
+    'setOutputLatency',
+    {'ms': latency.inMicroseconds / Duration.microsecondsPerMillisecond},
+  );
+
   /// Waits for the engine page to load, so the timeout also covers an engine
   /// that never starts.
   Future<Object?> _request(

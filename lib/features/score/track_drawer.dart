@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -38,8 +39,21 @@ class _TrackDrawerState extends State<TrackDrawer> {
   var _mixer = false;
   int? _revealedBar;
 
+  /// Set while the mixer shows, to turn its meters off when the drawer goes.
+  PlaybackCubit? _metering;
+
+  void _toggleMixer() {
+    setState(() => _mixer = !_mixer);
+    final playback = context.read<PlaybackCubit>();
+    _metering = _mixer ? playback : null;
+    unawaited(playback.showMeters(on: _mixer));
+  }
+
   @override
   void dispose() {
+    if (_metering case final playback?) {
+      unawaited(playback.showMeters(on: false));
+    }
     _grid.dispose();
     super.dispose();
   }
@@ -145,7 +159,7 @@ class _TrackDrawerState extends State<TrackDrawer> {
                     tooltip: l10n.mixer,
                     isSelected: _mixer,
                     icon: const Icon(Icons.tune),
-                    onPressed: () => setState(() => _mixer = !_mixer),
+                    onPressed: _toggleMixer,
                   ),
                   IconButton(
                     key: const Key('drawerToggle'),

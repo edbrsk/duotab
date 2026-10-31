@@ -23,6 +23,7 @@ import '../features/score/score_cubit.dart';
 import '../features/settings/settings_cubit.dart';
 import '../presentation/shell/app_destinations.dart';
 import '../presentation/shell/navigation_cubit.dart';
+import 'audio/output_latency.dart';
 import 'duo/hinge_status_provider.dart';
 import 'duo/vertical_bar_edge_provider.dart';
 import 'storage/json_file.dart';
@@ -73,6 +74,7 @@ Future<void> setupDependencies() async {
     score: score,
     practice: practice,
     settings: settings,
+    outputLatency: outputLatencyEvents(),
   );
 
   final editor = EditorCubit(engine: engine, score: score);
