@@ -117,11 +117,14 @@ class EditorCubit extends Cubit<EditorState> {
   final _failures = StreamController<String>.broadcast();
   int? _openId;
 
+  /// While false, a tap on the sheet only seeks, which the engine has done.
+  bool placesOnTap = true;
+
   EditorCubit({required this.engine, required this.score})
     : super(const EditorState()) {
     _openId = score.state.openId;
     _events = engine.events.listen((event) {
-      if (event.type == 'tapped') {
+      if (event.type == 'tapped' && placesOnTap) {
         final position = EditPosition.fromJson(
           event.payload['position'] as Map<String, dynamic>,
         );

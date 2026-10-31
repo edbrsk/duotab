@@ -94,6 +94,18 @@ void main() {
     verify(() => engine.edit(const Place(_at))).called(1);
   });
 
+  test("a tap doesn't place the cursor while playing only", () async {
+    editor.placesOnTap = false;
+    events.add(EngineEvent('tapped', {'position': _at.toJson()}));
+    await pumpEventQueue();
+    verifyNever(() => engine.edit(const Place(_at)));
+
+    editor.placesOnTap = true;
+    events.add(EngineEvent('tapped', {'position': _at.toJson()}));
+    await pumpEventQueue();
+    verify(() => engine.edit(const Place(_at))).called(1);
+  });
+
   test("choosing a note value changes the cursor's beat", () async {
     await editor.command(const SetFret(5));
     await editor.chooseDuration(8);
