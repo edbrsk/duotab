@@ -48,7 +48,7 @@ function exporter(before?: (synth: Synth) => void, of: alphaTab.model.Score = so
 }
 
 test("measures each channel's level after its pan", () => {
-  hooks.setPan(a, -1);
+  hooks.setPan(a, -2);
   const ex = exporter();
   ex.render(500);
   const levels = hooks.take();
@@ -63,7 +63,19 @@ test("pan holds after the song's own pan message replays", () => {
   hooks.setPan(a, 0.5);
   const ex = exporter();
   ex._synth.processMidiMessage(new alphaTab.midi.ControlChangeEvent(0, 0, a, alphaTab.midi.ControllerType.PanCoarse, 64));
-  expect(ex._synth._channels.channelList[a].panOffset).toBeCloseTo(0.25, 6);
+  expect(ex._synth._channels.channelList[a].panOffset).toBeCloseTo(0.25, 4);
+  hooks.setPan(a, null);
+});
+
+test("the owner's pan shifts the song's own pan changes", () => {
+  hooks.setPan(a, 0.5);
+  const ex = exporter();
+  const pan = (value: number) => {
+    ex._synth.processMidiMessage(new alphaTab.midi.ControlChangeEvent(0, 0, a, alphaTab.midi.ControllerType.PanCoarse, value));
+    return ex._synth._channels.channelList[a].panOffset;
+  };
+  expect(pan(0)).toBeCloseTo(-0.25, 6);
+  expect(pan(127)).toBeCloseTo(0.5, 6);
   hooks.setPan(a, null);
 });
 

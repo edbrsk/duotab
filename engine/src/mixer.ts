@@ -43,13 +43,16 @@ export class Mixer {
   /** Regenerates run one at a time; each reads the player as the last left it. */
   private queue: Promise<void> = Promise.resolve();
 
-  /** The pan each channel was last given; the synth worker keeps it over the song's own. */
+  /** The shift each channel was last given. */
   private readonly pans = new Map<number, number>();
 
-  /** `pan` sets a channel's pan in the synth worker, or with null gives it the song's own back. */
+  /**
+   * `pan` shifts a channel's pan in the synth worker, which keeps the song's
+   * own pan changes moving under it; null is no shift.
+   */
   constructor(
     private readonly api: MixerApi,
-    private readonly pan: (channel: number, pan: number | null) => void,
+    private readonly pan: (channel: number, shift: number | null) => void,
   ) {
     api.midiLoaded.on(() => {
       for (const track of api.score?.tracks ?? []) {
@@ -205,10 +208,11 @@ export class Mixer {
         this.api.changeTrackVolume([track], factor);
         this.factors.set(track, factor);
       }
+      const shift = mix.pan - midiPan(track.playbackInfo.balance);
       for (const channel of [track.playbackInfo.primaryChannel, track.playbackInfo.secondaryChannel]) {
-        if (this.pans.get(channel) === mix.pan) continue;
-        this.pan(channel, mix.pan);
-        this.pans.set(channel, mix.pan);
+        if (this.pans.get(channel) === shift) continue;
+        this.pan(channel, shift);
+        this.pans.set(channel, shift);
       }
       if (mix.mute || mix.solo || factor !== 1) {
         this.changedChannels.add(track.playbackInfo.primaryChannel);
@@ -217,6 +221,9 @@ export class Mixer {
     }
   }
 }
+
+/** Where the synth places a channel of 0–16 balance, −1…1: alphaTab writes it as MIDI pan `balance × 8`. */
+const midiPan = (balance: number): number => (2 * Math.min(16383, balance * 8 * 128)) / 16383 - 1;
 
 /** The alphaTab volume whose MIDI plays at 0 dB: MIDI volume 96, as Guitar Pro's default level. */
 const REFERENCE_VOLUME = 12;

@@ -8,8 +8,8 @@ export type LevelFrame = {
   master: [number, number];
 };
 
-/** `pan` −1…1; null gives the channel the song's own pan back. */
-export type PanMessage = { cmd: 'duoscore.pan'; channel: number; pan: number | null };
+/** `shift` moves the song's own pan, −1…1 being full left to full right; null is no shift. */
+export type PanMessage = { cmd: 'duoscore.pan'; channel: number; shift: number | null };
 
 // The parts of alphaTab 1.6.1's TinySoundFont and Voice the hooks reach (not exported).
 type Voice = {
@@ -26,7 +26,7 @@ type Player = { state: alphaTab.synth.PlayerState; sequencer: { currentTime: num
 
 /**
  * Makes every synth in this worker measure each MIDI channel's peak after its
- * fader and pan, and let an owner's pan override the song's. Posts one frame
+ * fader and pan, and let an owner's pan shift the song's. Posts one frame
  * per block the player renders while playing.
  */
 export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame) => void) {
@@ -39,7 +39,8 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
     new Map(),
   ) as unknown as { _synth: Synth };
   const synthProto = Object.getPrototypeOf(exporter._synth) as Synth;
-  const overrides = new Map<number, number>();
+  const shifts = new Map<number, number>();
+  const shifted = (channel: number, pan: number) => Math.min(1, Math.max(0, pan + (shifts.get(channel) ?? 0) / 2));
   const synths = new Set<Synth>();
   const channels = new Map<number, [number, number]>();
   const master: [number, number] = [0, 0];
@@ -64,7 +65,7 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
   const { channelSetPan, synthesize } = synthProto;
   synthProto.channelSetPan = function (this: Synth, channel, pan) {
     synths.add(this);
-    channelSetPan.call(this, channel, overrides.get(channel) ?? pan);
+    channelSetPan.call(this, channel, shifted(channel, pan));
   };
 
   let voicesHooked = false;
@@ -153,12 +154,12 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
 
   return {
     take,
-    setPan(channel: number, pan: number | null) {
-      if (pan === null) overrides.delete(channel);
-      else overrides.set(channel, 0.5 + pan / 2);
+    setPan(channel: number, shift: number | null) {
+      if (shift === null) shifts.delete(channel);
+      else shifts.set(channel, shift);
       for (const synth of synths) {
         const songPan = (synth._channels?.channelList[channel]?.midiPan ?? 8192) / 16383;
-        channelSetPan.call(synth, channel, overrides.get(channel) ?? songPan);
+        channelSetPan.call(synth, channel, shifted(channel, songPan));
       }
     },
   };

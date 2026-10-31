@@ -106,8 +106,8 @@ api.playerStateChanged.on((e) => {
   if (!playing) postSilence();
 });
 
-const mixer = new Mixer(api, (channel, pan) =>
-  synth.worker?.postMessage({ cmd: 'duoscore.pan', channel, pan } satisfies PanMessage),
+const mixer = new Mixer(api, (channel, shift) =>
+  synth.worker?.postMessage({ cmd: 'duoscore.pan', channel, shift } satisfies PanMessage),
 );
 
 function postSilence() {
