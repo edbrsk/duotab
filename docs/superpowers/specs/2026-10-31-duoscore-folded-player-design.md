@@ -18,7 +18,6 @@ Closed, DuoScore shows only "Open your iPhone Duo to continue" and pauses. The o
 ## Non-goals
 
 - Editing on the outer screen.
-- A layout for the outer screen in landscape, beyond what fits the same rules.
 - Playback with the screen locked or the app in the background. iOS stops the web view's audio then, and keeping it going is a separate audio design.
 - Playback carrying on through folding or unfolding, for now.
 
@@ -47,6 +46,7 @@ Mockups: `.superpowers/brainstorm/31075-1793438489/content/folded-layout-v2.html
 ### Behaviour
 
 - **Folding pauses playback**, as it does today. The position, speed and loop stay, and play continues from there.
+- **Closed, the app holds portrait.** Turning the closed phone doesn't rotate it; open, every orientation is allowed again.
 - **The screen stays on** while a song plays, open or closed. Once playback pauses or stops, the screen dims as usual.
 - **Library and Settings** work fully on the outer screen: opening and importing songs, and every setting.
 - **The mixer drawer** stays open or closed as it was across folding and unfolding.

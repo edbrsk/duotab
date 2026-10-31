@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as p;
@@ -25,6 +26,7 @@ import '../features/settings/settings_cubit.dart';
 import '../presentation/shell/app_destinations.dart';
 import '../presentation/shell/navigation_cubit.dart';
 import 'audio/output_latency.dart';
+import 'duo/fold_orientation.dart';
 import 'duo/hinge_status_provider.dart';
 import 'duo/vertical_bar_edge_provider.dart';
 import 'storage/json_file.dart';
@@ -69,6 +71,7 @@ Future<void> setupDependencies() async {
   final navigation = NavigationCubit();
   final score = ScoreCubit(engine: engine);
   final hinge = HingeStatusProvider();
+  portraitWhileFolded(hinge, SystemChrome.setPreferredOrientations);
   final playback = PlaybackCubit(
     engine: engine,
     hinge: hinge,
