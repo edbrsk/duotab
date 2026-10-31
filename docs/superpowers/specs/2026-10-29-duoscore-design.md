@@ -17,7 +17,7 @@ It is a personal side project. Success is the owner using it to practise and to 
 4. **Write** new songs and edit opened ones, Guitar Pro style (see [Editor](#editor)).
 5. **Retune** a guitar track to another tuning while keeping how it sounds (see [Retuning](#retuning)).
 6. **Save** as `.gp`; **export** PDF. (alphaTab writes `.gp` only; Guitar Pro 8 can turn a `.gp` into MusicXML.)
-7. **Run only unfolded**: closed, the outer display shows a placeholder logo and "Open your iPhone Duo to continue".
+7. **Run open or closed**: closed, the outer screen is a player (see `2026-10-31-duoscore-folded-player-design.md`).
 
 ## Non-goals (v1)
 
@@ -56,9 +56,9 @@ These count as failures even if every feature works:
 ### iPhone Duo behaviour
 
 - **Hinge bridge**: a second `EventChannel`, built like the vertical-bar one, streams the hinge status from UIKit's `UIHingeInteraction` (iOS 27.1 SDK, `UIHinge.h`/`UIHingeInteraction.h`). Its update carries `hinge.status` (`.unknown`, `.closed`, `.partiallyOpen`, `.fullyOpen`), or a nil `hinge` when the view is in a hierarchy without one.
-- **Closed**: the app shows only the folded screen (placeholder logo and message). Playback pauses; the open song and editor state are kept.
+- **Closed**: the outer screen runs the play-only layout; folding and unfolding pause playback. The open song and editor state are kept.
 - **Partially or fully open**: the app works normally, including tent and laptop poses.
-- **Split View**: when the window becomes too narrow for three columns, the side panels collapse, the score takes the width, and the app works as a player only. Editing shows "Make DuoScore wider to edit" until the window is wide enough again.
+- **Split View**: when the window becomes too narrow for three columns, the side panels collapse, the score takes the width, and the app works as a player only, and a ☰ button opens the track panel over the page. Editing shows "Make DuoScore wider to edit" until the window is wide enough again.
 
 ### Screen layout
 
@@ -176,7 +176,6 @@ If alphaTab cannot draw or play inside `WKWebView` on the device, the plan stops
 
 ## Left to the builder
 
-- What the app does when the hinge status is unknown or the hierarchy has no hinge.
 - The Split View width at which the side panels collapse.
 - Exact panel widths, colours and typography, staying within the approved mockups.
 - Default fret count per string count, and the full tuning preset list beyond the minimum.

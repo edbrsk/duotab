@@ -56,6 +56,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
   late final StreamSubscription<AppSettings> _settings;
   StreamSubscription<Duration>? _latencies;
   var _metersOn = false;
+  bool _hingeWasOpen;
   Duration? _outputLatency;
   SongSummary? _song;
 
@@ -75,7 +76,8 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     required this.practice,
     required this.settings,
     Stream<Duration>? outputLatency,
-  }) : super(const PlaybackState()) {
+  }) : _hingeWasOpen = hinge.isOpen,
+       super(const PlaybackState()) {
     _events = engine.events.listen(_onEngineEvent);
     _latencies = outputLatency?.listen((latency) {
       _outputLatency = latency;
@@ -334,8 +336,11 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     }
   }
 
+  // Both ways the sheet is drawn again at a new width.
   void _onHingeChanged() {
-    if (!hinge.isOpen) unawaited(pause());
+    if (hinge.isOpen == _hingeWasOpen) return;
+    _hingeWasOpen = hinge.isOpen;
+    unawaited(pause());
   }
 
   Future<void> playPause() => state.playing ? pause() : _send(engine.play);

@@ -27,8 +27,8 @@ class HingeStatusProvider extends ChangeNotifier {
 
   HingeStatus get status => _status;
 
-  /// Only a closed hinge hides the app; an unknown or missing hinge keeps it
-  /// usable on simulators and devices that report none.
+  /// Only a closed hinge counts as folded; an unknown or missing hinge counts
+  /// as open on simulators and devices that report none.
   bool get isOpen => _status != HingeStatus.closed;
 
   /// Falls back to open when no provider is above [context].

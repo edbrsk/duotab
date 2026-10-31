@@ -23,7 +23,6 @@ import 'features/settings/settings_cubit.dart';
 import 'features/settings/settings_page.dart';
 import 'presentation/shell/app_destinations.dart';
 import 'presentation/shell/app_shell.dart';
-import 'presentation/shell/fold_gate.dart';
 import 'presentation/shell/navigation_cubit.dart';
 import 'presentation/startup_failure.dart';
 
@@ -49,35 +48,33 @@ Future<void> main() async {
         BlocProvider.value(value: getIt<SettingsCubit>()),
       ],
       child: DuoScoreApp(
-        home: FoldGate(
-          child: AppShell(
-            pageFor: (tab) => switch (tab) {
-              AppTab.library => LibraryPage(
-                onOpen: (path) async {
-                  getIt<NavigationCubit>().select(AppTab.editor);
-                  await getIt<SongSaver>().flush();
-                  await getIt<ScoreCubit>().open(path);
-                },
-                onDelete: getIt<SongFiles>().delete,
-                onRename: getIt<SongFiles>().rename,
-                onImport: () => const SongPicker().pick(),
-                importFailures: getIt<IncomingFilesProvider>().failures,
-                onExport: (entry, format, anchor) => getIt<SongExporter>()
-                    .shareFile(entry.path, entry.name, format, anchor),
-                onNewSong: (options) async {
-                  getIt<NavigationCubit>().select(AppTab.editor);
-                  try {
-                    await getIt<SongSaver>().createSong(options);
-                  } on SongNotCreated catch (e) {
-                    // The score page already shows the engine's error.
-                    debugPrint('$e');
-                  }
-                },
-              ),
-              AppTab.editor => ScorePage(onExport: getIt<SongExporter>().share),
-              AppTab.settings => const SettingsPage(),
-            },
-          ),
+        home: AppShell(
+          pageFor: (tab) => switch (tab) {
+            AppTab.library => LibraryPage(
+              onOpen: (path) async {
+                getIt<NavigationCubit>().select(AppTab.editor);
+                await getIt<SongSaver>().flush();
+                await getIt<ScoreCubit>().open(path);
+              },
+              onDelete: getIt<SongFiles>().delete,
+              onRename: getIt<SongFiles>().rename,
+              onImport: () => const SongPicker().pick(),
+              importFailures: getIt<IncomingFilesProvider>().failures,
+              onExport: (entry, format, anchor) => getIt<SongExporter>()
+                  .shareFile(entry.path, entry.name, format, anchor),
+              onNewSong: (options) async {
+                getIt<NavigationCubit>().select(AppTab.editor);
+                try {
+                  await getIt<SongSaver>().createSong(options);
+                } on SongNotCreated catch (e) {
+                  // The score page already shows the engine's error.
+                  debugPrint('$e');
+                }
+              },
+            ),
+            AppTab.editor => ScorePage(onExport: getIt<SongExporter>().share),
+            AppTab.settings => const SettingsPage(),
+          },
         ),
       ),
     ),

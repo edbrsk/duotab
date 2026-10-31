@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/design/design_tokens.dart';
+import '../../core/duo/hinge_status_provider.dart';
 import '../../l10n/app_localizations.dart';
 
 // Wide enough for three 44 pt fret keys beside the vertical bar.
@@ -13,7 +14,7 @@ const kCollapsedPanelWidth = AccessibleSizes.minTouchTarget + Spacing.xs;
 /// Palette | score | track panel, with the score centred on the whole screen.
 /// Side panels run to the screen edge so the iPhone Duo's vertical bar sits
 /// on the panel's own colour; their content stays clear of it.
-class WorkspaceLayout extends StatelessWidget {
+class WorkspaceLayout extends StatefulWidget {
   /// Null until the editor gives the palette its tools.
   final Widget? palette;
   final bool paletteCollapsed;
@@ -44,24 +45,38 @@ class WorkspaceLayout extends StatelessWidget {
       MediaQuery.sizeOf(context).width < kThreeColumnMinWidth;
 
   @override
+  State<WorkspaceLayout> createState() => _WorkspaceLayoutState();
+}
+
+class _WorkspaceLayoutState extends State<WorkspaceLayout> {
+  // The column moves between a Row and a lone Padding as the layout
+  // collapses; without the key, the drawer and the sheet would be rebuilt.
+  final _scoreColumnKey = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
     final padding = MediaQuery.paddingOf(context);
+    final collapsed = WorkspaceLayout.isCollapsed(context);
     final scoreColumn = Column(
+      key: _scoreColumnKey,
       children: [
-        if (isCollapsed(context)) const _WiderToEditBanner(),
+        if (collapsed) const _WiderToEditBanner(),
         Expanded(
           child: ColoredBox(
             color: AppColors.paper,
-            child: SizedBox.expand(key: const Key('score'), child: score),
+            child: SizedBox.expand(
+              key: const Key('score'),
+              child: widget.score,
+            ),
           ),
         ),
-        ?transport,
-        ?drawer,
+        ?widget.transport,
+        ?widget.drawer,
       ],
     );
 
     // With no side panel to sit on, the score itself keeps clear of the bar.
-    if (isCollapsed(context)) {
+    if (collapsed) {
       return ColoredBox(
         color: AppColors.paper,
         child: Padding(
@@ -74,7 +89,7 @@ class WorkspaceLayout extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Row(
       children: [
-        if (palette case final palette?)
+        if (widget.palette case final palette?)
           _SidePanel(
             contentKey: const Key('palette'),
             insets: EdgeInsets.only(
@@ -83,15 +98,15 @@ class WorkspaceLayout extends StatelessWidget {
               bottom: padding.bottom,
             ),
             leading: true,
-            collapsed: paletteCollapsed,
-            toggle: onTogglePalette == null
+            collapsed: widget.paletteCollapsed,
+            toggle: widget.onTogglePalette == null
                 ? null
                 : _PanelToggle(
                     collapseTooltip: l10n.hidePalette,
                     expandTooltip: l10n.showPalette,
                     collapseIcon: Icons.keyboard_double_arrow_left,
                     expandIcon: Icons.keyboard_double_arrow_right,
-                    onPressed: onTogglePalette!,
+                    onPressed: widget.onTogglePalette!,
                   ),
             child: palette,
           )
@@ -110,17 +125,17 @@ class WorkspaceLayout extends StatelessWidget {
             top: padding.top,
             bottom: padding.bottom,
           ),
-          collapsed: trackPanelCollapsed,
-          toggle: onToggleTrackPanel == null
+          collapsed: widget.trackPanelCollapsed,
+          toggle: widget.onToggleTrackPanel == null
               ? null
               : _PanelToggle(
                   collapseTooltip: l10n.hideTrackPanel,
                   expandTooltip: l10n.showTrackPanel,
                   collapseIcon: Icons.keyboard_double_arrow_right,
                   expandIcon: Icons.keyboard_double_arrow_left,
-                  onPressed: onToggleTrackPanel!,
+                  onPressed: widget.onToggleTrackPanel!,
                 ),
-          child: trackPanel,
+          child: widget.trackPanel,
         ),
       ],
     );
@@ -229,6 +244,7 @@ class _WiderToEditBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ColoredBox(
       color: AppColors.panel,
       child: Padding(
@@ -242,7 +258,13 @@ class _WiderToEditBanner extends StatelessWidget {
           children: [
             const Icon(Icons.open_in_full, size: IconSizes.md),
             const SizedBox(width: Spacing.sm),
-            Expanded(child: Text(AppLocalizations.of(context)!.widerToEdit)),
+            Expanded(
+              child: Text(
+                HingeStatusProvider.isOpenOf(context)
+                    ? l10n.widerToEdit
+                    : l10n.openToEdit,
+              ),
+            ),
           ],
         ),
       ),

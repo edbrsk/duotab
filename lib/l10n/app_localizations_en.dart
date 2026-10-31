@@ -13,9 +13,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'DuoScore';
 
   @override
-  String get foldedMessage => 'Open your iPhone Duo to continue';
-
-  @override
   String get tabLibrary => 'Library';
 
   @override
@@ -29,6 +26,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get widerToEdit => 'Make DuoScore wider to edit';
+
+  @override
+  String get openToEdit => 'Open your iPhone Duo to edit';
 
   @override
   String get libraryEmpty => 'Tap Import to add Guitar Pro or MusicXML files';

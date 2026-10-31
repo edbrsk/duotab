@@ -100,12 +100,6 @@ abstract class AppLocalizations {
   /// **'DuoScore'**
   String get appTitle;
 
-  /// No description provided for @foldedMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Open your iPhone Duo to continue'**
-  String get foldedMessage;
-
   /// No description provided for @tabLibrary.
   ///
   /// In en, this message translates to:
@@ -135,6 +129,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Make DuoScore wider to edit'**
   String get widerToEdit;
+
+  /// No description provided for @openToEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Open your iPhone Duo to edit'**
+  String get openToEdit;
 
   /// No description provided for @libraryEmpty.
   ///

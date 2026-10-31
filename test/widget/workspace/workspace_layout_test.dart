@@ -1,12 +1,30 @@
 import 'dart:async';
 
 import 'package:duoscore/core/design/design_tokens.dart';
+import 'package:duoscore/core/duo/hinge_status_provider.dart';
 import 'package:duoscore/core/duo/vertical_bar_edge_provider.dart';
 import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:duoscore/presentation/workspace/workspace_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+
+class _Counter extends StatefulWidget {
+  const _Counter();
+
+  @override
+  State<_Counter> createState() => _CounterState();
+}
+
+class _CounterState extends State<_Counter> {
+  var _count = 0;
+
+  @override
+  Widget build(BuildContext context) => TextButton(
+    onPressed: () => setState(() => _count++),
+    child: Text('count: $_count'),
+  );
+}
 
 void main() {
   late StreamController<dynamic> edgeEvents;
@@ -36,6 +54,7 @@ void main() {
     VoidCallback? onToggleTrackPanel,
     bool paletteCollapsed = false,
     VoidCallback? onTogglePalette,
+    HingeStatusProvider? hinge,
   }) async {
     tester.view
       ..physicalSize = Size(width, 626)
@@ -43,8 +62,11 @@ void main() {
       ..padding = FakeViewPadding(left: left, right: right);
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: edge,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: edge),
+          if (hinge != null) ChangeNotifierProvider.value(value: hinge),
+        ],
         child: MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -66,6 +88,45 @@ void main() {
     await tester.pump();
     await tester.pump();
   }
+
+  testWidgets('folded, the banner says to open the phone', (tester) async {
+    final hinge = HingeStatusProvider(hingeEvents: Stream.value('closed'));
+    addTearDown(hinge.dispose);
+    await pumpLayout(tester, width: 466, barEdge: 'trailing', hinge: hinge);
+    await tester.pump();
+
+    expect(find.text('Open your iPhone Duo to edit'), findsOneWidget);
+    expect(find.text('Make DuoScore wider to edit'), findsNothing);
+  });
+
+  testWidgets('the score column keeps its state when the layout collapses', (
+    tester,
+  ) async {
+    await pumpLayout(
+      tester,
+      width: 890,
+      barEdge: 'unspecified',
+      drawer: const _Counter(),
+    );
+    await tester.tap(find.text('count: 0'));
+    await tester.pump();
+
+    await pumpLayout(
+      tester,
+      width: 466,
+      barEdge: 'unspecified',
+      drawer: const _Counter(),
+    );
+    expect(find.text('count: 1'), findsOneWidget);
+
+    await pumpLayout(
+      tester,
+      width: 890,
+      barEdge: 'unspecified',
+      drawer: const _Counter(),
+    );
+    expect(find.text('count: 1'), findsOneWidget);
+  });
 
   // The whole touch target; the drawn circle inside it is smaller.
   Rect buttonRect(WidgetTester tester, String tooltip) => tester.getRect(

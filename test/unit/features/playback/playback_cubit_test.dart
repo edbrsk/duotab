@@ -137,6 +137,27 @@ void main() {
     verifyNever(() => engine.play());
   });
 
+  test('unfolding pauses too', () async {
+    await playing(on: true);
+    hingeEvents.add('closed');
+    await pumpEventQueue();
+    await playing(on: true);
+    hingeEvents.add('fullyOpen');
+    await pumpEventQueue();
+    verify(() => engine.pause()).called(2);
+  });
+
+  test("moving between partly and fully open doesn't pause", () async {
+    hingeEvents.add('fullyOpen');
+    await pumpEventQueue();
+    await playing(on: true);
+    hingeEvents.add('partiallyOpen');
+    await pumpEventQueue();
+    hingeEvents.add('fullyOpen');
+    await pumpEventQueue();
+    verifyNever(() => engine.pause());
+  });
+
   test('an engine restart stops showing playback', () async {
     await playing(on: true);
     events.add(const EngineEvent('ready', {}));
