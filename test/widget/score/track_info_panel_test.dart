@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
+import 'package:duoscore/features/editor/fret_pad.dart';
 import 'package:duoscore/features/playback/playback_cubit.dart';
 import 'package:duoscore/features/playback/practice_settings.dart';
 import 'package:duoscore/features/playback/tone.dart';
@@ -72,7 +73,11 @@ void main() {
     );
   });
 
-  Future<void> pump(WidgetTester tester, ScoreState state) async {
+  Future<void> pump(
+    WidgetTester tester,
+    ScoreState state, {
+    bool editable = true,
+  }) async {
     tester.view
       ..physicalSize = const Size(220, 626)
       ..devicePixelRatio = 1;
@@ -89,7 +94,7 @@ void main() {
               BlocProvider<PlaybackCubit>.value(value: playback),
               BlocProvider<EditorCubit>.value(value: editor),
             ],
-            child: const TrackInfoPanel(),
+            child: TrackInfoPanel(editable: editable),
           ),
         ),
       ),
@@ -105,6 +110,20 @@ void main() {
     expect(find.text('Guitar 1'), findsOneWidget);
     expect(find.text('E♭ A♭ D♭ G♭ B♭ E♭'), findsOneWidget);
     expect(find.text('6 strings'), findsOneWidget);
+  });
+
+  testWidgets('a play-only panel has nothing that edits', (tester) async {
+    await pump(tester, drawn, editable: false);
+
+    expect(find.byType(FretPad), findsNothing);
+    expect(find.byTooltip('Rename track'), findsNothing);
+    expect(find.text('Retune…'), findsNothing);
+    expect(find.text('Guitar 1'), findsOneWidget);
+    expect(find.byType(FilterChip), findsNWidgets(2));
+    expect(find.byType(RadioListTile<Tone>), findsNWidgets(3));
+
+    await tester.tap(find.text('High gain'));
+    verify(() => playback.setTone(1, Tone.highGain)).called(1);
   });
 
   testWidgets("marks the track's tone and changes it", (tester) async {

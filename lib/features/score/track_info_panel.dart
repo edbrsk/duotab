@@ -17,7 +17,9 @@ import 'score_cubit.dart';
 
 /// The drawn guitar track: name, tuning, string count and tone.
 class TrackInfoPanel extends StatelessWidget {
-  const TrackInfoPanel({super.key});
+  final bool editable;
+
+  const TrackInfoPanel({this.editable = true, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -44,57 +46,63 @@ class TrackInfoPanel extends StatelessWidget {
         children: [
           heading(l10n.trackHeading),
           if (track != null) ...[
-            Tooltip(
-              message: l10n.renameTrack,
-              child: TextButton.icon(
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  alignment: Alignment.centerLeft,
+            if (!editable)
+              Text(track.name, style: textTheme.titleMedium)
+            else
+              Tooltip(
+                message: l10n.renameTrack,
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    alignment: Alignment.centerLeft,
+                  ),
+                  onPressed: () async {
+                    final editor = context.read<EditorCubit>();
+                    final name = await showDialog<String>(
+                      context: context,
+                      builder: (_) => TitleDialog(
+                        title: track.name,
+                        heading: l10n.renameTrack,
+                        label: l10n.trackName,
+                      ),
+                    );
+                    if (name != null)
+                      await editor.renameTrack(track.index, name);
+                  },
+                  iconAlignment: IconAlignment.end,
+                  icon: const Icon(Icons.edit, size: IconSizes.md),
+                  label: Text(track.name, style: textTheme.titleMedium),
                 ),
-                onPressed: () async {
-                  final editor = context.read<EditorCubit>();
-                  final name = await showDialog<String>(
-                    context: context,
-                    builder: (_) => TitleDialog(
-                      title: track.name,
-                      heading: l10n.renameTrack,
-                      label: l10n.trackName,
-                    ),
-                  );
-                  if (name != null) await editor.renameTrack(track.index, name);
-                },
-                iconAlignment: IconAlignment.end,
-                icon: const Icon(Icons.edit, size: IconSizes.md),
-                label: Text(track.name, style: textTheme.titleMedium),
               ),
-            ),
             if (track.tuning case final tuning?) ...[
               heading(l10n.tuning),
               Text(tuningLabel(tuning)),
               Text(l10n.stringsCount(tuning.length)),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  onPressed: () async {
-                    final editor = context.read<EditorCubit>();
-                    final chosen = await showDialog<RetuneChoice>(
-                      context: context,
-                      builder: (_) =>
-                          RetuneDialog(trackName: track.name, tuning: tuning),
-                    );
-                    if (chosen != null) {
-                      await editor.retune(
-                        track.index,
-                        chosen.tuning,
-                        keepFrets: chosen.keepFrets,
+              if (editable) ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    onPressed: () async {
+                      final editor = context.read<EditorCubit>();
+                      final chosen = await showDialog<RetuneChoice>(
+                        context: context,
+                        builder: (_) =>
+                            RetuneDialog(trackName: track.name, tuning: tuning),
                       );
-                    }
-                  },
-                  child: Text(l10n.retune),
+                      if (chosen != null) {
+                        await editor.retune(
+                          track.index,
+                          chosen.tuning,
+                          keepFrets: chosen.keepFrets,
+                        );
+                      }
+                    },
+                    child: Text(l10n.retune),
+                  ),
                 ),
-              ),
-              _RetuneReportCard(track: track.index),
+                _RetuneReportCard(track: track.index),
+              ],
             ],
             heading(l10n.notation),
             Wrap(
@@ -145,8 +153,7 @@ class TrackInfoPanel extends StatelessWidget {
                 ],
               ),
             ),
-            heading(l10n.fret),
-            const FretPad(),
+            if (editable) ...[heading(l10n.fret), const FretPad()],
           ],
         ],
       ),
