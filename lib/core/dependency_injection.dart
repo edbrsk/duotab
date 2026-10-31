@@ -19,6 +19,7 @@ import '../features/library/library_cubit.dart';
 import '../features/library/song_files.dart';
 import '../features/playback/playback_cubit.dart';
 import '../features/playback/practice_store.dart';
+import '../features/playback/screen_awake.dart';
 import '../features/score/score_cubit.dart';
 import '../features/settings/settings_cubit.dart';
 import '../presentation/shell/app_destinations.dart';
@@ -76,6 +77,7 @@ Future<void> setupDependencies() async {
     settings: settings,
     outputLatency: outputLatencyEvents(),
   );
+  keepAwakeWhilePlaying(playback.stream, const ScreenAwake().set);
 
   final editor = EditorCubit(engine: engine, score: score);
   final saver = SongSaver(

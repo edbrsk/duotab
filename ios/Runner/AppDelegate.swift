@@ -34,6 +34,27 @@ import WebKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SongExport") {
       SongExport.shared.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ScreenAwake") {
+      ScreenAwake.register(with: registrar)
+    }
+  }
+}
+
+/// While on, the screen won't dim or lock, so a playing song can be read on a
+/// music stand.
+enum ScreenAwake {
+  static func register(with registrar: FlutterPluginRegistrar) {
+    FlutterMethodChannel(
+      name: "dev.edbrsk.duoscore/screen_awake",
+      binaryMessenger: registrar.messenger()
+    ).setMethodCallHandler { call, result in
+      // Flutter calls method handlers on the platform (main) thread.
+      MainActor.assumeIsolated {
+        guard call.method == "setAwake" else { return result(FlutterMethodNotImplemented) }
+        UIApplication.shared.isIdleTimerDisabled = call.arguments as? Bool ?? false
+        result(nil)
+      }
+    }
   }
 }
 
