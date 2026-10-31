@@ -200,6 +200,24 @@ void main() {
     },
   );
 
+  testWidgets('collapsed, the vertical bar sits on the panel colour', (
+    tester,
+  ) async {
+    await pumpLayout(tester, width: 466, barEdge: 'trailing', right: 84);
+
+    const inBar = Offset(466 - 42, 300);
+    final under = find.ancestor(
+      of: find.byKey(const Key('score')),
+      matching: find.byType(ColoredBox),
+    );
+    final nearest = tester
+        .widgetList<ColoredBox>(under)
+        .firstWhere(
+          (box) => tester.getRect(find.byWidget(box)).contains(inBar),
+        );
+    expect(nearest.color, AppColors.panel);
+  });
+
   testWidgets('draws the drawer under the transport', (tester) async {
     for (final width in [890.0, 600.0]) {
       await pumpLayout(

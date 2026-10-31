@@ -75,10 +75,11 @@ class _WorkspaceLayoutState extends State<WorkspaceLayout> {
       ],
     );
 
-    // With no side panel to sit on, the score itself keeps clear of the bar.
+    // With no side panel to sit on, the score keeps clear of the bar, which
+    // still sits on the panel colour.
     if (collapsed) {
       return ColoredBox(
-        color: AppColors.paper,
+        color: AppColors.panel,
         child: Padding(
           padding: EdgeInsets.only(left: padding.left, right: padding.right),
           child: scoreColumn,
