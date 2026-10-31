@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
+import 'package:duoscore/core/duo/vertical_bar_edge_provider.dart';
 import 'package:duoscore/engine/engine_bridge.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
@@ -12,10 +15,13 @@ import 'package:duoscore/features/score/score_cubit.dart';
 import 'package:duoscore/features/score/score_page.dart';
 import 'package:duoscore/features/settings/settings_cubit.dart';
 import 'package:duoscore/l10n/app_localizations.dart';
+import 'package:duoscore/presentation/shell/app_destinations.dart';
+import 'package:duoscore/presentation/shell/bar_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:provider/provider.dart';
 
 import '../../unit/features/score/score_test_data.dart';
 
@@ -61,32 +67,147 @@ void main() {
     WidgetTester tester, {
     double width = 890,
     Future<void> Function(ExportFormat, Rect)? onExport,
+    VerticalBarEdgeProvider? edge,
+    BarActions? barActions,
+    double rightPadding = 0,
   }) async {
     tester.view
       ..physicalSize = Size(width, 626)
-      ..devicePixelRatio = 1;
+      ..devicePixelRatio = 1
+      ..padding = FakeViewPadding(right: rightPadding);
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
-          body: MultiBlocProvider(
-            providers: [
-              BlocProvider.value(value: cubit),
-              BlocProvider<PlaybackCubit>.value(value: playback),
-              BlocProvider<EditorCubit>.value(value: editor),
-              BlocProvider<SettingsCubit>.value(value: settings),
-            ],
-            child: ScorePage(
-              engineView: const Text('engine view'),
-              onExport: onExport,
-            ),
+    Widget app = MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: cubit),
+            BlocProvider<PlaybackCubit>.value(value: playback),
+            BlocProvider<EditorCubit>.value(value: editor),
+            BlocProvider<SettingsCubit>.value(value: settings),
+          ],
+          child: ScorePage(
+            engineView: const Text('engine view'),
+            onExport: onExport,
           ),
         ),
       ),
     );
+    if (barActions != null) {
+      app = ChangeNotifierProvider.value(value: barActions, child: app);
+    }
+    if (edge != null) {
+      app = ChangeNotifierProvider.value(value: edge, child: app);
+    }
+    await tester.pumpWidget(app);
   }
+
+  group('play-only', () {
+    const show = 'Show track panel';
+    const hide = 'Hide track panel';
+    final panel = find.byKey(const Key('playOnlyPanel'));
+
+    testWidgets('the track panel button opens the panel over the page', (
+      tester,
+    ) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466);
+
+      await tester.tap(find.byTooltip(show));
+      await tester.pump();
+      expect(panel, findsOneWidget);
+      expect(
+        find.descendant(of: panel, matching: find.byType(FretPad)),
+        findsNothing,
+      );
+
+      await tester.tap(find.byTooltip(hide));
+      await tester.pump();
+      expect(panel, findsNothing);
+    });
+
+    testWidgets('with the vertical bar, the button goes to the bar', (
+      tester,
+    ) async {
+      final edgeEvents = StreamController<dynamic>();
+      final edge = VerticalBarEdgeProvider(edgeEvents: edgeEvents.stream);
+      final barActions = BarActions();
+      addTearDown(() async {
+        edge.dispose();
+        barActions.dispose();
+        await edgeEvents.close();
+      });
+      edgeEvents.add('trailing');
+      await cubit.open('fixture.gp');
+      await pumpPage(
+        tester,
+        width: 466,
+        rightPadding: 84,
+        edge: edge,
+        barActions: barActions,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      var actions = barActions.of(AppTab.editor);
+      expect(actions, hasLength(1));
+      expect(actions.single.tooltip, show);
+      expect(actions.single.icon, Icons.menu);
+      expect(find.widgetWithIcon(IconButton, Icons.menu), findsNothing);
+
+      actions.single.onPressed();
+      await tester.pump();
+      await tester.pump();
+      expect(panel, findsOneWidget);
+      actions = barActions.of(AppTab.editor);
+      expect(actions.single.tooltip, hide);
+      expect(actions.single.icon, Icons.close);
+    });
+
+    testWidgets('widening the window closes the play-only panel', (
+      tester,
+    ) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466);
+      await tester.tap(find.byTooltip(show));
+      await tester.pump();
+
+      await pumpPage(tester);
+      expect(panel, findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('trackPanel')),
+          matching: find.byType(FretPad),
+        ),
+        findsOneWidget,
+      );
+
+      await pumpPage(tester, width: 466);
+      expect(panel, findsNothing);
+    });
+
+    testWidgets('no song, no track panel button', (tester) async {
+      await pumpPage(tester, width: 466);
+      expect(find.byTooltip(show), findsNothing);
+    });
+
+    testWidgets("the title can't be changed", (tester) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466);
+      expect(find.byTooltip('Change title'), findsNothing);
+      expect(find.text(drumsAndTwoGuitars.title), findsOneWidget);
+    });
+
+    testWidgets("a tap doesn't move the edit cursor", (tester) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466);
+      verify(() => editor.placesOnTap = false).called(1);
+
+      await pumpPage(tester);
+      verify(() => editor.placesOnTap = true).called(1);
+    });
+  });
 
   testWidgets('the export button shows beside the title when a song is open', (
     tester,
