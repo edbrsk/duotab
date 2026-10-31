@@ -14,6 +14,7 @@ import '../playback/playback_cubit.dart';
 import 'track_drawer.dart' show kTrackRowHeight;
 
 const _readoutWidth = 64.0;
+const _minFaderWidth = 120.0;
 const _meterFloorDb = -60.0;
 const _meterBlue = Color(0xFF4F8CFF);
 const _meterYellow = Color(0xFFE9C46A);
@@ -121,29 +122,48 @@ class _ChannelRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SizedBox(
     height: kTrackRowHeight,
-    child: Row(
-      children: [
-        const SizedBox(width: Spacing.sm),
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(height: 30, child: fader),
-              SizedBox(height: 8, child: meter),
-            ],
-          ),
-        ),
-        SizedBox(
-          width: _readoutWidth,
-          child: Text(
-            readout,
-            textAlign: TextAlign.right,
-            style: Theme.of(context).textTheme.bodySmall
-                ?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
-          ),
-        ),
-        trailing,
-      ],
+    child: LayoutBuilder(
+      builder: (context, constraints) {
+        // Too narrow beside the readout, as in iPhone portrait: the readout
+        // goes above the fader.
+        final compact =
+            constraints.maxWidth -
+                Spacing.sm -
+                _readoutWidth -
+                AccessibleSizes.minTouchTarget <
+            _minFaderWidth;
+        final textTheme = Theme.of(context).textTheme;
+        final text = Text(
+          readout,
+          textAlign: TextAlign.right,
+          style: (compact ? textTheme.labelSmall : textTheme.bodySmall)
+              ?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+        );
+        return Row(
+          children: [
+            const SizedBox(width: Spacing.sm),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (compact)
+                    SizedBox(
+                      height: 12,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: text,
+                      ),
+                    ),
+                  SizedBox(height: compact ? 26 : 30, child: fader),
+                  SizedBox(height: 8, child: meter),
+                ],
+              ),
+            ),
+            if (!compact) SizedBox(width: _readoutWidth, child: text),
+            trailing,
+          ],
+        );
+      },
     ),
   );
 }
@@ -170,6 +190,13 @@ class _Fader extends StatefulWidget {
 
 class _FaderState extends State<_Fader> {
   double? _dragged;
+
+  // A fader that goes mid-drag, as the mixer closes, keeps the level heard.
+  @override
+  void dispose() {
+    if (_dragged case final db?) widget.onChangeEnd(db);
+    super.dispose();
+  }
 
   void _preview(double db) {
     if (db == _dragged) return;
@@ -316,11 +343,13 @@ class _MeterState extends State<_Meter> with SingleTickerProviderStateMixin {
   double _fraction(double db) => db > _meterFloorDb ? faderPosition(db) : 0;
 
   @override
-  Widget build(BuildContext context) => CustomPaint(
-    size: Size.infinite,
-    painter: MeterPainter(
-      leftFraction: _fraction(_left),
-      rightFraction: _fraction(_right),
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: CustomPaint(
+      size: Size.infinite,
+      painter: MeterPainter(
+        leftFraction: _fraction(_left),
+        rightFraction: _fraction(_right),
+      ),
     ),
   );
 }
@@ -386,6 +415,12 @@ class _PanKnobState extends State<_PanKnob> {
   double _from = 0;
   double _dragged = 0;
   double? _turned;
+
+  @override
+  void dispose() {
+    if (_turned case final pan?) widget.onTurnEnd(pan);
+    super.dispose();
+  }
 
   double _panAfter(double dx) {
     final steps = (dx / _pointsPerStep).truncate();
