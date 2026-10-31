@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setMaster' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp' | 'exportPdf' | 'exportFileGp' | 'exportFilePdf';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setMaster' | 'setMeters' | 'setOutputLatency' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp' | 'exportPdf' | 'exportFileGp' | 'exportFilePdf';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -26,6 +26,12 @@ export type TrackMix = { index: number; mute: boolean; solo: boolean; program: n
 
 /** `volumeDb` null is −∞. */
 export type SetMasterPayload = { volumeDb: number | null };
+
+/** Meters are measured and reported only while `on`. */
+export type SetMetersPayload = { on: boolean };
+
+/** How far the speaker plays behind the player, as the system reports it. */
+export type SetOutputLatencyPayload = { ms: number };
 
 /** dBFS by track index, left and right, rounded to 0.1; null below −60. */
 export type LevelsPayload = { tracks: ([number, number] | null)[]; master: [number, number] | null };

@@ -8,6 +8,8 @@ export type LevelFrame = {
   master: [number, number];
 };
 
+export type MeteringMessage = { cmd: 'duoscore.metering'; on: boolean };
+
 /** `shift` moves the song's own pan, −1…1 being full left to full right; null is no shift. */
 export type PanMessage = { cmd: 'duoscore.pan'; channel: number; shift: number | null };
 
@@ -50,14 +52,15 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
   const sums = new Map<number, Float32Array>();
   const touched = new Set<number>();
   let block: { offset: number; length: number } | null = null;
-  // A failure in measuring stops the meters, never the sound.
   let metering = true;
+  // A failure in measuring stops the meters, never the sound.
+  let broken = false;
   const safely = (measure: () => void) => {
-    if (!metering) return;
+    if (broken) return;
     try {
       measure();
     } catch {
-      metering = false;
+      broken = true;
       block = null;
     }
   };
@@ -98,7 +101,7 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
 
   synthProto.synthesize = function (this: Synth, buffer, offset, frames) {
     synths.add(this);
-    block = buffer && metering ? { offset, length: frames * 2 } : null;
+    block = buffer && metering && !broken ? { offset, length: frames * 2 } : null;
     let result: unknown;
     try {
       result = synthesize.call(this, buffer, offset, frames);
@@ -109,7 +112,7 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
     }
     safely(() => {
       if (!voicesHooked && this._voices.length > 0) hookVoices(Object.getPrototypeOf(this._voices[0]) as Voice);
-      if (!buffer) return;
+      if (!buffer || !metering) return;
       for (let i = offset; i < offset + frames * 2; i += 2) {
         master[0] = Math.max(master[0], Math.abs(buffer[i]));
         master[1] = Math.max(master[1], Math.abs(buffer[i + 1]));
@@ -149,11 +152,14 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
   playerProto.onSampleRequest = function (this: Player) {
     onSampleRequest.call(this);
     const frame = { cmd: 'duoscore.levels' as const, time: this.sequencer.currentTime, ...take() };
-    if (this.state === at.synth.PlayerState.Playing) safely(() => post(frame));
+    if (metering && this.state === at.synth.PlayerState.Playing) safely(() => post(frame));
   };
 
   return {
     take,
+    setMetering(on: boolean) {
+      metering = on;
+    },
     setPan(channel: number, shift: number | null) {
       if (shift === null) shifts.delete(channel);
       else shifts.set(channel, shift);

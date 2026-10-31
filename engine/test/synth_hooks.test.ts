@@ -87,6 +87,15 @@ test("a null pan gives the song's own back", () => {
   expect(ex._synth._channels.channelList[a].panOffset).toBeCloseTo(-0.5, 6);
 });
 
+test('meters off measure nothing', () => {
+  hooks.setMetering(false);
+  exporter().render(500);
+  const levels = hooks.take();
+  hooks.setMetering(true);
+  expect(levels.channels).toEqual([]);
+  expect(levels.master).toEqual([0, 0]);
+});
+
 test('a muted channel measures nothing', () => {
   const ex = exporter((synth) => synth.channelSetMute(a, true));
   ex.render(500);
