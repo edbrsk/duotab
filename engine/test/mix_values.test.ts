@@ -16,6 +16,13 @@ test("Guitar Pro's track volume is linear in dB", () => {
   expect(trackDbFromStored(0.4)).toBeCloseTo(-20, 6);
 });
 
+test('a track stored at 0 is −∞, and −40 dB stays −40 dB', () => {
+  expect(trackDbFromStored(0)).toBeNull();
+  expect(trackDbFromStored(storedFromTrackDb(null))).toBeNull();
+  expect(trackDbFromStored(storedFromTrackDb(-40))).toBeCloseTo(-40, 1);
+  expect(trackDbFromStored(storedFromTrackDb(-60))).toBeCloseTo(-40, 1);
+});
+
 test('a track dB is stored back as Guitar Pro reads it', () => {
   expect(storedFromTrackDb(0)).toBeCloseTo(0.8, 6);
   expect(storedFromTrackDb(-6)).toBeCloseTo(0.68, 6);

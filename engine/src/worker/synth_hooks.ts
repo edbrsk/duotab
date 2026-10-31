@@ -49,6 +49,17 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
   const sums = new Map<number, Float32Array>();
   const touched = new Set<number>();
   let block: { offset: number; length: number } | null = null;
+  // A failure in measuring stops the meters, never the sound.
+  let metering = true;
+  const safely = (measure: () => void) => {
+    if (!metering) return;
+    try {
+      measure();
+    } catch {
+      metering = false;
+      block = null;
+    }
+  };
 
   const { channelSetPan, synthesize } = synthProto;
   synthProto.channelSetPan = function (this: Synth, channel, pan) {
@@ -62,59 +73,67 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
     const { render } = proto;
     proto.render = function (this: Voice, f, out, offset, frames, muted) {
       const length = frames * 2;
-      if (!block) {
+      const measured = block;
+      if (!measured) {
         render.call(this, f, out, offset, frames, muted);
         return;
       }
       if (scratch.length < length) scratch = new Float32Array(length);
       for (let i = 0; i < length; i++) scratch[i] = out[offset + i];
       render.call(this, f, out, offset, frames, muted);
-      let sum = sums.get(this.playingChannel);
-      if (!sum || sum.length < block.length) {
-        const grown = new Float32Array(block.length);
-        if (sum) grown.set(sum);
-        sums.set(this.playingChannel, (sum = grown));
-      }
-      const at = offset - block.offset;
-      for (let i = 0; i < length; i++) sum[at + i] += out[offset + i] - scratch[i];
-      touched.add(this.playingChannel);
+      safely(() => {
+        let sum = sums.get(this.playingChannel);
+        if (!sum || sum.length < measured.length) {
+          const grown = new Float32Array(measured.length);
+          if (sum) grown.set(sum);
+          sums.set(this.playingChannel, (sum = grown));
+        }
+        const at = offset - measured.offset;
+        for (let i = 0; i < length; i++) sum[at + i] += out[offset + i] - scratch[i];
+        touched.add(this.playingChannel);
+      });
     };
   };
 
   synthProto.synthesize = function (this: Synth, buffer, offset, frames) {
     synths.add(this);
-    block = buffer ? { offset, length: frames * 2 } : null;
+    block = buffer && metering ? { offset, length: frames * 2 } : null;
     let result: unknown;
     try {
       result = synthesize.call(this, buffer, offset, frames);
     } finally {
       const length = block?.length ?? 0;
       block = null;
-      for (const channel of touched) {
-        const sum = sums.get(channel)!;
-        let left = 0;
-        let right = 0;
-        for (let i = 0; i < length; i += 2) {
-          left = Math.max(left, Math.abs(sum[i]));
-          right = Math.max(right, Math.abs(sum[i + 1]));
-        }
-        sum.fill(0, 0, length);
-        if (left === 0 && right === 0) continue;
-        const peak = channels.get(channel) ?? [0, 0];
-        peak[0] = Math.max(peak[0], left);
-        peak[1] = Math.max(peak[1], right);
-        channels.set(channel, peak);
-      }
-      touched.clear();
+      safely(() => measureBlock(length));
     }
-    if (!voicesHooked && this._voices.length > 0) hookVoices(Object.getPrototypeOf(this._voices[0]) as Voice);
-    if (buffer) {
+    safely(() => {
+      if (!voicesHooked && this._voices.length > 0) hookVoices(Object.getPrototypeOf(this._voices[0]) as Voice);
+      if (!buffer) return;
       for (let i = offset; i < offset + frames * 2; i += 2) {
         master[0] = Math.max(master[0], Math.abs(buffer[i]));
         master[1] = Math.max(master[1], Math.abs(buffer[i + 1]));
       }
-    }
+    });
     return result;
+  };
+
+  const measureBlock = (length: number) => {
+    for (const channel of touched) {
+      const sum = sums.get(channel)!;
+      let left = 0;
+      let right = 0;
+      for (let i = 0; i < length; i += 2) {
+        left = Math.max(left, Math.abs(sum[i]));
+        right = Math.max(right, Math.abs(sum[i + 1]));
+      }
+      sum.fill(0, 0, length);
+      if (left === 0 && right === 0) continue;
+      const peak = channels.get(channel) ?? [0, 0];
+      peak[0] = Math.max(peak[0], left);
+      peak[1] = Math.max(peak[1], right);
+      channels.set(channel, peak);
+    }
+    touched.clear();
   };
 
   const take = () => {
@@ -128,8 +147,8 @@ export function installSynthHooks(at: typeof alphaTab, post: (frame: LevelFrame)
   const { onSampleRequest } = playerProto;
   playerProto.onSampleRequest = function (this: Player) {
     onSampleRequest.call(this);
-    if (this.state === at.synth.PlayerState.Playing) post({ cmd: 'duoscore.levels', time: this.sequencer.currentTime, ...take() });
-    else take();
+    const frame = { cmd: 'duoscore.levels' as const, time: this.sequencer.currentTime, ...take() };
+    if (this.state === at.synth.PlayerState.Playing) safely(() => post(frame));
   };
 
   return {
