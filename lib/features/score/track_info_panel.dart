@@ -66,8 +66,9 @@ class TrackInfoPanel extends StatelessWidget {
                         label: l10n.trackName,
                       ),
                     );
-                    if (name != null)
+                    if (name != null) {
                       await editor.renameTrack(track.index, name);
+                    }
                   },
                   iconAlignment: IconAlignment.end,
                   icon: const Icon(Icons.edit, size: IconSizes.md),
