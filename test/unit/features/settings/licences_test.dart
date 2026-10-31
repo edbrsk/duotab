@@ -29,6 +29,8 @@ void main() {
     final alphaTab = licences.first.paragraphs.map((p) => p.text).join('\n');
     expect(alphaTab, contains('https://github.com/CoderLine/alphaTab'));
     expect(alphaTab, contains('MPL TEXT'));
+    expect(alphaTab, contains('Thank you to CoderLine'));
+    expect(alphaTab, contains('"rendered by alphaTab"'));
     expect(
       licences.last.paragraphs.map((p) => p.text).join('\n'),
       contains('GENERALUSER TEXT'),

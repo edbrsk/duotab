@@ -40,7 +40,7 @@ test('printPages lays the song on numbered A4 pages', () => {
     expect(page).toContain(fontUrl);
     expect(page).toContain(`${i + 1} / ${pages.length}`);
   }
-  expect(pages.at(-1)).toContain('rendered by alphaTab');
+  expect(pages.join('')).not.toContain('rendered by alphaTab');
 });
 
 test('every system is printed once', () => {

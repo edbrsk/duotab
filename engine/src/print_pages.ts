@@ -1,5 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
+import { dropRenderedByLine } from './rendered_by';
+
 type Score = alphaTab.model.Score;
 
 export const A4 = { width: 595, height: 842, margin: 36 };
@@ -28,6 +30,7 @@ export function paginate(parts: { y: number; height: number }[], contentHeight: 
 
 /** Renders `track` with its own renderer, so the one on screen is untouched. */
 export function renderParts(score: Score, track: number, staveProfile: alphaTab.StaveProfile): Part[] {
+  dropRenderedByLine();
   const settings = new alphaTab.Settings();
   settings.core.engine = 'svg';
   settings.core.enableLazyLoading = false;

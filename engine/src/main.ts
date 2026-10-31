@@ -47,6 +47,7 @@ import { LongPressSelection } from './touch_selection';
 import { fileGp, filePdf } from './file_export';
 import { OpenState } from './open_state';
 import { printPages } from './print_pages';
+import { dropRenderedByLine } from './rendered_by';
 import { nextRender } from './render_wait';
 
 declare global {
@@ -90,6 +91,7 @@ const environment = alphaTab.Environment as unknown as { createWebWorker(s: alph
 const createWebWorker = environment.createWebWorker;
 environment.createWebWorker = (s) => (synth.worker = createWebWorker(s));
 
+dropRenderedByLine();
 const api = new alphaTab.AlphaTabApi(document.getElementById('score')!, settings);
 const OUTPUT_GAIN = 2;
 const limiter = new Limiter(api.player!.output.sampleRate, OUTPUT_GAIN);
