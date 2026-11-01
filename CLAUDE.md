@@ -37,21 +37,28 @@ Fresh clone:
 
 ```sh
 npm --prefix engine ci
-npm --prefix engine run build    # writes assets/engine/ (git-ignored); rerun after any engine change
+npm --prefix engine run build    # writes assets/engine/ (git-ignored); rerun after ANY engine change, or the app ships the old engine
 flutter pub get
 ```
 
 | What | Command |
 |---|---|
-| Engine tests | `npm --prefix engine test` (327 pass, 3 skip without the private sample) |
+| Engine tests | `npm --prefix engine test` (328 pass, 3 skip without the private sample) |
 | Engine types | `cd engine && npx tsc --noEmit` |
-| App tests | `flutter test` (454 pass) |
+| App tests | `flutter test` (568 pass) |
 | Lints | `flutter analyze` (must say `No issues found!`) |
 | iOS tests | `cd ios && xcodebuild test -workspace Runner.xcworkspace -scheme Runner -destination 'id=<simulator id>' -only-testing:RunnerTests` |
 | Simulator build | `flutter build ios --simulator` |
 | Install and run | `xcrun simctl install booted build/ios/iphonesimulator/Runner.app && xcrun simctl launch --terminate-running-process booted dev.edbrsk.duoscore` |
 
 - The test simulator is **iPhone Duo** (`41EF9407-BBA8-4648-B462-C0AE7F535B8B`). Find the booted one with `xcrun simctl list devices booted`, and boot it with `xcrun simctl boot <id>` if a run has shut it down. `open -a Simulator` doesn't find the Simulator app on this machine; the owner opens the window.
+- **Real device:** `flutter build ios --release --no-codesign` checks that a release build compiles, but the project has no development team, so the owner installs from Xcode instead:
+  - open `ios/Runner.xcworkspace`;
+  - choose their team under Signing & Capabilities;
+  - set the Run scheme's Build Configuration to Release;
+  - press ⌘R.
+
+  Their team and scheme changes are local and uncommitted; leave them out of commits.
 - `xcodebuild test` takes a few minutes. When a test fails, it waits about 10 more minutes collecting diagnostics, so run it in the background.
 
 ## Gotchas
@@ -128,7 +135,7 @@ flutter pub get
 
 ## Status (2026-11-01)
 
-The app code on `main` is as of tag `polish-done`. Everything below is built, reviewed and checked by the owner on the simulator.
+The app code on `main` is as of tag `new-song-fixes-done`. Everything below is built, reviewed and checked by the owner on the simulator.
 
 | Tag | What |
 |---|---|
@@ -138,12 +145,14 @@ The app code on `main` is as of tag `polish-done`. Everything below is built, re
 | `cleanup-done` | Cleanup round:<ul><li>the panel closes on a new song;</li><li>☰ at the top right in Split View;</li><li>full-right pan;</li><li>mixer rows keep their faders when narrowed;</li><li>large-text fixes;</li><li>the iOS route-listener leak;</li><li>outer-screen width tests;</li><li>no empty gap before the faders when folded.</li></ul> |
 | `settings-polish-done` | Settings: "DuoScore" in Didot as the header, the default tone as a dropdown, DuoScore's own licence screen without "Powered by Flutter" |
 | `polish-done` | ☰ fully tappable in Split View, ✕ placed for right-to-left, a stronger speed-menu width test |
+| `library-order-search-done` | Library: newest song first, from DuoScore's own record of when each song arrived (`added_dates.dart`); search that filters as you type, ignoring case and accents |
+| `new-song-fixes-done` | A new song's guitar starts at 0 dB; palette symbols fitted and centred by their ink at a fixed size. Found on the owner's first real-device install |
 
 Older tags (`tone-fix`, `tremolo-fix`, `library-files`, …) mark one-off fixes along the way.
 
 ## Next steps
 
-1. **Real-device test, next.** The owner has a physical iPhone Duo. Things only the device can show:
+1. **Real-device test, in progress.** The owner's first install found the +6 dB new-song level and the palette overflow, both fixed in `new-song-fixes-done`. Things only the device can show:
    - **Portrait lock:** whether it holds on the closed phone. iOS can ignore it for apps that support Split View; if so, do it in Swift.
    - **Hinge readings:** whether folding briefly reports the hinge as unknown. That would pause playback for no reason.
    - **After a fold:** whether the sheet stays on the paused bar after it's redrawn.
@@ -151,7 +160,7 @@ Older tags (`tone-fix`, `tremolo-fix`, `library-files`, …) mark one-off fixes 
    - **Screen awake:** that it stays awake while a song plays and dims after pausing.
    - **AirPods:** the cursor runs slightly ahead of the sound. This is known and unfixed.
 2. **Drums**, the next phase. It needs its own design first: drum notation, its own palette and input, and how the mixer handles drum channel 9.
-3. **Left to the builder in the main design**, not started: library sorting and search, and Settings beyond count-in, metronome and default tone.
+3. **Left to the builder in the main design**, not started: Settings beyond count-in, metronome and default tone.
 4. **Parked by the owner:**
    - **Mid-song pan and volume changes** are lost when DuoScore saves. The owner doesn't need them for now. Doing it later means:
      - writing `DSPParam_11` and `DSPParam_12` automations into the saved `.gp`;
