@@ -226,6 +226,13 @@ export type EditCommand =
   /** Keeping `pitch` (the default), `octave`, −2 to 2, shifts every note; keeping `frets` takes octave 0. */
   | { op: 'retune'; track: number; tuning: number[]; octave: number; keep?: RetuneKeep };
 
+export type ChordType = 'maj' | 'm' | '7' | 'maj7' | 'm7' | 'm7b5' | 'dim7' | 'aug' | 'sus2' | 'sus4' | '6' | '5';
+
+export type ChordAddition = 'b9' | '9' | '#9' | '11' | '#11' | 'b13' | '13';
+
+/** `root` and `bass` are pitch classes, C = 0; a null `bass` is no slash chord. */
+export type ChordSpec = { root: number; type: ChordType; additions: ChordAddition[]; bass: number | null };
+
 export type EditPayload = { command: EditCommand };
 
 /** What a retune keeps: each note's sound, or its string and fret. */
