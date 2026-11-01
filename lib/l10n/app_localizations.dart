@@ -1402,6 +1402,12 @@ abstract class AppLocalizations {
   /// **'Export'**
   String get export;
 
+  /// No description provided for @exportChooseFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a format'**
+  String get exportChooseFormat;
+
   /// No description provided for @exportGp.
   ///
   /// In en, this message translates to:

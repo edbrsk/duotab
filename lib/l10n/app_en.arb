@@ -367,6 +367,7 @@
     }
   },
   "export": "Export",
+  "exportChooseFormat": "Choose a format",
   "exportGp": "Guitar Pro file (.gp)",
   "exportPdf": "PDF",
   "save": "Save",

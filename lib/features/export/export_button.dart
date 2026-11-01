@@ -47,9 +47,10 @@ class _ExportButtonState extends State<ExportButton> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     if (_running) {
-      return const SizedBox.square(
-        dimension: kMinInteractiveDimension,
-        child: Center(
+      return const SizedBox(
+        height: kMinInteractiveDimension,
+        child: Align(
+          alignment: AlignmentDirectional.centerStart,
           child: SizedBox.square(
             dimension: IconSizes.md,
             child: CircularProgressIndicator(strokeWidth: 2),
@@ -57,13 +58,17 @@ class _ExportButtonState extends State<ExportButton> {
         ),
       );
     }
-    return PopupMenuButton<ExportFormat>(
-      tooltip: l10n.export,
-      icon: const Icon(Icons.ios_share, color: AppColors.accent),
-      onSelected: _export,
-      itemBuilder: (_) => [
-        PopupMenuItem(value: ExportFormat.gp, child: Text(l10n.exportGp)),
-        PopupMenuItem(
+    // No value: each choice exports at once and the hint comes back.
+    return DropdownButton<ExportFormat>(
+      hint: Text(l10n.exportChooseFormat),
+      isExpanded: true,
+      underline: const SizedBox.shrink(),
+      onChanged: (format) {
+        if (format != null) _export(format);
+      },
+      items: [
+        DropdownMenuItem(value: ExportFormat.gp, child: Text(l10n.exportGp)),
+        DropdownMenuItem(
           value: ExportFormat.pdf,
           enabled: widget.canExportPdf,
           child: Text(l10n.exportPdf),

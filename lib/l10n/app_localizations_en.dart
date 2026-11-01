@@ -734,6 +734,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get export => 'Export';
 
   @override
+  String get exportChooseFormat => 'Choose a format';
+
+  @override
   String get exportGp => 'Guitar Pro file (.gp)';
 
   @override

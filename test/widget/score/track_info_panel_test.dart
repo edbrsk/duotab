@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
-import 'package:duoscore/core/design/design_tokens.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/chord_picker.dart';
 import 'package:duoscore/features/editor/cursor_keys.dart';
@@ -776,7 +775,7 @@ void main() {
       verify(() => editor.setArtist('Rabea Massaad')).called(1);
     });
 
-    testWidgets('the export button sits beside its label, in the accent', (
+    testWidgets('export is a dropdown under its heading, like Tone', (
       tester,
     ) async {
       await pump(
@@ -786,13 +785,11 @@ void main() {
         onExport: (_, _) async {},
       );
       final label = tester.getRect(find.text('EXPORT'));
-      final icon = tester.getRect(find.byIcon(Icons.ios_share));
-      expect(icon.left, greaterThan(label.right));
-      expect(icon.center.dy, closeTo(label.center.dy, 4));
-      expect(
-        tester.widget<Icon>(find.byIcon(Icons.ios_share)).color,
-        AppColors.accent,
+      final dropdown = tester.getRect(
+        find.byType(DropdownButton<ExportFormat>),
       );
+      expect(dropdown.top, greaterThanOrEqualTo(label.bottom));
+      expect(find.byIcon(Icons.ios_share), findsNothing);
     });
 
     testWidgets('export sits in the Song tab', (tester) async {

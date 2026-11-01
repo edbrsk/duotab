@@ -21,7 +21,8 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
-            body: Center(
+            body: SizedBox(
+              width: 220,
               child: ExportButton(
                 canExportPdf: canExportPdf,
                 onExport: (format, anchor) {
@@ -37,16 +38,32 @@ void main() {
   Future<void> choose(WidgetTester tester, String item) async {
     await tester.tap(find.byType(ExportButton));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(item));
+    await tester.tap(find.text(item).last);
     await tester.pump();
   }
+
+  testWidgets('it is a dropdown asking for a format, with no icon', (
+    tester,
+  ) async {
+    await pumpButton(tester);
+    expect(find.byType(DropdownButton<ExportFormat>), findsOneWidget);
+    expect(find.text('Choose a format'), findsOneWidget);
+    expect(find.byIcon(Icons.ios_share), findsNothing);
+  });
+
+  testWidgets('after an export it asks for a format again', (tester) async {
+    await pumpButton(tester);
+    await choose(tester, 'Guitar Pro file (.gp)');
+    await tester.pumpAndSettle();
+    expect(find.text('Choose a format'), findsOneWidget);
+  });
 
   testWidgets('the menu offers .gp and PDF', (tester) async {
     await pumpButton(tester);
     await tester.tap(find.byType(ExportButton));
     await tester.pumpAndSettle();
-    expect(find.text('Guitar Pro file (.gp)'), findsOneWidget);
-    expect(find.text('PDF'), findsOneWidget);
+    expect(find.text('Guitar Pro file (.gp)'), findsWidgets);
+    expect(find.text('PDF'), findsWidgets);
   });
 
   testWidgets('PDF is disabled without a guitar track', (tester) async {

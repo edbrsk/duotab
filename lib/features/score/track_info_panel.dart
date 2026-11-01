@@ -186,19 +186,13 @@ class _SongTab extends StatelessWidget {
             onCommit: onlyHere(editor.setArtist),
           ),
         ],
-        if (onExport case final onExport?)
-          Padding(
-            padding: const EdgeInsets.only(top: Spacing.sm),
-            child: Row(
-              children: [
-                Text(l10n.export.toUpperCase(), style: textTheme.labelSmall),
-                ExportButton(
-                  onExport: onExport,
-                  canExportPdf: song.guitarTracks.isNotEmpty,
-                ),
-              ],
-            ),
+        if (onExport case final onExport?) ...[
+          _heading(context, l10n.export),
+          ExportButton(
+            onExport: onExport,
+            canExportPdf: song.guitarTracks.isNotEmpty,
           ),
+        ],
       ],
     );
   }
