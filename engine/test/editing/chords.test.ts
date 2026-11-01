@@ -134,3 +134,13 @@ test("positions follow the drawn track's own strings", async () => {
   expect(reply.positions.length).toBeGreaterThan(0);
   for (const p of reply.positions) expect(p.frets).toHaveLength(7);
 });
+
+test("chords are kept under numbers, as Guitar Pro's own files keep them", () => {
+  setChord(s, at(0, 1), cmaj7, OPEN);
+  setChord(s, at(0, 2), cmaj7, OPEN);
+  setChord(s, at(0, 3), cmaj7, BARRE);
+  const ids = [1, 2, 3].map((b) => beat(0, b).chordId);
+  for (const id of ids) expect(id).toMatch(/^\d+$/);
+  expect(ids[0]).toBe(ids[1]);
+  expect(ids[2]).not.toBe(ids[0]);
+});

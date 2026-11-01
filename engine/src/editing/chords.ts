@@ -1,7 +1,6 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import type { ChordSpec, EditPosition } from '../protocol';
-import { chordIn } from './bar_structure';
 import { chordName, parseChordName } from './chord_names';
 import { chordPositions, openStringsOf } from './chord_positions';
 import { finishEdit } from './finish';
@@ -33,10 +32,21 @@ export function setChord(score: Score, at: EditPosition, spec: ChordSpec, frets:
   chord.firstFret = position.open ? 1 : position.lowestFret;
   // The sheet shows the name only.
   chord.showDiagram = false;
-  beat.chordId = chordIn(staff, chord, chord.name);
+  beat.chordId = chordId(staff, chord);
   beat.isEmpty = false;
   finishEdit(score, at, settings);
   return at;
+}
+
+/** An identical chord's id, or the lowest free number: Guitar Pro numbers its chords. */
+function chordId(staff: alphaTab.model.Staff, chord: alphaTab.model.Chord): string {
+  for (const [id, other] of staff.chords ?? []) {
+    if (other.name === chord.name && other.strings.join() === chord.strings.join()) return id;
+  }
+  let n = 0;
+  while (staff.chords?.has(`${n}`)) n++;
+  staff.addChord(`${n}`, chord);
+  return `${n}`;
 }
 
 /** The cursor beat's chord, with its symbol when DuoScore can read the name. */
