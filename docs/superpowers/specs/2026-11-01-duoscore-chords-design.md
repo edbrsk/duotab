@@ -97,10 +97,11 @@ A stacked name needs the 9 under it: C11 is 7 + 9 + 11, and C13 is 7 + 9 + 13 (t
   - at most one note per string, and no fret above the track's highest fret (24);
   - **four fingers at most:** each fretted note needs a finger, except that the first finger may barre one unbroken run of strings at the shape's lowest fret and counts once. The run holds no open or unplayed string; strings in it that sound higher are fretted by other fingers. Other notes at that fret need fingers of their own. The thumb isn't used. B7♭9 as 7 x 7 8 7 8 is four fingers: a barre over the 4th to 2nd strings, one finger on the 6th, and two on the 8th fret.
   - Open strings are allowed in open position, where every fretted note is at the 4th fret or below. Strings not played are shown as ×, including one between played strings (as in 7 x 7 8 7 8); never more than one.
-  - At least three notes, and at least as many as the chord's required tones; a 5 chord may be two.
+  - At least four strings when the guitar has them, and at least as many as the chord's required tones; a 5 chord may be two.
 - **Right notes:** every note belongs to the chord; the lowest sounding note is the root, or the bass of a slash chord; every chord tone is present, except the 5th, which a position may leave out. Shapes without the 5th are offered alongside full ones, as guitarists play them; no other tone is ever left out.
-- **Which ones:** the best three at each place on the neck. Open position is one place; every other shape belongs to the place of its lowest fret. "Best" is fewest gaps, then most strings, then fewest fingers, then the smallest stretch.
-  - A shape is left out when another plays the same frets on more strings with no more fingers and no wider stretch: the fuller one is as easy.
+- **Which ones:** the best four at each place on the neck. Open position is one place; every other shape belongs to the place of its lowest fret.
+  - **"Best":** fewest gaps first, then shapes needing three fingers or fewer ahead of those needing all four, then most strings, fewest fingers and the smallest stretch.
+  - **No easier subsets:** a shape is left out when another plays the same frets on more strings with no more fingers, gaps or stretch: the fuller one is as easy.
   - A shape twelve frets above another is left out: it's the same shape an octave higher.
 - **Order:** open position first, then up the neck.
 - **The track's own strings:** the tuning and string count come from the track. A 7- or 8-string's extra low strings are used when they help; a drop tuning gets its own shapes.
