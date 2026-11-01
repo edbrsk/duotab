@@ -62,6 +62,18 @@ void main() {
     expect(track.showNumbered, isFalse);
   });
 
+  test('a record with standard and tab both off reads with both on', () {
+    final track = TrackPractice.fromJson({
+      'showNotation': false,
+      'showTab': false,
+      'showSlash': true,
+    });
+    expect(
+      [track.showNotation, track.showTab, track.showSlash],
+      [true, true, true],
+    );
+  });
+
   test('an unknown path loads null', () async {
     expect(await store.load('nowhere.gp'), isNull);
   });

@@ -77,20 +77,24 @@ class TrackPractice {
     'pan': pan,
   };
 
-  factory TrackPractice.fromJson(Map<String, dynamic> json) => TrackPractice(
-    mute: json['mute'] == true,
-    solo: json['solo'] == true,
-    tone: Tone.values.where((t) => t.name == json['tone']).firstOrNull,
-    // Tones saved before the choice was recorded may have been chosen.
-    toneChosen: json['toneChosen'] as bool? ?? json['tone'] != null,
-    showNotation: json['showNotation'] != false,
-    showTab: json['showTab'] != false,
-    showSlash: json['showSlash'] == true,
-    showNumbered: json['showNumbered'] == true,
-    volumeDb: _dbFromJson(json['volumeDb']),
-    pan: (json['pan'] as num?)?.toDouble(),
-    legacyVolume: json['volume'] as int?,
-  );
+  factory TrackPractice.fromJson(Map<String, dynamic> json) {
+    // The engine refuses a track with neither, which would stop the rest.
+    final neither = json['showNotation'] == false && json['showTab'] == false;
+    return TrackPractice(
+      mute: json['mute'] == true,
+      solo: json['solo'] == true,
+      tone: Tone.values.where((t) => t.name == json['tone']).firstOrNull,
+      // Tones saved before the choice was recorded may have been chosen.
+      toneChosen: json['toneChosen'] as bool? ?? json['tone'] != null,
+      showNotation: neither || json['showNotation'] != false,
+      showTab: neither || json['showTab'] != false,
+      showSlash: json['showSlash'] == true,
+      showNumbered: json['showNumbered'] == true,
+      volumeDb: _dbFromJson(json['volumeDb']),
+      pan: (json['pan'] as num?)?.toDouble(),
+      legacyVolume: json['volume'] as int?,
+    );
+  }
 
   /// The engine draws notation and tab, and nothing else, until told.
   bool get drawsDefaultStaves =>
