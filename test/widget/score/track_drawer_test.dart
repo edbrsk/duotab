@@ -222,6 +222,20 @@ void main() {
     expect(find.byKey(const ValueKey('trackRow-2')), findsNothing);
   });
 
+  testWidgets('play-only, the fader starts right after mute and solo', (
+    tester,
+  ) async {
+    await pump(tester);
+    tester.view.physicalSize = const Size(466, 626);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Mixer'));
+    await tester.pumpAndSettle();
+
+    final solo = tester.getRect(find.byTooltip('Solo Guitar 1'));
+    final fader = tester.getRect(find.byKey(const ValueKey('fader-1')));
+    expect(fader.left - solo.right, lessThanOrEqualTo(Spacing.sm));
+  });
+
   testWidgets('play-only, collapsed is only the header', (tester) async {
     await pump(tester);
     tester.view.physicalSize = const Size(466, 626);

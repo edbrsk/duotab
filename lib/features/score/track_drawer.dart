@@ -182,7 +182,10 @@ class _TrackDrawerState extends State<TrackDrawer> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(
-                        width: kTrackColumnWidth,
+                        // Play-only rows have no track menu to make room for.
+                        width: WorkspaceLayout.isCollapsed(context)
+                            ? kTrackColumnWidth - AccessibleSizes.minTouchTarget
+                            : kTrackColumnWidth,
                         child: Column(
                           children: [
                             for (final track in rows)
@@ -416,7 +419,8 @@ class _TrackRow extends StatelessWidget {
                 ];
               },
             )
-          else
+          // Keeps the columns lined up beside rows that have the menu.
+          else if (!WorkspaceLayout.isCollapsed(context))
             const SizedBox(width: AccessibleSizes.minTouchTarget),
         ],
       ),
