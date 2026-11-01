@@ -235,9 +235,22 @@ class _PadSwitch extends StatelessWidget {
       children: [
         SegmentedButton<bool>(
           showSelectedIcon: false,
+          // The panel is narrow beside the vertical bar.
+          style: SegmentedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+          ),
           segments: [
-            ButtonSegment(value: false, label: Text(l10n.frets)),
-            ButtonSegment(value: true, label: Text(l10n.chords)),
+            for (final (value, label) in [
+              (false, l10n.frets),
+              (true, l10n.chords),
+            ])
+              ButtonSegment(
+                value: value,
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label, maxLines: 1, softWrap: false),
+                ),
+              ),
           ],
           selected: {chords},
           onSelectionChanged: (s) =>

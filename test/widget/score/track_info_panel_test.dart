@@ -11,6 +11,7 @@ import 'package:duoscore/features/score/track_info_panel.dart';
 import 'package:duoscore/features/settings/settings_cubit.dart';
 import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -87,6 +88,7 @@ void main() {
     bool editable = true,
     bool chordsShown = false,
     double height = 626,
+    double textScale = 1,
   }) async {
     when(() => settings.state)
         .thenReturn(AppSettings(chordsShown: chordsShown));
@@ -99,6 +101,11 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
         home: Scaffold(
           body: MultiBlocProvider(
             providers: [
@@ -123,6 +130,18 @@ void main() {
     expect(find.text('Guitar 1'), findsOneWidget);
     expect(find.text('E♭ A♭ D♭ G♭ B♭ E♭'), findsOneWidget);
     expect(find.text('6 strings'), findsOneWidget);
+  });
+
+  testWidgets('the switch labels stay on one line', (tester) async {
+    await pump(tester, drawn, textScale: 1.3);
+    for (final label in ['Frets', 'Chords']) {
+      final text = tester.renderObject<RenderParagraph>(find.text(label));
+      expect(
+        text.size.height,
+        text.getMinIntrinsicHeight(double.infinity),
+        reason: label,
+      );
+    }
   });
 
   testWidgets('the panel switches between frets and chords', (tester) async {
