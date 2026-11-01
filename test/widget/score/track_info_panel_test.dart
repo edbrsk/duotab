@@ -4,6 +4,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/chord_picker.dart';
 import 'package:duoscore/features/editor/cursor_keys.dart';
+import 'package:duoscore/features/editor/edit_strip.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
 import 'package:duoscore/features/editor/fret_pad.dart';
 import 'package:duoscore/features/export/export_button.dart';
@@ -511,14 +512,24 @@ void main() {
   testWidgets('a folded input part shows only its name', (tester) async {
     await pump(tester, drawn, inputFolded: true, chordsShown: true);
     expect(find.byType(ChordPicker), findsNothing);
-    expect(find.byType(CursorKeys), findsNothing);
     expect(find.text('Input'), findsOneWidget);
+    expect(find.byType(EditStrip), findsOneWidget);
+    expect(onScreen(tester, find.byType(EditStrip), 626), isTrue);
     expect(find.text('Chords'), findsNothing);
     expect(find.byType(DropdownButton<Tone>), findsOneWidget);
 
     await tester.tap(find.byTooltip('Show input'));
     verify(() => settings.setInputFolded(folded: false)).called(1);
   });
+
+  testWidgets(
+    'with Input folded, Details can use all the room above the strip',
+    (tester) async {
+      await pump(tester, drawn, inputFolded: true, height: 900);
+      final details = tester.getSize(find.byKey(const Key('track-details')));
+      expect(details.height, greaterThan(900 * 0.5));
+    },
+  );
 
   testWidgets('each open part folds from its header', (tester) async {
     await pump(tester, drawn);
@@ -531,6 +542,7 @@ void main() {
   testWidgets('a play-only panel is one part without arrows', (tester) async {
     await pump(tester, drawn, editable: false);
     expect(find.byType(CursorKeys), findsNothing);
+    expect(find.byType(EditStrip), findsNothing);
     expect(find.byTooltip('Hide details'), findsNothing);
     expect(find.text('Song'), findsOneWidget);
   });

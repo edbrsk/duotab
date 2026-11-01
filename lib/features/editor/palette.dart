@@ -75,20 +75,6 @@ class Palette extends StatelessWidget {
       type: MaterialType.transparency,
       child: ListView(
         children: [
-          Row(
-            children: [
-              IconButton(
-                tooltip: l10n.undo,
-                icon: const Icon(Icons.undo),
-                onPressed: state.canUndo ? editor.undo : null,
-              ),
-              IconButton(
-                tooltip: l10n.redo,
-                icon: const Icon(Icons.redo),
-                onPressed: state.canRedo ? editor.redo : null,
-              ),
-            ],
-          ),
           PaletteGroup(
             title: l10n.voice,
             children: [

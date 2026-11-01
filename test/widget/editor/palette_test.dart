@@ -129,17 +129,10 @@ void main() {
     verifyNever(() => editor.chooseDuration(any()));
   });
 
-  testWidgets('undo and redo follow the history', (tester) async {
-    await pump(tester, const EditorState(canRedo: true));
-    final undo = tester.widget<IconButton>(
-      find.ancestor(
-        of: find.byIcon(Icons.undo),
-        matching: find.byType(IconButton),
-      ),
-    );
-    expect(undo.onPressed, isNull);
-    await tester.tap(find.byTooltip('Redo'));
-    verify(() => editor.redo()).called(1);
+  testWidgets('undo and redo live in the edit strip, not here', (tester) async {
+    await pump(tester, const EditorState(canUndo: true, canRedo: true));
+    expect(find.byTooltip('Undo'), findsNothing);
+    expect(find.byTooltip('Redo'), findsNothing);
   });
 
   testWidgets('the note values are their Bravura glyphs', (tester) async {

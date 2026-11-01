@@ -5,7 +5,7 @@ import '../../core/design/design_tokens.dart';
 import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
 import '../editor/chord_picker.dart';
-import '../editor/cursor_keys.dart';
+import '../editor/edit_strip.dart';
 import '../editor/editor_cubit.dart';
 import '../editor/fret_pad.dart';
 import '../editor/retune_dialog.dart';
@@ -508,38 +508,56 @@ class _SplitPanel extends StatelessWidget {
       onToggle: () => settingsCubit.setInputFolded(folded: !inputFolded),
     );
 
+    const strip = Padding(
+      padding: EdgeInsets.only(top: Spacing.sm),
+      // Fixed: the cursor and undo are wanted with either part folded.
+      child: EditStrip(),
+    );
+    if (inputFolded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Flexible(child: upperPart),
+                  const Divider(height: 1),
+                  inputHeader,
+                ],
+              ),
+            ),
+          ),
+          strip,
+        ],
+      );
+    }
     return LayoutBuilder(
       builder: (context, constraints) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (inputFolded)
-            Flexible(child: upperPart)
-          else
-            ConstrainedBox(
-              // The input is what's used while writing; folding the track
-              // part gives it the rest.
-              constraints: BoxConstraints(
-                maxHeight: constraints.maxHeight * 0.4,
-              ),
-              child: upperPart,
-            ),
+          ConstrainedBox(
+            // The input is what's used while writing; folding the upper
+            // part gives it the rest.
+            constraints: BoxConstraints(maxHeight: constraints.maxHeight * 0.4),
+            child: upperPart,
+          ),
           const Divider(height: 1),
-          if (inputFolded)
-            inputHeader
-          else
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  inputHeader,
-                  const Expanded(
-                    child: SingleChildScrollView(child: _PadSwitch()),
-                  ),
-                  const SizedBox(height: Spacing.sm),
-                  const CursorKeys(),
-                ],
-              ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                inputHeader,
+                const Expanded(
+                  child: SingleChildScrollView(child: _PadSwitch()),
+                ),
+              ],
             ),
+          ),
+          strip,
         ],
       ),
     );
