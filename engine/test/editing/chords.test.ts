@@ -123,3 +123,14 @@ test('Guitar Pro keeps the chord', () => {
   expect(reloaded.chord!.name).toBe('Cmaj7');
   expect(pairs(reloaded)).toEqual(pairs(beat(0, 1)));
 });
+
+test("positions follow the drawn track's own strings", async () => {
+  const { twoGuitarsAndDrums } = await import('../fixtures');
+  const song = score(twoGuitarsAndDrums);
+  const session = new EditSession();
+  session.open(song, 1);
+  const reply = session.chordPositions(song, cmaj7);
+  expect(reply.name).toBe('Cmaj7');
+  expect(reply.positions.length).toBeGreaterThan(0);
+  for (const p of reply.positions) expect(p.frets).toHaveLength(7);
+});

@@ -1,6 +1,6 @@
 import * as alphaTab from '@coderline/alphatab';
 
-import type { BarIssue, EditCommand, EditPosition, EditState, RetuneReport } from '../protocol';
+import type { BarIssue, ChordPositionsReply, ChordSpec, EditCommand, EditPosition, EditState, RetuneReport } from '../protocol';
 import { describeOpened } from '../summary';
 import { checkBars } from './bar_check';
 import type { NoteMark } from './fingering';
@@ -13,6 +13,8 @@ import { History } from './history';
 import { beatOf, clampPosition } from './position';
 import { activeTechniques, bendAt, dynamicAt, tupletAt } from './techniques';
 import { chordAt, fretsAt } from './chords';
+import { chordName } from './chord_names';
+import { chordPositions, openStringsOf } from './chord_positions';
 
 type Score = alphaTab.model.Score;
 
@@ -49,6 +51,12 @@ export class EditSession {
     this.position = null;
     this.history.clear();
     this.issues = checkBars(score, track);
+  }
+
+  /** For the track edits go to, which a chord is checked against. */
+  chordPositions(score: Score, chord: ChordSpec): ChordPositionsReply {
+    const staff = score.tracks[this.position?.track ?? this.track].staves[0];
+    return { name: chordName(chord), positions: chordPositions(chord, openStringsOf(staff)) };
   }
 
   drawTrack(score: Score, track: number): void {

@@ -80,6 +80,10 @@ class _ChordPickerState extends State<ChordPicker> {
   String? _foreignName;
   ChordPositions? _positions;
 
+  /// What [_positions] were found for: tiles for another chord or tuning would
+  /// be refused when tapped.
+  ChordSpec? _positionsFor;
+
   /// Only the newest request's reply is shown.
   var _request = 0;
 
@@ -128,9 +132,13 @@ class _ChordPickerState extends State<ChordPicker> {
       setState(() => _positions = null);
       return;
     }
+    setState(() => _positionsFor = null);
     final positions = await context.read<EditorCubit>().chordPositions(spec);
     if (!mounted || request != _request) return;
-    setState(() => _positions = positions);
+    setState(() {
+      _positions = positions;
+      _positionsFor = spec;
+    });
   }
 
   void _change(VoidCallback change) {
@@ -162,18 +170,31 @@ class _ChordPickerState extends State<ChordPicker> {
           .firstOrNull,
     );
     final spec = _spec;
-    final positions = _positions;
+    final positions = spec != null && _positionsFor == spec ? _positions : null;
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.only(top: Spacing.sm, bottom: Spacing.xs),
       child: Text(text.toUpperCase(), style: textTheme.labelSmall),
     );
 
-    return BlocListener<EditorCubit, EditorState>(
-      listenWhen: (before, after) =>
-          before.position != after.position ||
-          before.chordSpec != after.chordSpec ||
-          before.chordName != after.chordName,
-      listener: (_, state) => setState(() => _follow(state)),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<EditorCubit, EditorState>(
+          listenWhen: (before, after) =>
+              before.position != after.position ||
+              before.chordSpec != after.chordSpec ||
+              before.chordName != after.chordName,
+          listener: (_, state) => setState(() => _follow(state)),
+        ),
+        // Another track or a retune: the same chord sits elsewhere on the neck.
+        BlocListener<ScoreCubit, ScoreState>(
+          listenWhen: (before, after) =>
+              before.selectedTrackIndex != after.selectedTrackIndex ||
+              !listEquals(_tuningOf(before), _tuningOf(after)),
+          listener: (_, _) {
+            if (_spec != null) _refresh();
+          },
+        ),
+      ],
       child: IgnorePointer(
         ignoring: !enabled,
         child: Opacity(
@@ -219,9 +240,7 @@ class _ChordPickerState extends State<ChordPicker> {
                 child: Column(
                   children: [
                     Text(
-                      _foreignName ??
-                          (spec != null ? positions?.name : null) ??
-                          ' ',
+                      _foreignName ?? positions?.name ?? ' ',
                       style: textTheme.titleLarge?.copyWith(
                         fontFamily: 'Georgia',
                       ),
@@ -275,6 +294,11 @@ class _ChordPickerState extends State<ChordPicker> {
 }
 
 /// Four keys to a row.
+List<int>? _tuningOf(ScoreState state) => state.song?.tracks
+    .where((t) => t.index == state.selectedTrackIndex)
+    .firstOrNull
+    ?.tuning;
+
 class _Keys extends StatelessWidget {
   final List<String> labels;
   final bool Function(int index) selected;

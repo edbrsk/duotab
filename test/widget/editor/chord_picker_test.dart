@@ -54,12 +54,27 @@ void main() {
     when(() => editor.command(any())).thenAnswer((_) async {});
   });
 
-  Future<void> pump(WidgetTester tester, EditorState state) async {
+  Future<void> pump(
+    WidgetTester tester,
+    EditorState state, {
+    Stream<ScoreState>? scores,
+  }) async {
     tester.view
       ..physicalSize = const Size(240, 900)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     whenListen(editor, const Stream<EditorState>.empty(), initialState: state);
+    if (scores != null) {
+      whenListen(
+        score,
+        scores,
+        initialState: ScoreState(
+          song: drumsAndTwoGuitars,
+          path: 'f.gp',
+          selectedTrackIndex: 1,
+        ),
+      );
+    }
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -183,5 +198,65 @@ void main() {
     await tester.tap(find.text('C'), warnIfMissed: false);
     await tester.pump();
     expect(selected(tester, 'C'), isFalse);
+  });
+
+  testWidgets("the last chord's positions never show while a new one loads", (
+    tester,
+  ) async {
+    when(() => editor.chordPositions(_cm7))
+        .thenAnswer((_) => Completer<ChordPositions?>().future);
+    await pump(tester, const EditorState(position: _at));
+    await tapKey(tester, 'C');
+    await tapKey(tester, 'maj7');
+    expect(find.byType(ChordDiagram), findsNWidgets(3));
+
+    await tester.tap(find.widgetWithText(InkWell, 'm7').first);
+    await tester.pump();
+    expect(find.byType(ChordDiagram), findsNothing);
+    expect(find.text('Cmaj7'), findsNothing);
+  });
+
+  testWidgets("a new tuning asks for the chord's positions again", (
+    tester,
+  ) async {
+    final scores = StreamController<ScoreState>();
+    addTearDown(scores.close);
+    await pump(
+      tester,
+      const EditorState(
+        position: _at,
+        chordName: 'Cmaj7',
+        chordSpec: _cmaj7,
+        beatFrets: [-1, 3, 2, 0, 0, 0],
+      ),
+      scores: scores.stream,
+    );
+    await tester.pumpAndSettle();
+    verify(() => editor.chordPositions(_cmaj7)).called(1);
+
+    final guitar = drumsAndTwoGuitars.tracks[1];
+    scores.add(
+      ScoreState(
+        song: SongSummary(
+          title: drumsAndTwoGuitars.title,
+          tracks: [
+            drumsAndTwoGuitars.tracks[0],
+            TrackSummary(
+              index: guitar.index,
+              name: guitar.name,
+              kind: guitar.kind,
+              stringCount: 6,
+              tuning: const [62, 57, 53, 48, 43, 38],
+              midiProgram: guitar.midiProgram,
+            ),
+            drumsAndTwoGuitars.tracks[2],
+          ],
+        ),
+        path: 'f.gp',
+        selectedTrackIndex: 1,
+      ),
+    );
+    await tester.pumpAndSettle();
+    verify(() => editor.chordPositions(_cmaj7)).called(1);
   });
 }
