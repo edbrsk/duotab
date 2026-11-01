@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 
 import 'playback_cubit.dart';
 
-/// Keeps the screen from dimming while a song plays, so it can be read on a
-/// music stand. The screen starts out free to dim.
+/// So a playing song can be read on a music stand. The screen starts out free
+/// to dim.
 StreamSubscription<bool> keepAwakeWhilePlaying(
   Stream<PlaybackState> states,
   Future<void> Function({required bool awake}) setAwake,

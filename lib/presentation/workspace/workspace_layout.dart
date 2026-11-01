@@ -60,7 +60,7 @@ class _WorkspaceLayoutState extends State<WorkspaceLayout> {
     final scoreColumn = Column(
       key: _scoreColumnKey,
       children: [
-        if (collapsed) const _WiderToEditBanner(),
+        if (collapsed) const _PlayOnlyBanner(),
         Expanded(
           child: ColoredBox(
             color: AppColors.paper,
@@ -240,8 +240,8 @@ class _SidePanel extends StatelessWidget {
   }
 }
 
-class _WiderToEditBanner extends StatelessWidget {
-  const _WiderToEditBanner();
+class _PlayOnlyBanner extends StatelessWidget {
+  const _PlayOnlyBanner();
 
   @override
   Widget build(BuildContext context) {

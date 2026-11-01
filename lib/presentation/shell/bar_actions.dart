@@ -15,7 +15,6 @@ class BarAction {
   });
 }
 
-/// The actions each tab's page shows in the vertical bar, above the tabs.
 class BarActions extends ChangeNotifier {
   final _actions = <AppTab, List<BarAction>>{};
   var _disposed = false;

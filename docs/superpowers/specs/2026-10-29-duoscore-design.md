@@ -58,7 +58,7 @@ These count as failures even if every feature works:
 - **Hinge bridge**: a second `EventChannel`, built like the vertical-bar one, streams the hinge status from UIKit's `UIHingeInteraction` (iOS 27.1 SDK, `UIHinge.h`/`UIHingeInteraction.h`). Its update carries `hinge.status` (`.unknown`, `.closed`, `.partiallyOpen`, `.fullyOpen`), or a nil `hinge` when the view is in a hierarchy without one.
 - **Closed**: the outer screen runs the play-only layout; folding and unfolding pause playback. The open song and editor state are kept.
 - **Partially or fully open**: the app works normally, including tent and laptop poses.
-- **Split View**: when the window becomes too narrow for three columns, the side panels collapse, the score takes the width, and the app works as a player only, and a ☰ button opens the track panel over the page. Editing shows "Make DuoScore wider to edit" until the window is wide enough again.
+- **Split View**: when the window becomes too narrow for three columns, the side panels collapse, the score takes the width, and the app works as a player only; a ☰ button opens the track panel over the page. Editing shows "Make DuoScore wider to edit" until the window is wide enough again.
 
 ### Screen layout
 

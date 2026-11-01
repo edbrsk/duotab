@@ -40,8 +40,6 @@ import WebKit
   }
 }
 
-/// While on, the screen won't dim or lock, so a playing song can be read on a
-/// music stand.
 enum ScreenAwake {
   static func register(with registrar: FlutterPluginRegistrar) {
     FlutterMethodChannel(
@@ -111,7 +109,7 @@ final class VerticalBarEdgeStreamHandler: NSObject, @preconcurrency FlutterStrea
 }
 
 /// Streams the iPhone Duo hinge status (`UIHingeInteraction`, iOS 27.1) to
-/// Dart, which shows a folded screen while the device is closed.
+/// Dart, which pauses playback on folding and unfolding.
 @MainActor  // Flutter invokes stream handlers on the platform (main) thread.
 final class HingeStatusStreamHandler: NSObject, @preconcurrency FlutterStreamHandler {
   private weak var registrar: FlutterPluginRegistrar?
