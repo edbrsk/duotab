@@ -45,9 +45,9 @@ flutter pub get
 
 | What | Command |
 |---|---|
-| Engine tests | `npm --prefix engine test` (367 pass, 3 skip without the private sample) |
+| Engine tests | `npm --prefix engine test` (372 pass, 3 skip without the private sample) |
 | Engine types | `cd engine && npx tsc --noEmit` |
-| App tests | `flutter test` (635 pass) |
+| App tests | `flutter test` (647 pass) |
 | Lints | `flutter analyze` (must say `No issues found!`) |
 | iOS tests | `cd ios && xcodebuild test -workspace Runner.xcworkspace -scheme Runner -destination 'id=<simulator id>' -only-testing:RunnerTests` |
 | Simulator build | `flutter build ios --simulator` |
@@ -167,24 +167,7 @@ Older tags (`tone-fix`, `tremolo-fix`, `library-files`, …) mark one-off fixes 
    - **Guitar Pro 8 and chords:** that Guitar Pro 8 opens a DuoScore-saved file with chords and shows their names. Not checked yet.
 2. **Drums**, the next phase. It needs its own design first: drum notation, its own palette and input, and how the mixer handles drum channel 9.
 3. **Left to the builder in the main design**, not started: Settings beyond count-in, metronome and default tone.
-4. **Small things left for later** (found by the final reviews, not fixed):
-   - **Chords:**
-     - unused chords pile up in the staff's chord list; a replaced chord from another file with a diagram can still show at the top of the score;
-     - aug, m7♭5 and dim7 positions may drop their defining "5th";
-     - only the first finger barres, so shapes like C9 x 3 2 3 3 3 aren't offered;
-     - the pruning rules and the four-per-region cap can together drop a shape from every region;
-     - diagram dots overlap on 8 strings; the 96 pt position tiles may clip at large text;
-     - a chord written over a note tied into the next beat may change that note's fret;
-     - `EditorState.position` isn't cleared on a track switch.
-   - **Panel:**
-     - the Song \| Track and Frets \| Chords labels keep one colour; only the background shows the choice;
-     - a tab tap in the play-only panel unfolds the editing panel's Details part;
-     - a title the engine refuses stays in the field; an untitled song can't be given exactly its file name as title;
-     - the view keys have no VoiceOver button or selected semantics;
-     - the keyboard comes back after an export started while a field was focused;
-     - the floating ☰ in Split View is light on the paper sheet, and a long title can run under it;
-     - typing 1, an arrow that can't move, then 2 quickly makes fret 12.
-5. **Parked by the owner:**
+4. **Parked by the owner:**
    - **Mid-song pan and volume changes** are lost when DuoScore saves. The owner doesn't need them for now. Doing it later means:
      - writing `DSPParam_11` and `DSPParam_12` automations into the saved `.gp`;
      - reading them back on open, so there's one copy that both Guitar Pro and DuoScore use;
