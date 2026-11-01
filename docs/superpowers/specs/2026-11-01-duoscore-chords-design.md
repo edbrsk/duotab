@@ -95,7 +95,7 @@ A stacked name needs the 9 under it: C11 is 7 + 9 + 11, and C13 is 7 + 9 + 13 (t
 - **Playable:**
   - every fretted note lies within four frets of the others (highest fret − lowest fret ≤ 3);
   - at most one note per string, and no fret above the track's highest fret (24);
-  - **four fingers at most:** each fretted note needs a finger, except that the first finger may barre the shape's lowest fret, covering every string from the lowest to the highest one it frets there, and counts once. Strings under the barre that sound higher are fretted by other fingers. The thumb isn't used.
+  - **four fingers at most:** each fretted note needs a finger, except that the first finger may barre one unbroken run of strings at the shape's lowest fret and counts once. The run holds no open or unplayed string; strings in it that sound higher are fretted by other fingers. Other notes at that fret need fingers of their own. The thumb isn't used. B7♭9 as 7 x 7 8 7 8 is four fingers: a barre over the 4th to 2nd strings, one finger on the 6th, and two on the 8th fret.
   - Open strings are allowed. Strings not played are shown as ×, including between played strings (as in 8 x 9 9 8 x).
 - **Right notes:** every note belongs to the chord; the lowest sounding note is the root, or the bass of a slash chord; every chord tone is present, except the 5th, which a position may leave out. Shapes without the 5th are offered alongside full ones, as guitarists play them; no other tone is ever left out.
 - **Order:** lowest on the neck first, open position first when there is one.
@@ -151,6 +151,6 @@ Examples a correct generator offers (low string first):
 - B7♭9 in E standard offers x 2 1 2 1 2.
 - Every position offered for every root, type and addition is playable (span ≤ 3 frets, one note per string, within 24 frets, four fingers), holds only chord tones, has the root (or slash bass) as its lowest note, and lacks at most the 5th.
 - Writing a chord replaces only the cursor's beat in the cursor's voice, and the cursor stays on that beat; Undo restores what was there.
-- No position offered needs more than four fingers, counting a first-finger barre at the shape's lowest fret as one.
+- No position offered needs more than four fingers, counting a first-finger barre over one unbroken run at the shape's lowest fret as one. x 3 2 4 5 3 (Cmaj7, five fingers) is not offered.
 - With the cursor on a beat holding a chord, the picker shows that symbol with its position highlighted; picking another position rewrites the beat.
 - A song with chords saved by DuoScore opens in Guitar Pro 8 with the chord names over the same beats.
