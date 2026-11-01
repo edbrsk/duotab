@@ -86,6 +86,23 @@
   "standardNotation": "Standard notation",
   "tab": "Tab",
   "fret": "Fret",
+  "frets": "Frets",
+  "chords": "Chords",
+  "chordRoot": "Root",
+  "chordType": "Type",
+  "chordAddOrAlter": "Add or alter",
+  "chordBass": "Bass",
+  "chordPositionsHeading": "Positions",
+  "noChordPosition": "No playable position in this tuning",
+  "positionOpen": "Open",
+  "positionFret": "Fret {fret}",
+  "@positionFret": {
+    "placeholders": {
+      "fret": {
+        "type": "int"
+      }
+    }
+  },
   "deleteNote": "Delete note",
   "previousBeat": "Previous beat",
   "nextBeat": "Next beat",

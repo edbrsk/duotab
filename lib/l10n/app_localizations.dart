@@ -358,6 +358,66 @@ abstract class AppLocalizations {
   /// **'Fret'**
   String get fret;
 
+  /// No description provided for @frets.
+  ///
+  /// In en, this message translates to:
+  /// **'Frets'**
+  String get frets;
+
+  /// No description provided for @chords.
+  ///
+  /// In en, this message translates to:
+  /// **'Chords'**
+  String get chords;
+
+  /// No description provided for @chordRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Root'**
+  String get chordRoot;
+
+  /// No description provided for @chordType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get chordType;
+
+  /// No description provided for @chordAddOrAlter.
+  ///
+  /// In en, this message translates to:
+  /// **'Add or alter'**
+  String get chordAddOrAlter;
+
+  /// No description provided for @chordBass.
+  ///
+  /// In en, this message translates to:
+  /// **'Bass'**
+  String get chordBass;
+
+  /// No description provided for @chordPositionsHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Positions'**
+  String get chordPositionsHeading;
+
+  /// No description provided for @noChordPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'No playable position in this tuning'**
+  String get noChordPosition;
+
+  /// No description provided for @positionOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get positionOpen;
+
+  /// No description provided for @positionFret.
+  ///
+  /// In en, this message translates to:
+  /// **'Fret {fret}'**
+  String positionFret(int fret);
+
   /// No description provided for @deleteNote.
   ///
   /// In en, this message translates to:

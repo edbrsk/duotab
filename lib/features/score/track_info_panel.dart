@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/design/design_tokens.dart';
 import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
+import '../editor/chord_picker.dart';
 import '../editor/editor_cubit.dart';
 import '../editor/fret_pad.dart';
 import '../editor/retune_dialog.dart';
@@ -13,6 +14,7 @@ import '../playback/playback_cubit.dart';
 import '../playback/practice_settings.dart';
 import '../playback/tone.dart';
 import '../playback/tone_label.dart';
+import '../settings/settings_cubit.dart';
 import 'score_cubit.dart';
 
 /// The drawn guitar track: name, tuning, string count and tone.
@@ -154,7 +156,10 @@ class TrackInfoPanel extends StatelessWidget {
                 ],
               ),
             ),
-            if (editable) ...[heading(l10n.fret), const FretPad()],
+            if (editable) ...[
+              const SizedBox(height: Spacing.md),
+              const _PadSwitch(),
+            ],
           ],
         ],
       ),
@@ -211,6 +216,36 @@ class _RetuneReportCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Frets or chords on the pad; the choice is remembered.
+class _PadSwitch extends StatelessWidget {
+  const _PadSwitch();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final chords = context.select<SettingsCubit, bool>(
+      (c) => c.state.chordsShown,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SegmentedButton<bool>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(value: false, label: Text(l10n.frets)),
+            ButtonSegment(value: true, label: Text(l10n.chords)),
+          ],
+          selected: {chords},
+          onSelectionChanged: (s) =>
+              context.read<SettingsCubit>().setChordsShown(shown: s.single),
+        ),
+        const SizedBox(height: Spacing.sm),
+        if (chords) const ChordPicker() else const FretPad(),
+      ],
     );
   }
 }

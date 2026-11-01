@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
+import 'package:duoscore/features/editor/chord_picker.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
 import 'package:duoscore/features/editor/fret_pad.dart';
 import 'package:duoscore/features/playback/playback_cubit.dart';
@@ -7,6 +8,7 @@ import 'package:duoscore/features/playback/practice_settings.dart';
 import 'package:duoscore/features/playback/tone.dart';
 import 'package:duoscore/features/score/score_cubit.dart';
 import 'package:duoscore/features/score/track_info_panel.dart';
+import 'package:duoscore/features/settings/settings_cubit.dart';
 import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,6 +20,8 @@ class _Score extends MockCubit<ScoreState> implements ScoreCubit {}
 class _Playback extends MockCubit<PlaybackState> implements PlaybackCubit {}
 
 class _Editor extends MockCubit<EditorState> implements EditorCubit {}
+
+class _Settings extends MockCubit<AppSettings> implements SettingsCubit {}
 
 const _song = SongSummary(
   title: 'Collateral',
@@ -45,6 +49,7 @@ void main() {
   late _Score score;
   late _Playback playback;
   late _Editor editor;
+  late _Settings settings;
 
   setUpAll(() => registerFallbackValue(Tone.clean));
 
@@ -52,6 +57,9 @@ void main() {
     score = _Score();
     playback = _Playback();
     editor = _Editor();
+    settings = _Settings();
+    when(() => settings.setChordsShown(shown: any(named: 'shown')))
+        .thenAnswer((_) async {});
     when(() => editor.state).thenReturn(const EditorState());
     when(() => playback.setTone(any(), any())).thenAnswer((_) async {});
     when(
@@ -77,9 +85,13 @@ void main() {
     WidgetTester tester,
     ScoreState state, {
     bool editable = true,
+    bool chordsShown = false,
+    double height = 626,
   }) async {
+    when(() => settings.state)
+        .thenReturn(AppSettings(chordsShown: chordsShown));
     tester.view
-      ..physicalSize = const Size(220, 626)
+      ..physicalSize = Size(220, height)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     when(() => score.state).thenReturn(state);
@@ -93,6 +105,7 @@ void main() {
               BlocProvider<ScoreCubit>.value(value: score),
               BlocProvider<PlaybackCubit>.value(value: playback),
               BlocProvider<EditorCubit>.value(value: editor),
+              BlocProvider<SettingsCubit>.value(value: settings),
             ],
             child: TrackInfoPanel(editable: editable),
           ),
@@ -110,6 +123,24 @@ void main() {
     expect(find.text('Guitar 1'), findsOneWidget);
     expect(find.text('E♭ A♭ D♭ G♭ B♭ E♭'), findsOneWidget);
     expect(find.text('6 strings'), findsOneWidget);
+  });
+
+  testWidgets('the panel switches between frets and chords', (tester) async {
+    await pump(tester, drawn);
+    expect(find.byType(FretPad), findsOneWidget);
+    expect(find.byType(ChordPicker), findsNothing);
+    await tester.tap(find.text('Chords'));
+    verify(() => settings.setChordsShown(shown: true)).called(1);
+
+    // A fresh tree: the mock setting doesn't emit its change.
+    await tester.pumpWidget(const SizedBox());
+    await pump(tester, drawn, chordsShown: true, height: 2000);
+    expect(find.byType(ChordPicker), findsOneWidget);
+    expect(find.byType(FretPad), findsNothing);
+
+    await tester.pumpWidget(const SizedBox());
+    await pump(tester, drawn, editable: false);
+    expect(find.text('Chords'), findsNothing);
   });
 
   testWidgets('a play-only panel has nothing that edits', (tester) async {

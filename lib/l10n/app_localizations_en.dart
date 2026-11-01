@@ -161,6 +161,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fret => 'Fret';
 
   @override
+  String get frets => 'Frets';
+
+  @override
+  String get chords => 'Chords';
+
+  @override
+  String get chordRoot => 'Root';
+
+  @override
+  String get chordType => 'Type';
+
+  @override
+  String get chordAddOrAlter => 'Add or alter';
+
+  @override
+  String get chordBass => 'Bass';
+
+  @override
+  String get chordPositionsHeading => 'Positions';
+
+  @override
+  String get noChordPosition => 'No playable position in this tuning';
+
+  @override
+  String get positionOpen => 'Open';
+
+  @override
+  String positionFret(int fret) {
+    return 'Fret $fret';
+  }
+
+  @override
   String get deleteNote => 'Delete note';
 
   @override

@@ -112,7 +112,7 @@ Chosen by the [engine spike](../spikes/2026-10-29-engine-spike.md): on the owner
 - **New song**: title, guitar with 6, 7 or 8 strings, tuning, tempo, starting time signature.
 - **Guitar tracks**: a song can have several. The track drawer adds, removes and reorders them, the track information panel renames them, and each has its own string count, tuning and tone. Non-guitar tracks from opened files are kept and played but cannot be edited.
 - **Tuning presets** include at least the standard tunings for each string count (6: E, E♭, D, C♯, C, B; 7: B, A; 8: F♯, E), the common drop tunings, and a custom tuning per string.
-- **Entering notes**: tap a position on a tab string to place the cursor (track, bar, voice, beat, string); type the fret on the pad (two digits in quick succession make 10–24); choose note value and techniques from the palette. Notation is derived from the tab and updates as you type.
+- **Entering notes**: tap a position on a tab string to place the cursor (track, bar, voice, beat, string); type the fret on the pad (two digits in quick succession make 10–24); choose note value and techniques from the palette; or switch the pad to **Chords** and build a chord symbol to write a whole chord on the beat (see `2026-11-01-duoscore-chords-design.md`). Notation is derived from the tab and updates as you type.
 - **Palette groups** (as in `palette-v3.html`), drawn with Bravura glyphs:
   - Voice 1–4
   - Note value: whole to 64th, rest
