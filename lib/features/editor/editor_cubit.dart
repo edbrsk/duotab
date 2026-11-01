@@ -26,6 +26,13 @@ class EditorState {
   final bool hasNote;
   final String? bendKind;
   final int bendAmount;
+
+  /// The cursor beat's chord; the spec is null for a name DuoScore can't build.
+  final String? chordName;
+  final ChordSpec? chordSpec;
+
+  /// The cursor beat's notes, low string first, −1 where none.
+  final List<int> beatFrets;
   final int barNumerator;
   final int barDenominator;
   final int barKey;
@@ -58,6 +65,9 @@ class EditorState {
     this.hasNote = false,
     this.bendKind,
     this.bendAmount = 4,
+    this.chordName,
+    this.chordSpec,
+    this.beatFrets = const [],
     this.barNumerator = 4,
     this.barDenominator = 4,
     this.barKey = 0,
@@ -87,6 +97,9 @@ class EditorState {
     hasNote: hasNote,
     bendKind: bendKind,
     bendAmount: bendAmount,
+    chordName: chordName,
+    chordSpec: chordSpec,
+    beatFrets: beatFrets,
     barNumerator: barNumerator,
     barDenominator: barDenominator,
     barKey: barKey,
@@ -146,6 +159,18 @@ class EditorCubit extends Cubit<EditorState> {
 
   Future<void> command(EditCommand command) =>
       _apply(() => engine.edit(command));
+
+  /// Null without a cursor, or when the engine can't answer.
+  Future<ChordPositions?> chordPositions(ChordSpec chord) async {
+    final at = state.position;
+    if (at == null) return null;
+    try {
+      return await engine.chordPositions(at.track, chord);
+    } on Object catch (e) {
+      debugPrint('EditorCubit: $e');
+      return null;
+    }
+  }
 
   Future<void> undo() => _apply(engine.undo);
 
@@ -277,6 +302,9 @@ class EditorCubit extends Cubit<EditorState> {
         hasNote: reply.hasNote,
         bendKind: reply.bendKind,
         bendAmount: reply.bendAmount,
+        chordName: reply.chordName,
+        chordSpec: reply.chordSpec,
+        beatFrets: reply.beatFrets,
         barNumerator: reply.barNumerator,
         barDenominator: reply.barDenominator,
         barKey: reply.barKey,

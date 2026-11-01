@@ -150,4 +150,76 @@ void main() {
       0,
     );
   });
+
+  const cmaj7 = ChordSpec(root: 0, type: 'maj7', additions: [], bass: null);
+
+  test("the edit state reads the beat's chord", () {
+    EditState read(Object? chord) => EditState.fromJson({
+      'position': null,
+      'issues': <Object>[],
+      'canUndo': false,
+      'canRedo': false,
+      'song': {'title': 'T', 'tracks': <Object>[]},
+      'edited': false,
+      'beat': {
+        'duration': 4,
+        'dots': 0,
+        'chord': chord,
+        'frets': [-1, 3, 2, 0, 0, 0],
+      },
+    });
+    final state = read({
+      'name': 'Cmaj7',
+      'spec': {
+        'root': 0,
+        'type': 'maj7',
+        'additions': <Object>[],
+        'bass': null,
+      },
+    });
+    expect(state.chordName, 'Cmaj7');
+    expect(state.chordSpec, cmaj7);
+    expect(state.beatFrets, [-1, 3, 2, 0, 0, 0]);
+    final foreign = read({'name': 'N.C.', 'spec': null});
+    expect(foreign.chordName, 'N.C.');
+    expect(foreign.chordSpec, isNull);
+    expect(read(null).chordName, isNull);
+  });
+
+  test('SetChord sends its chord and frets', () {
+    expect(const SetChord(cmaj7, [-1, 3, 2, 0, 0, 0]).toJson(), {
+      'op': 'setChord',
+      'chord': {
+        'root': 0,
+        'type': 'maj7',
+        'additions': <String>[],
+        'bass': null,
+      },
+      'frets': [-1, 3, 2, 0, 0, 0],
+    });
+  });
+
+  test('chord specs compare additions as a set', () {
+    expect(
+      const ChordSpec(root: 0, type: '7', additions: ['b9', '#11'], bass: null),
+      const ChordSpec(root: 0, type: '7', additions: ['#11', 'b9'], bass: null),
+    );
+  });
+
+  test('chord positions read their name and shapes', () {
+    final positions = ChordPositions.fromJson({
+      'name': 'Cmaj7',
+      'positions': [
+        {
+          'frets': [-1, 3, 2, 0, 0, 0],
+          'open': true,
+          'lowestFret': 2,
+        },
+      ],
+    });
+    expect(positions.name, 'Cmaj7');
+    expect(positions.positions.single.frets, [-1, 3, 2, 0, 0, 0]);
+    expect(positions.positions.single.open, isTrue);
+    expect(positions.positions.single.lowestFret, 2);
+  });
 }

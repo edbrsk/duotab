@@ -25,6 +25,7 @@ void main() {
     expect(cubit.state.defaultTone, Tone.clean);
     expect(cubit.state.trackPanelCollapsed, isFalse);
     expect(cubit.state.paletteCollapsed, isFalse);
+    expect(cubit.state.chordsShown, isFalse);
     await cubit.close();
   });
 
@@ -34,6 +35,7 @@ void main() {
     await cubit.setCountIn(on: true);
     await cubit.setMetronome(on: true);
     await cubit.setDefaultTone(Tone.overdrive);
+    await cubit.setChordsShown(shown: true);
     await cubit.setTrackPanelCollapsed(collapsed: true);
     await cubit.setPaletteCollapsed(collapsed: true);
     await cubit.close();
@@ -45,6 +47,7 @@ void main() {
     expect(fresh.state.defaultTone, Tone.overdrive);
     expect(fresh.state.trackPanelCollapsed, isTrue);
     expect(fresh.state.paletteCollapsed, isTrue);
+    expect(fresh.state.chordsShown, isTrue);
     await fresh.close();
   });
 }

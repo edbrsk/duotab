@@ -101,6 +101,15 @@ class EngineBridge {
         as Map<String, dynamic>,
   );
 
+  Future<ChordPositions> chordPositions(int track, ChordSpec chord) async =>
+      ChordPositions.fromJson(
+        (await _request('chordPositions', {
+              'track': track,
+              'chord': chord.toJson(),
+            }))!
+            as Map<String, dynamic>,
+      );
+
   Future<EditState> undo() async => EditState.fromJson(
     (await _request('undo', const {}))! as Map<String, dynamic>,
   );

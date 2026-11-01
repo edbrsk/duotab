@@ -35,7 +35,12 @@ void main() {
   late ScoreCubit score;
   late EditorCubit editor;
 
-  setUpAll(() => registerFallbackValue(const SetRest()));
+  setUpAll(() {
+    registerFallbackValue(const SetRest());
+    registerFallbackValue(
+      const ChordSpec(root: 0, type: 'maj', additions: [], bass: null),
+    );
+  });
 
   setUp(() async {
     engine = _Engine();
@@ -477,6 +482,43 @@ void main() {
       await editor.retune(1, e);
       await editor.renameTrack(1, 'Lead');
       expect(editor.state.retune, isNull);
+    });
+  });
+
+  group('chords', () {
+    const cmaj7 = ChordSpec(root: 0, type: 'maj7', additions: [], bass: null);
+
+    test("the editor carries the beat's chord", () async {
+      when(() => engine.edit(any())).thenAnswer(
+        (_) async => EditState(
+          position: _at,
+          issues: const [],
+          canUndo: true,
+          canRedo: false,
+          song: SongSummary(title: 'T', tracks: drumsAndTwoGuitars.tracks),
+          edited: true,
+          chordName: 'Cmaj7',
+          chordSpec: cmaj7,
+          beatFrets: const [-1, 3, 2, 0, 0, 0],
+        ),
+      );
+      await editor.command(const SetChord(cmaj7, [-1, 3, 2, 0, 0, 0]));
+      expect(editor.state.chordName, 'Cmaj7');
+      expect(editor.state.chordSpec, cmaj7);
+      expect(editor.state.beatFrets, [-1, 3, 2, 0, 0, 0]);
+    });
+
+    test('chord positions need a cursor', () async {
+      when(() => engine.chordPositions(any(), any())).thenAnswer(
+        (_) async => const ChordPositions(name: 'Cmaj7', positions: []),
+      );
+      expect(await editor.chordPositions(cmaj7), isNull);
+      verifyNever(() => engine.chordPositions(any(), any()));
+
+      events.add(EngineEvent('tapped', {'position': _at.toJson()}));
+      await pumpEventQueue();
+      expect((await editor.chordPositions(cmaj7))!.name, 'Cmaj7');
+      verify(() => engine.chordPositions(_at.track, cmaj7)).called(1);
     });
   });
 }

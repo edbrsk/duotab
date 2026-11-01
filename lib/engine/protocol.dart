@@ -316,6 +316,14 @@ class EditState {
   /// In quarter tones, 1–12.
   final int bendAmount;
 
+  /// The cursor beat's chord name; its spec is null for a name DuoScore
+  /// can't build, such as "N.C.".
+  final String? chordName;
+  final ChordSpec? chordSpec;
+
+  /// The cursor beat's notes, low string first, −1 where none.
+  final List<int> beatFrets;
+
   /// The cursor bar's properties, as the engine's `BarProperties`.
   final int barNumerator;
   final int barDenominator;
@@ -365,6 +373,9 @@ class EditState {
     this.hasNote = false,
     this.bendKind,
     this.bendAmount = 4,
+    this.chordName,
+    this.chordSpec,
+    this.beatFrets = const [],
     this.barNumerator = 4,
     this.barDenominator = 4,
     this.barKey = 0,
@@ -384,6 +395,7 @@ class EditState {
   factory EditState.fromJson(Map<String, dynamic> json) {
     final beat = json['beat'] as Map<String, dynamic>?;
     final bend = beat?['bend'] as Map<String, dynamic>?;
+    final chord = beat?['chord'] as Map<String, dynamic>?;
     final bar = json['bar'] as Map<String, dynamic>?;
     final structure = json['structure'] as Map<String, dynamic>?;
     return EditState(
@@ -410,6 +422,14 @@ class EditState {
       hasNote: beat?['hasNote'] as bool? ?? false,
       bendKind: bend?['kind'] as String?,
       bendAmount: bend?['amount'] as int? ?? 4,
+      chordName: chord?['name'] as String?,
+      chordSpec: switch (chord?['spec']) {
+        final Map<String, dynamic> spec => ChordSpec.fromJson(spec),
+        _ => null,
+      },
+      beatFrets: [
+        for (final f in beat?['frets'] as List<dynamic>? ?? const []) f as int,
+      ],
       barNumerator: bar?['numerator'] as int? ?? 4,
       barDenominator: bar?['denominator'] as int? ?? 4,
       barKey: bar?['key'] as int? ?? 0,
@@ -586,6 +606,106 @@ class AddGrace extends EditCommand {
 
   @override
   Map<String, Object> toJson() => {'op': 'addGrace'};
+}
+
+/// A chord symbol: `root` and `bass` are pitch classes, C = 0; engine
+/// `ChordType`s and `ChordAddition`s, such as `maj7` and `b9`.
+@immutable
+class ChordSpec {
+  final int root;
+  final String type;
+  final List<String> additions;
+  final int? bass;
+
+  const ChordSpec({
+    required this.root,
+    required this.type,
+    required this.additions,
+    required this.bass,
+  });
+
+  factory ChordSpec.fromJson(Map<String, dynamic> json) => ChordSpec(
+    root: json['root'] as int,
+    type: json['type'] as String,
+    additions: [
+      for (final a in json['additions'] as List<dynamic>) a as String,
+    ],
+    bass: json['bass'] as int?,
+  );
+
+  Map<String, Object?> toJson() => {
+    'root': root,
+    'type': type,
+    'additions': additions,
+    'bass': bass,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      other is ChordSpec &&
+      other.root == root &&
+      other.type == type &&
+      other.bass == bass &&
+      other.additions.toSet().containsAll(additions) &&
+      additions.toSet().containsAll(other.additions);
+
+  @override
+  int get hashCode =>
+      Object.hash(root, type, bass, Object.hashAllUnordered(additions));
+}
+
+/// Frets low string first, −1 for a string not played.
+class ChordPosition {
+  final List<int> frets;
+
+  /// An open string in a shape no higher than the 4th fret.
+  final bool open;
+
+  /// 0 when nothing is fretted.
+  final int lowestFret;
+
+  const ChordPosition({
+    required this.frets,
+    required this.open,
+    required this.lowestFret,
+  });
+
+  factory ChordPosition.fromJson(Map<String, dynamic> json) => ChordPosition(
+    frets: [for (final f in json['frets'] as List<dynamic>) f as int],
+    open: json['open'] as bool,
+    lowestFret: json['lowestFret'] as int,
+  );
+}
+
+class ChordPositions {
+  final String name;
+  final List<ChordPosition> positions;
+
+  const ChordPositions({required this.name, required this.positions});
+
+  factory ChordPositions.fromJson(Map<String, dynamic> json) => ChordPositions(
+    name: json['name'] as String,
+    positions: [
+      for (final p in json['positions'] as List<dynamic>)
+        ChordPosition.fromJson(p as Map<String, dynamic>),
+    ],
+  );
+}
+
+class SetChord extends EditCommand {
+  final ChordSpec chord;
+
+  /// One of the chord's positions, low string first.
+  final List<int> frets;
+
+  const SetChord(this.chord, this.frets);
+
+  @override
+  Map<String, Object?> toJson() => {
+    'op': 'setChord',
+    'chord': chord.toJson(),
+    'frets': frets,
+  };
 }
 
 class SetBend extends EditCommand {

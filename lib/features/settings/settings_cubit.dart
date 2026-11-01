@@ -12,12 +12,16 @@ class AppSettings {
   final bool trackPanelCollapsed;
   final bool paletteCollapsed;
 
+  /// The track panel's pad builds chords instead of frets.
+  final bool chordsShown;
+
   const AppSettings({
     this.countIn = false,
     this.metronome = false,
     this.defaultTone = Tone.clean,
     this.trackPanelCollapsed = false,
     this.paletteCollapsed = false,
+    this.chordsShown = false,
   });
 
   AppSettings copyWith({
@@ -26,12 +30,14 @@ class AppSettings {
     Tone? defaultTone,
     bool? trackPanelCollapsed,
     bool? paletteCollapsed,
+    bool? chordsShown,
   }) => AppSettings(
     countIn: countIn ?? this.countIn,
     metronome: metronome ?? this.metronome,
     defaultTone: defaultTone ?? this.defaultTone,
     trackPanelCollapsed: trackPanelCollapsed ?? this.trackPanelCollapsed,
     paletteCollapsed: paletteCollapsed ?? this.paletteCollapsed,
+    chordsShown: chordsShown ?? this.chordsShown,
   );
 }
 
@@ -53,6 +59,7 @@ class SettingsCubit extends Cubit<AppSettings> {
             Tone.clean,
         trackPanelCollapsed: json['trackPanelCollapsed'] == true,
         paletteCollapsed: json['paletteCollapsed'] == true,
+        chordsShown: json['chordsShown'] == true,
       ),
     );
   }
@@ -72,6 +79,9 @@ class SettingsCubit extends Cubit<AppSettings> {
   Future<void> setPaletteCollapsed({required bool collapsed}) =>
       _update(state.copyWith(paletteCollapsed: collapsed));
 
+  Future<void> setChordsShown({required bool shown}) =>
+      _update(state.copyWith(chordsShown: shown));
+
   Future<void> _update(AppSettings settings) async {
     emit(settings);
     await file.write({
@@ -80,6 +90,7 @@ class SettingsCubit extends Cubit<AppSettings> {
       'defaultTone': settings.defaultTone.name,
       'trackPanelCollapsed': settings.trackPanelCollapsed,
       'paletteCollapsed': settings.paletteCollapsed,
+      'chordsShown': settings.chordsShown,
     });
   }
 }
