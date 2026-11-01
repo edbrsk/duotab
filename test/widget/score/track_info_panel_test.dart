@@ -386,10 +386,11 @@ void main() {
     expect(part.height, lessThan(2000 * 0.4));
   });
 
-  testWidgets('a folded track part keeps its name and tuning', (tester) async {
+  testWidgets('a folded track part shows only its name', (tester) async {
     await pump(tester, drawn, trackDetailsFolded: true);
     expect(find.text('Guitar 1'), findsOneWidget);
-    expect(find.text('E♭ A♭ D♭ G♭ B♭ E♭ · 6 strings'), findsOneWidget);
+    expect(find.textContaining('E♭ A♭'), findsNothing);
+    expect(find.textContaining('strings'), findsNothing);
     expect(find.text('Retune…'), findsNothing);
     expect(find.byType(RadioListTile<Tone>), findsNothing);
     expect(find.byType(FretPad), findsOneWidget);
@@ -398,11 +399,12 @@ void main() {
     verify(() => settings.setTrackDetailsFolded(folded: false)).called(1);
   });
 
-  testWidgets('a folded input part says which pad is chosen', (tester) async {
+  testWidgets('a folded input part shows only its name', (tester) async {
     await pump(tester, drawn, inputFolded: true, chordsShown: true);
     expect(find.byType(ChordPicker), findsNothing);
     expect(find.byType(CursorKeys), findsNothing);
-    expect(find.text('Input · Chords'), findsOneWidget);
+    expect(find.text('Input'), findsOneWidget);
+    expect(find.text('Chords'), findsNothing);
     expect(find.byType(RadioListTile<Tone>), findsNWidgets(3));
 
     await tester.tap(find.byTooltip('Show input'));

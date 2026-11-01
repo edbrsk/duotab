@@ -165,15 +165,10 @@ class _SplitPanel extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final textTheme = Theme.of(context).textTheme;
     final settingsCubit = context.read<SettingsCubit>();
-    final (detailsFolded, inputFolded, chords) = context
-        .select<SettingsCubit, (bool, bool, bool)>(
-          (c) => (
-            c.state.trackDetailsFolded,
-            c.state.inputFolded,
-            c.state.chordsShown,
-          ),
+    final (detailsFolded, inputFolded) = context
+        .select<SettingsCubit, (bool, bool)>(
+          (c) => (c.state.trackDetailsFolded, c.state.inputFolded),
         );
-    final tuning = track.tuning;
 
     final trackPart = Column(
       key: const Key('track-details'),
@@ -210,9 +205,6 @@ class _SplitPanel extends StatelessWidget {
               ),
             ),
           ),
-          subtitle: detailsFolded && tuning != null
-              ? '${tuningLabel(tuning)} · ${l10n.stringsCount(tuning.length)}'
-              : null,
           folded: detailsFolded,
           foldTooltip: l10n.hideTrackDetails,
           unfoldTooltip: l10n.showTrackDetails,
@@ -233,12 +225,7 @@ class _SplitPanel extends StatelessWidget {
     );
 
     final inputHeader = _PartHeader(
-      title: Text(
-        inputFolded
-            ? '${l10n.inputHeading} · ${chords ? l10n.chords : l10n.frets}'
-            : l10n.inputHeading,
-        style: textTheme.titleSmall,
-      ),
+      title: Text(l10n.inputHeading, style: textTheme.titleSmall),
       folded: inputFolded,
       foldTooltip: l10n.hideInput,
       unfoldTooltip: l10n.showInput,
@@ -285,7 +272,6 @@ class _SplitPanel extends StatelessWidget {
 
 class _PartHeader extends StatelessWidget {
   final Widget title;
-  final String? subtitle;
   final bool folded;
   final String foldTooltip;
   final String unfoldTooltip;
@@ -297,27 +283,12 @@ class _PartHeader extends StatelessWidget {
     required this.foldTooltip,
     required this.unfoldTooltip,
     required this.onToggle,
-    this.subtitle,
   });
 
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            title,
-            if (subtitle case final subtitle?)
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-          ],
-        ),
-      ),
+      Expanded(child: title),
       IconButton(
         tooltip: folded ? unfoldTooltip : foldTooltip,
         icon: Icon(folded ? Icons.chevron_right : Icons.expand_more),
