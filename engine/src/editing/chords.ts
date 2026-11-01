@@ -16,6 +16,11 @@ export function setChord(score: Score, at: EditPosition, spec: ChordSpec, frets:
   const position = chordPositions(spec, openStringsOf(staff)).find((p) => p.frets.join() === frets.join());
   if (!position) throw new Error('not a position of this chord');
   const beat = beatOf(score, at);
+  const before = fretsAt(beat);
+  // A tie takes the fret of the note it ties from, so one from a changed note would change too.
+  for (const next of beat.nextBeat?.notes ?? []) {
+    if (next.isTieDestination && frets[next.string - 1] !== before[next.string - 1]) next.isTieDestination = false;
+  }
   for (const note of [...beat.notes]) beat.removeNote(note);
   const ids = idSource(score);
   frets.forEach((fret, i) => {

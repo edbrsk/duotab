@@ -173,3 +173,20 @@ test('a chord the file lists but no beat uses stays', () => {
   setRest(s, at(0, 1));
   expect(staff.chords!.has('lib')).toBe(true);
 });
+
+test('a note tied from a replaced one keeps its fret', () => {
+  const history = new History();
+  // Beat 1 has fret 2 on string 2; beat 2 ties a fret 2 on string 2 and on string 3 to it.
+  setFret(s, at(0, 1, 3), 2);
+  setFret(s, at(0, 2, 2), 2);
+  setFret(s, at(0, 2, 3), 2);
+  runCommand(s, at(0, 2, 2), { op: 'toggle', technique: 'tie' }, history);
+  runCommand(s, at(0, 2, 3), { op: 'toggle', technique: 'tie' }, history);
+
+  setChord(s, at(0, 1), cmaj7, OPEN);
+  const tied = (string: number) => beat(0, 2).notes.find((n) => n.string === string)!;
+  // The chord plays fret 3 on string 2: the tie would make that note a 3.
+  expect([tied(2).fret, tied(2).isTieDestination]).toEqual([2, false]);
+  // It plays fret 2 on string 3, so that tie still holds.
+  expect([tied(3).fret, tied(3).isTieDestination]).toEqual([2, true]);
+});
