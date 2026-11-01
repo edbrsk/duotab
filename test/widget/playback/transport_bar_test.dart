@@ -110,7 +110,7 @@ void main() {
     expect(find.widgetWithText(MenuItemButton, '50%'), findsOneWidget);
   });
 
-  testWidgets('the speed menu fits beside the outer screen\'s bar', (
+  testWidgets("the speed menu fits beside the outer screen's bar", (
     tester,
   ) async {
     tester.view
