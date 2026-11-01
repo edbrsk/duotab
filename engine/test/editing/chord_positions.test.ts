@@ -35,7 +35,7 @@ test('a few shapes at each place on the neck, none twelve frets above another', 
   const positions = chordPositions(cmaj7, E_STANDARD);
   const regions = new Map<number, number>();
   for (const p of positions) regions.set(p.open ? 0 : p.lowestFret, (regions.get(p.open ? 0 : p.lowestFret) ?? 0) + 1);
-  expect(Math.max(...regions.values())).toBeLessThanOrEqual(3);
+  expect(Math.max(...regions.values())).toBeLessThanOrEqual(4);
   const shapes = new Set(frets(positions).map((f) => f.join()));
   for (const f of frets(positions)) expect(shapes.has(f.map((x) => (x < 0 ? x : x - 12)).join()), `${f}`).toBe(false);
 });
@@ -125,4 +125,26 @@ test('fragments and needless subsets are left out', () => {
   expect(positions).not.toContainEqual([-1, 3, 2, 0, 1, -1]);
   expect(positions).not.toContainEqual([-1, 3, -1, -1, 1, 0]);
   expect(positions.length).toBeLessThanOrEqual(60);
+});
+
+test('the voicings guitarists know are offered', () => {
+  const has = (spec: ChordSpec, shape: number[]) =>
+    expect(frets(chordPositions(spec, E_STANDARD)), `${spec.root}${spec.type} ${shape}`).toContainEqual(shape);
+  has(chord(5, 'maj7'), [-1, -1, 3, 2, 1, 0]);
+  has(chord(9, '5'), [-1, 0, 2, 2, -1, -1]);
+  has(chord(4, '5'), [0, 2, 2, -1, -1, -1]);
+  has(chord(4, 'm7'), [0, 2, 2, 0, 3, 0]);
+  has(chord(11, 'dim7'), [-1, 2, 3, 1, 3, 1]);
+  has(chord(0, 'maj'), [-1, 3, 2, 0, 1, 0]);
+  has(chord(9, 'm'), [-1, 0, 2, 2, 1, 0]);
+  has(chord(7, '7'), [3, 2, 0, 0, 0, 1]);
+  has(chord(2, 'maj'), [-1, -1, 0, 2, 3, 2]);
+  has(chord(4, 'maj'), [0, 2, 2, 1, 0, 0]);
+  has(chord(5, 'maj'), [1, 3, 3, 2, 1, 1]);
+});
+
+test('a shape needing every finger never leads its place on the neck', () => {
+  for (const spec of [chord(5, 'maj7'), chord(5, 'maj'), chord(0, 'maj'), chord(4, 'maj'), chord(7, '7')]) {
+    expect(fingersFor(chordPositions(spec, E_STANDARD)[0].frets), `${spec.root}${spec.type}`).toBeLessThanOrEqual(3);
+  }
 });

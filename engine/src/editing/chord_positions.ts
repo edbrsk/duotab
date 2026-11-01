@@ -32,7 +32,7 @@ export function fingersFor(frets: number[]): number {
   return best >= 2 ? fretted.length - best + 1 : fretted.length;
 }
 
-/** Every playable shape of `spec`, lowest on the neck first. `openStrings` are MIDI pitches, low string first. */
+/** The best playable shapes of `spec` at each place on the neck, open position first. `openStrings` are MIDI pitches, low string first. */
 export function chordPositions(spec: ChordSpec, openStrings: number[], maxFret = 24): ChordPosition[] {
   const { required, optional } = chordTones(spec);
   const bass = spec.bass ?? spec.root;
@@ -45,8 +45,8 @@ export function chordPositions(spec: ChordSpec, openStrings: number[], maxFret =
   const found: ChordPosition[] = [];
   const frets = new Array<number>(openStrings.length).fill(-1);
 
-  // A power chord can be two notes; anything else needs three.
-  const fewest = spec.type === '5' ? 2 : Math.max(3, required.length);
+  // A power chord can be two notes; a chord, four strings when the guitar has them.
+  const fewest = spec.type === '5' ? 2 : Math.min(openStrings.length, Math.max(4, required.length));
   const keep = () => {
     const sounding = frets.flatMap((f, i) => (f >= 0 ? [(openStrings[i] + f) % 12] : []));
     if (sounding.length < fewest || !required.every((p) => sounding.includes(p))) return;
@@ -90,30 +90,35 @@ const span = (frets: number[]) => {
 
 /**
  * Drops a shape that another plays on more strings with the same frets, no
- * more fingers and no wider stretch: the fuller one is as easy.
+ * more fingers, gaps or stretch: the fuller one is as easy.
  */
 function withoutSubsets(positions: ChordPosition[]): ChordPosition[] {
   const fingers = positions.map((p) => fingersFor(p.frets));
   const spans = positions.map((p) => span(p.frets));
   const strings = positions.map((p) => p.frets.filter((f) => f >= 0).length);
+  const gapCounts = positions.map((p) => gaps(p.frets));
   return positions.filter((p, i) =>
     !positions.some(
       (q, j) =>
         strings[j] > strings[i] &&
         fingers[j] <= fingers[i] &&
         spans[j] <= spans[i] &&
+        gapCounts[j] <= gapCounts[i] &&
         p.frets.every((f, s) => f < 0 || q.frets[s] === f),
     ),
   );
 }
 
-const PER_REGION = 3;
+const PER_REGION = 4;
 
 /** The few easiest shapes at each place on the neck, lowest first; open position is one place. */
 function bestByRegion(positions: ChordPosition[]): ChordPosition[] {
   const strings = (p: ChordPosition) => p.frets.filter((f) => f >= 0).length;
+  // Every finger in use is a stretch; three or fewer leave the hand free.
+  const allFingers = (p: ChordPosition) => Number(fingersFor(p.frets) >= FINGERS);
   const better = (a: ChordPosition, b: ChordPosition) =>
     gaps(a.frets) - gaps(b.frets) ||
+    allFingers(a) - allFingers(b) ||
     strings(b) - strings(a) ||
     fingersFor(a.frets) - fingersFor(b.frets) ||
     span(a.frets) - span(b.frets) ||
