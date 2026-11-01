@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../presentation/widgets/app_logo_header.dart';
 import '../playback/tone.dart';
 import '../playback/tone_label.dart';
+import 'licences_page.dart';
 import 'settings_cubit.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -19,6 +21,7 @@ class SettingsPage extends StatelessWidget {
       child: SafeArea(
         child: ListView(
           children: [
+            const AppLogoHeader(),
             SwitchListTile(
               title: Text(l10n.countIn),
               value: settings.countIn,
@@ -29,18 +32,19 @@ class SettingsPage extends StatelessWidget {
               value: settings.metronome,
               onChanged: (on) => cubit.setMetronome(on: on),
             ),
-            ListTile(title: Text(l10n.defaultTone)),
-            RadioGroup<Tone>(
-              groupValue: settings.defaultTone,
-              onChanged: (tone) {
-                if (tone != null) cubit.setDefaultTone(tone);
-              },
-              child: Column(
-                children: [
+            ListTile(
+              title: Text(l10n.defaultTone),
+              trailing: DropdownButton<Tone>(
+                value: settings.defaultTone,
+                underline: const SizedBox.shrink(),
+                onChanged: (tone) {
+                  if (tone != null) cubit.setDefaultTone(tone);
+                },
+                items: [
                   for (final tone in Tone.values)
-                    RadioListTile<Tone>(
+                    DropdownMenuItem(
                       value: tone,
-                      title: Text(toneLabel(l10n, tone)),
+                      child: Text(toneLabel(l10n, tone)),
                     ),
                 ],
               ),
@@ -48,9 +52,8 @@ class SettingsPage extends StatelessWidget {
             ListTile(
               title: Text(l10n.licences),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => showLicensePage(
-                context: context,
-                applicationName: 'DuoScore',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const LicencesPage()),
               ),
             ),
           ],

@@ -1,5 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/features/playback/tone.dart';
+import 'package:duoscore/features/settings/licences_page.dart';
 import 'package:duoscore/features/settings/settings_cubit.dart';
 import 'package:duoscore/features/settings/settings_page.dart';
 import 'package:duoscore/l10n/app_localizations.dart';
@@ -55,17 +56,33 @@ void main() {
     verify(() => settings.setMetronome(on: true)).called(1);
   });
 
-  testWidgets('chooses the default tone', (tester) async {
+  testWidgets('chooses the default tone from a dropdown', (tester) async {
     await pump(tester);
-    await tester.tap(find.text('High gain'));
+    expect(find.byType(RadioListTile<Tone>), findsNothing);
+    expect(find.text('Clean'), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButton<Tone>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('High gain').last);
+    await tester.pumpAndSettle();
     verify(() => settings.setDefaultTone(Tone.highGain)).called(1);
+  });
+
+  testWidgets('the app logo and name sit above the options', (tester) async {
+    await pump(tester);
+    final logo = tester.getRect(find.byKey(const Key('appLogo')));
+    final name = tester.getRect(find.text('DuoScore'));
+    final countIn = tester.getRect(find.text('Count-in'));
+    expect(logo.center.dx, closeTo(890 / 2, 1));
+    expect(logo.bottom, lessThanOrEqualTo(name.top));
+    expect(name.bottom, lessThan(countIn.top));
   });
 
   testWidgets('opens the licence screen', (tester) async {
     await pump(tester);
     await tester.tap(find.text('Licences'));
     await tester.pumpAndSettle();
-    expect(find.byType(LicensePage), findsOneWidget);
+    expect(find.byType(LicencesPage), findsOneWidget);
   });
 
   testWidgets('fits beside the vertical bar on the outer screen', (
@@ -76,7 +93,7 @@ void main() {
 
     await tester.tap(find.text('Licences'));
     await tester.pumpAndSettle();
-    expect(find.byType(LicensePage), findsOneWidget);
+    expect(find.byType(LicencesPage), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
