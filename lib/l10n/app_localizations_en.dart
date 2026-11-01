@@ -34,6 +34,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryEmpty => 'Tap Import to add Guitar Pro or MusicXML files';
 
   @override
+  String get searchSongs => 'Search songs';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String songsMatching(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count songs',
+      one: '1 song',
+      zero: 'No songs match',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get importSongs => 'Import';
 
   @override

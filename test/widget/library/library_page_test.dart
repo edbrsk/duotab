@@ -144,6 +144,11 @@ void main() {
     ],
   );
 
+  final dialogField = find.descendant(
+    of: find.byType(Dialog),
+    matching: find.byType(TextField),
+  );
+
   Future<void> chooseFromMenu(WidgetTester tester, String action) async {
     await tester.tap(find.byTooltip('Song actions'));
     await tester.pumpAndSettle();
@@ -186,16 +191,13 @@ void main() {
       },
     );
     await chooseFromMenu(tester, 'Rename');
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      'Riff',
-    );
-    await tester.enterText(find.byType(TextField), 'Riff 2');
+    expect(tester.widget<TextField>(dialogField).controller!.text, 'Riff');
+    await tester.enterText(dialogField, 'Riff 2');
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, 'Rename'));
     await tester.pumpAndSettle();
     expect(renamed, ('Riff.gp', 'Riff 2'));
-    expect(find.byType(TextField), findsNothing);
+    expect(dialogField, findsNothing);
   });
 
   testWidgets('rename says why a name is refused', (tester) async {
@@ -205,12 +207,12 @@ void main() {
       onRename: (_, _, {original}) async => NameProblem.taken,
     );
     await chooseFromMenu(tester, 'Rename');
-    await tester.enterText(find.byType(TextField), 'Other');
+    await tester.enterText(dialogField, 'Other');
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, 'Rename'));
     await tester.pumpAndSettle();
     expect(find.text('Another song already has this name'), findsOneWidget);
-    expect(find.byType(TextField), findsOneWidget);
+    expect(dialogField, findsOneWidget);
   });
 
   testWidgets('Import opens the Files picker', (tester) async {
@@ -333,11 +335,11 @@ void main() {
           throw const FileSystemException('locked'),
     );
     await chooseFromMenu(tester, 'Rename');
-    await tester.enterText(find.byType(TextField), 'Other');
+    await tester.enterText(dialogField, 'Other');
     await tester.pump();
     await tester.tap(find.widgetWithText(FilledButton, 'Rename'));
     await tester.pumpAndSettle();
-    expect(find.byType(TextField), findsNothing);
+    expect(dialogField, findsNothing);
     expect(find.textContaining("Couldn't change the song"), findsOneWidget);
     verify(library.refresh).called(2);
   });
@@ -397,6 +399,78 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+  });
+
+  group('search', () {
+    SongListEntry entry(String name) => SongListEntry(
+      path: '$name.gp',
+      name: name,
+      tuningLabel: 'E A D G B E',
+      stringCount: 6,
+      readable: true,
+    );
+    final three = LibraryState(
+      loading: false,
+      songs: [
+        entry('07 Collateral Damage'),
+        entry('Étude n°120'),
+        entry('Riff'),
+      ],
+    );
+
+    testWidgets('filters the songs as you type and counts them', (
+      tester,
+    ) async {
+      await pumpPage(tester, three);
+      final field = find.byType(TextField);
+
+      await tester.enterText(field, 'COLLAT');
+      await tester.pump();
+      expect(find.byType(ListTile), findsOneWidget);
+      expect(find.text('07 Collateral Damage'), findsOneWidget);
+      expect(find.text('1 song'), findsOneWidget);
+
+      await tester.enterText(field, 'etude');
+      await tester.pump();
+      expect(find.text('Étude n°120'), findsOneWidget);
+
+      await tester.enterText(field, 'e');
+      await tester.pump();
+      expect(find.text('2 songs'), findsOneWidget);
+
+      await tester.enterText(field, 'zzz');
+      await tester.pump();
+      expect(find.byType(ListTile), findsNothing);
+      expect(find.text('No songs match'), findsOneWidget);
+    });
+
+    testWidgets('clearing the search shows every song again', (tester) async {
+      await pumpPage(tester, three);
+      await tester.enterText(find.byType(TextField), 'riff');
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('Clear search'));
+      await tester.pump();
+      expect(find.byType(ListTile), findsNWidgets(3));
+      expect(
+        find.textContaining(RegExp(r'^(\d+ songs?|No songs match)$')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('songs keep the order they came in', (tester) async {
+      await pumpPage(tester, three);
+      final tops = [
+        for (final name in ['07 Collateral Damage', 'Étude n°120', 'Riff'])
+          tester.getTopLeft(find.text(name)).dy,
+      ];
+      expect(tops, [...tops]..sort());
+    });
+
+    testWidgets('an empty library has no search field', (tester) async {
+      await pumpPage(tester, const LibraryState(loading: false, songs: []));
+      expect(find.byType(TextField), findsNothing);
+    });
   });
 
   testWidgets("Export shares the song from the menu's button", (tester) async {

@@ -8,6 +8,16 @@
   "widerToEdit": "Make DuoScore wider to edit",
   "openToEdit": "Open your iPhone Duo to edit",
   "libraryEmpty": "Tap Import to add Guitar Pro or MusicXML files",
+  "searchSongs": "Search songs",
+  "clearSearch": "Clear search",
+  "songsMatching": "{count, plural, =0{No songs match} =1{1 song} other{{count} songs}}",
+  "@songsMatching": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "importSongs": "Import",
   "unreadableFile": "Can't open this file",
   "newSong": "New song",

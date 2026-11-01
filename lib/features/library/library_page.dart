@@ -10,6 +10,7 @@ import '../editor/new_song_dialog.dart';
 import '../export/export_failure.dart';
 import '../export/song_exporter.dart';
 import 'library_cubit.dart';
+import 'library_search.dart';
 import 'song_files.dart';
 import 'song_list_entry.dart';
 
@@ -56,6 +57,8 @@ class LibraryPage extends StatefulWidget {
 class _LibraryPageState extends State<LibraryPage> {
   late final AppLifecycleListener _lifecycle;
   StreamSubscription<String>? _importFailures;
+  late final _search = TextEditingController()
+    ..addListener(() => setState(() {}));
 
   @override
   void initState() {
@@ -77,6 +80,7 @@ class _LibraryPageState extends State<LibraryPage> {
   void dispose() {
     unawaited(_importFailures?.cancel());
     _lifecycle.dispose();
+    _search.dispose();
     super.dispose();
   }
 
@@ -194,6 +198,10 @@ class _LibraryPageState extends State<LibraryPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = context.watch<LibraryCubit>().state;
+    final songs = [
+      for (final entry in state.songs)
+        if (matchesSearch(entry.name, _search.text)) entry,
+    ];
     // ListTile ink needs a Material ancestor wherever the page is placed.
     return Material(
       type: MaterialType.transparency,
@@ -231,6 +239,8 @@ class _LibraryPageState extends State<LibraryPage> {
                 ],
               ),
             ),
+            if (state.songs.isNotEmpty)
+              _SearchField(controller: _search, matching: songs.length),
             if (state.loading && state.songs.isEmpty)
               const LinearProgressIndicator(),
             Expanded(
@@ -246,7 +256,7 @@ class _LibraryPageState extends State<LibraryPage> {
                     )
                   : ListView(
                       children: [
-                        for (final entry in state.songs)
+                        for (final entry in songs)
                           _SongTile(
                             key: ValueKey(entry.path),
                             entry: entry,
@@ -262,6 +272,52 @@ class _LibraryPageState extends State<LibraryPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  final TextEditingController controller;
+  final int matching;
+
+  const _SearchField({required this.controller, required this.matching});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final searching = controller.text.trim().isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Spacing.md, 0, Spacing.md, Spacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              isDense: true,
+              border: const OutlineInputBorder(),
+              hintText: l10n.searchSongs,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: controller.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: l10n.clearSearch,
+                      icon: const Icon(Icons.close),
+                      onPressed: controller.clear,
+                    ),
+            ),
+          ),
+          if (searching)
+            Padding(
+              padding: const EdgeInsets.only(top: Spacing.xs),
+              child: Text(
+                l10n.songsMatching(matching),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
       ),
     );
   }

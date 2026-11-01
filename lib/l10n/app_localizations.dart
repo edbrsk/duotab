@@ -142,6 +142,24 @@ abstract class AppLocalizations {
   /// **'Tap Import to add Guitar Pro or MusicXML files'**
   String get libraryEmpty;
 
+  /// No description provided for @searchSongs.
+  ///
+  /// In en, this message translates to:
+  /// **'Search songs'**
+  String get searchSongs;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get clearSearch;
+
+  /// No description provided for @songsMatching.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No songs match} =1{1 song} other{{count} songs}}'**
+  String songsMatching(int count);
+
   /// No description provided for @importSongs.
   ///
   /// In en, this message translates to:
