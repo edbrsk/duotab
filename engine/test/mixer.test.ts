@@ -199,6 +199,14 @@ test('pan moves a track from where its MIDI places it', async () => {
   expect(pans).toEqual(expect.arrayContaining(['pan 0 1.5', 'pan 1 1.5']));
 });
 
+test("full right is where the synth puts it, MIDI pan 127", async () => {
+  const { mixerApi, tracks, pans, pan } = fakeApi([29]);
+  tracks[0].playbackInfo.balance = 16;
+  await new Mixer(mixerApi, pan).apply([mix(0, 29, 1)]);
+  const expected = 1 - ((2 * 127 * 128) / 16383 - 1);
+  expect(pans.map((p) => Number(p.split(' ')[2]))).toEqual([expected, expected]);
+});
+
 test('a new song drops the pans', async () => {
   const { mixerApi, pans, pan } = fakeApi([29]);
   const mixer = new Mixer(mixerApi, pan);

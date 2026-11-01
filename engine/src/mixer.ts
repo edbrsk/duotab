@@ -222,8 +222,11 @@ export class Mixer {
   }
 }
 
-/** Where the synth places a channel of 0–16 balance, −1…1: alphaTab writes it as MIDI pan `balance × 8`. */
-const midiPan = (balance: number): number => (2 * Math.min(16383, balance * 8 * 128)) / 16383 - 1;
+/**
+ * Where the synth places a channel of 0–16 balance, −1…1: alphaTab writes it as MIDI pan `balance × 8`, which the
+ * synth caps at 127 before taking it as the coarse half of a 14-bit value.
+ */
+const midiPan = (balance: number): number => (2 * Math.min(127, Math.trunc(balance * 8)) * 128) / 16383 - 1;
 
 /** The alphaTab volume whose MIDI plays at 0 dB: MIDI volume 96, as Guitar Pro's default level. */
 const REFERENCE_VOLUME = 12;
