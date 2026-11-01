@@ -22,6 +22,7 @@ void main() {
   setUp(() {
     editor = _Editor();
     when(() => editor.command(any())).thenAnswer((_) async {});
+    when(() => editor.sent).thenAnswer((_) => const Stream.empty());
   });
 
   Future<void> pump(WidgetTester tester, EditorState state) async {
@@ -76,6 +77,21 @@ void main() {
         position: EditPosition(track: 0, bar: 0, voice: 0, beat: 1, string: 1),
       ),
     );
+    await tester.pump();
+    await tester.tap(find.text('2'));
+    verify(() => editor.command(const SetFret(2))).called(1);
+    verifyNever(() => editor.command(const SetFret(12, combine: true)));
+  });
+
+  testWidgets('an arrow between digits splits them, even one that stays put', (
+    tester,
+  ) async {
+    final sent = StreamController<EditCommand>.broadcast();
+    addTearDown(sent.close);
+    when(() => editor.sent).thenAnswer((_) => sent.stream);
+    await pump(tester, const EditorState(position: _at));
+    await tester.tap(find.text('1'));
+    sent.add(const Move('up'));
     await tester.pump();
     await tester.tap(find.text('2'));
     verify(() => editor.command(const SetFret(2))).called(1);

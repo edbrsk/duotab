@@ -68,13 +68,21 @@ void main() {
   });
 
   test('drawing another track clears the cursor, as the engine does', () async {
-    await editor.command(Place(_at));
+    await editor.command(const Place(_at));
     expect(editor.state.position, _at);
     await score.selectTrack(2);
     await pumpEventQueue();
     expect(editor.state.position, isNull);
     expect(editor.state.chordName, isNull);
     expect(editor.state.canUndo, isTrue);
+  });
+
+  test('every command is told to listeners', () async {
+    final sent = <EditCommand>[];
+    final listening = editor.sent.listen(sent.add);
+    await editor.command(const Move('up'));
+    await listening.cancel();
+    expect(sent, [const Move('up')]);
   });
 
   test('a failed command is reported', () async {

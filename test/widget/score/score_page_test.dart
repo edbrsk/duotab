@@ -53,6 +53,7 @@ void main() {
     playback = _Playback();
     editor = _Editor();
     when(() => editor.state).thenReturn(const EditorState());
+    when(() => editor.sent).thenAnswer((_) => const Stream.empty());
     when(() => editor.failures).thenAnswer((_) => const Stream.empty());
     when(() => playback.state).thenReturn(const PlaybackState());
     settings = _Settings();

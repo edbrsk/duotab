@@ -77,6 +77,7 @@ void main() {
         .thenAnswer((_) async {});
     when(() => settings.setPanelTab(any())).thenAnswer((_) async {});
     when(() => editor.state).thenReturn(const EditorState());
+    when(() => editor.sent).thenAnswer((_) => const Stream.empty());
     when(() => playback.setTone(any(), any())).thenAnswer((_) async {});
     when(
       () => playback.setStaffView(

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -18,6 +20,23 @@ class FretPad extends StatefulWidget {
 class _FretPadState extends State<FretPad> {
   final _entry = FretEntry();
 
+  /// An arrow that can't move still starts a new fret.
+  late final StreamSubscription<EditCommand> _sent;
+
+  @override
+  void initState() {
+    super.initState();
+    _sent = context.read<EditorCubit>().sent.listen((command) {
+      if (command is! SetFret) _entry.reset();
+    });
+  }
+
+  @override
+  void dispose() {
+    _sent.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -26,10 +45,7 @@ class _FretPadState extends State<FretPad> {
       (c) => c.state.position != null,
     );
 
-    void send(EditCommand command) {
-      if (command is! SetFret) _entry.reset();
-      editor.command(command);
-    }
+    void send(EditCommand command) => editor.command(command);
 
     Widget digit(int d) => PadKey(
       label: '$d',

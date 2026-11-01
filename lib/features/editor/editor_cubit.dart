@@ -128,6 +128,7 @@ class EditorCubit extends Cubit<EditorState> {
   late final StreamSubscription<ScoreState> _songs;
   final _edited = StreamController<void>.broadcast();
   final _failures = StreamController<String>.broadcast();
+  final _sent = StreamController<EditCommand>.broadcast();
   int? _openId;
   int? _drawnTrack;
 
@@ -175,8 +176,13 @@ class EditorCubit extends Cubit<EditorState> {
   /// The engine's message for each command that failed.
   Stream<String> get failures => _failures.stream;
 
-  Future<void> command(EditCommand command) =>
-      _apply(() => engine.edit(command));
+  /// Each command as it goes to the engine, whether or not it changes anything.
+  Stream<EditCommand> get sent => _sent.stream;
+
+  Future<void> command(EditCommand command) {
+    _sent.add(command);
+    return _apply(() => engine.edit(command));
+  }
 
   /// Null without a cursor, or when the engine can't answer.
   Future<ChordPositions?> chordPositions(ChordSpec chord) async {
@@ -354,6 +360,7 @@ class EditorCubit extends Cubit<EditorState> {
     await _songs.cancel();
     await _edited.close();
     await _failures.close();
+    await _sent.close();
     return super.close();
   }
 }
