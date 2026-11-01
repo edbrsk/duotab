@@ -233,6 +233,12 @@ export type ChordAddition = 'b9' | '9' | '#9' | '11' | '#11' | 'b13' | '13';
 /** `root` and `bass` are pitch classes, C = 0; a null `bass` is no slash chord. */
 export type ChordSpec = { root: number; type: ChordType; additions: ChordAddition[]; bass: number | null };
 
+/**
+ * Frets low string first, −1 for a string not played. `open`: an open string
+ * in a shape no higher than the 4th fret. `lowestFret` is 0 with nothing fretted.
+ */
+export type ChordPosition = { frets: number[]; open: boolean; lowestFret: number };
+
 export type EditPayload = { command: EditCommand };
 
 /** What a retune keeps: each note's sound, or its string and fret. */

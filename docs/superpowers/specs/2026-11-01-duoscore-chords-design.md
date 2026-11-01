@@ -96,9 +96,13 @@ A stacked name needs the 9 under it: C11 is 7 + 9 + 11, and C13 is 7 + 9 + 13 (t
   - every fretted note lies within four frets of the others (highest fret − lowest fret ≤ 3);
   - at most one note per string, and no fret above the track's highest fret (24);
   - **four fingers at most:** each fretted note needs a finger, except that the first finger may barre one unbroken run of strings at the shape's lowest fret and counts once. The run holds no open or unplayed string; strings in it that sound higher are fretted by other fingers. Other notes at that fret need fingers of their own. The thumb isn't used. B7♭9 as 7 x 7 8 7 8 is four fingers: a barre over the 4th to 2nd strings, one finger on the 6th, and two on the 8th fret.
-  - Open strings are allowed. Strings not played are shown as ×, including between played strings (as in 8 x 9 9 8 x).
+  - Open strings are allowed in open position, where every fretted note is at the 4th fret or below. Strings not played are shown as ×, including one between played strings (as in 7 x 7 8 7 8); never more than one.
+  - At least three notes, and at least as many as the chord's required tones; a 5 chord may be two.
 - **Right notes:** every note belongs to the chord; the lowest sounding note is the root, or the bass of a slash chord; every chord tone is present, except the 5th, which a position may leave out. Shapes without the 5th are offered alongside full ones, as guitarists play them; no other tone is ever left out.
-- **Order:** lowest on the neck first, open position first when there is one.
+- **Which ones:** the best three at each place on the neck. Open position is one place; every other shape belongs to the place of its lowest fret. "Best" is fewest gaps, then most strings, then fewest fingers, then the smallest stretch.
+  - A shape is left out when another plays the same frets on more strings with no more fingers and no wider stretch: the fuller one is as easy.
+  - A shape twelve frets above another is left out: it's the same shape an octave higher.
+- **Order:** open position first, then up the neck.
 - **The track's own strings:** the tuning and string count come from the track. A 7- or 8-string's extra low strings are used when they help; a drop tuning gets its own shapes.
 - **Nothing playable:** the strip says so instead of offering an impossible shape.
 
@@ -106,9 +110,9 @@ Examples a correct generator offers (low string first):
 
 | Track | Chord | Includes |
 |---|---|---|
-| 6-string, E standard (E A D G B E) | Cmaj7 | x 3 2 0 0 0 · x 3 5 4 5 3 · 8 x 9 9 8 x |
+| 6-string, E standard (E A D G B E) | Cmaj7 | x 3 2 0 0 0 · x 3 5 4 5 3 · 8 x 9 9 8 8 |
 | 6-string, E standard | B7♭9 | x 2 1 2 1 2 · 7 x 7 8 7 8 |
-| 6-string, drop B (B F♯ B E G♯ C♯) | Cmaj7 | 1 1 0 0 x x |
+| 6-string, drop B (B F♯ B E G♯ C♯) | Cmaj7 | 1 1 0 0 3 3 |
 
 ### Writing and changing a chord
 
@@ -139,15 +143,14 @@ Examples a correct generator offers (low string first):
 
 ## Left to the builder
 
-- How many positions the strip offers, and how it picks among near-identical shapes, within the rules above.
 - Whether diagrams show a barre or fingering.
 - Sizes and spacing in the picker, within the mockup and the panel's 240 pt width.
 - How the picker shows that a chosen combination isn't a chord DuoScore can name (if any combination can't be).
 
 ## Acceptance
 
-- In a 6-string track in E standard, with the cursor on a beat, Chords → C → maj7 shows Cmaj7 with positions including x 3 2 0 0 0, x 3 5 4 5 3 and 8 x 9 9 8 x, lowest first. Tapping x 3 2 0 0 0 writes those five notes on the beat, the name Cmaj7 appears above it, and playback plays the chord.
-- The same steps in a drop B track offer 1 1 0 0 x x among Cmaj7's positions.
+- In a 6-string track in E standard, with the cursor on a beat, Chords → C → maj7 shows Cmaj7 with positions including x 3 2 0 0 0, x 3 5 4 5 3 and 8 x 9 9 8 8, open position first. Tapping x 3 2 0 0 0 writes those five notes on the beat, the name Cmaj7 appears above it, and playback plays the chord.
+- The same steps in a drop B track offer 1 1 0 0 3 3 among Cmaj7's positions.
 - B7♭9 in E standard offers x 2 1 2 1 2.
 - Every position offered for every root, type and addition is playable (span ≤ 3 frets, one note per string, within 24 frets, four fingers), holds only chord tones, has the root (or slash bass) as its lowest note, and lacks at most the 5th.
 - Writing a chord replaces only the cursor's beat in the cursor's voice, and the cursor stays on that beat; Undo restores what was there.
