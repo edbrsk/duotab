@@ -127,7 +127,7 @@ flutter pub get
 
 ## Status (2026-11-01)
 
-`main` is at `a8d9852`, in sync with `origin`. Everything below is built, reviewed and checked by the owner on the simulator.
+The app code on `main` is as of tag `polish-done`. Everything below is built, reviewed and checked by the owner on the simulator.
 
 | Tag | What |
 |---|---|
