@@ -40,10 +40,11 @@ class TrackInfoPanel extends StatelessWidget {
     );
     final body = tab == PanelTab.song
         ? _SongTab(
-            // A field's typing belongs to the song it was typed for.
-            key: ValueKey(scoreState.path),
+            // A field's typing belongs to the song it was typed for; a song
+            // moved to its own copy keeps its openId.
+            key: ValueKey(scoreState.openId),
             song: song,
-            path: scoreState.path,
+            openId: scoreState.openId,
             editable: editable,
             onExport: onExport,
           )
@@ -118,13 +119,13 @@ class _TabSwitch extends StatelessWidget {
 
 class _SongTab extends StatelessWidget {
   final SongSummary song;
-  final String? path;
+  final int openId;
   final bool editable;
   final Future<void> Function(ExportFormat format, Rect anchor)? onExport;
 
   const _SongTab({
     required this.song,
-    required this.path,
+    required this.openId,
     required this.editable,
     required this.onExport,
     super.key,
@@ -139,7 +140,7 @@ class _SongTab extends StatelessWidget {
     // A field can let go of its text after another song has opened.
     void Function(String) onlyHere(Future<void> Function(String) change) =>
         (text) {
-          if (score.state.path == path) change(text);
+          if (score.state.openId == openId) change(text);
         };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

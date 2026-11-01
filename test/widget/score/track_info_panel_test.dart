@@ -639,10 +639,7 @@ void main() {
       );
       states.add(
         ScoreState(
-          song: SongSummary(
-            title: 'Undone',
-            tracks: withArtist.song!.tracks,
-          ),
+          song: SongSummary(title: 'Undone', tracks: withArtist.song!.tracks),
           path: 'c.gp',
           selectedTrackIndex: 1,
         ),
@@ -674,13 +671,40 @@ void main() {
         scoreStreamed: true,
       );
       await tester.enterText(artist, 'Rabea Massaad');
-      const other = ScoreState(song: _song, path: 'other.gp');
+      const other = ScoreState(song: _song, path: 'other.gp', openId: 1);
       when(() => score.state).thenReturn(other);
       states.add(other);
       await tester.pump();
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump();
       verifyNever(() => editor.setArtist(any()));
+    });
+
+    testWidgets('typing survives the song moving to its own copy', (
+      tester,
+    ) async {
+      final states = StreamController<ScoreState>();
+      addTearDown(states.close);
+      whenListen(score, states.stream, initialState: withArtist);
+      await pump(
+        tester,
+        withArtist,
+        panelTab: PanelTab.song,
+        scoreStreamed: true,
+      );
+      await tester.enterText(artist, 'Rabea Massaad');
+      final moved = ScoreState(
+        song: withArtist.song,
+        path: 'c (DuoScore).gp',
+        selectedTrackIndex: 1,
+      );
+      when(() => score.state).thenReturn(moved);
+      states.add(moved);
+      await tester.pump();
+      expect(fieldText(tester, artist), 'Rabea Massaad');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      verify(() => editor.setArtist('Rabea Massaad')).called(1);
     });
 
     testWidgets('export sits in the Song tab', (tester) async {
