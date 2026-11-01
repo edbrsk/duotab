@@ -649,6 +649,58 @@ void main() {
       expect(fieldText(tester, artist), '');
     });
 
+    testWidgets('a focused field without typing follows an undo', (
+      tester,
+    ) async {
+      final states = StreamController<ScoreState>();
+      addTearDown(states.close);
+      whenListen(score, states.stream, initialState: withArtist);
+      await pump(
+        tester,
+        withArtist,
+        panelTab: PanelTab.song,
+        scoreStreamed: true,
+      );
+      await tester.tap(title);
+      await tester.pump();
+      states.add(
+        ScoreState(
+          song: SongSummary(title: 'Undone', tracks: withArtist.song!.tracks),
+          path: 'c.gp',
+          selectedTrackIndex: 1,
+        ),
+      );
+      await tester.pump();
+      expect(fieldText(tester, title), 'Undone');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      verifyNever(() => editor.setTitle(any()));
+    });
+
+    testWidgets('typing in progress is kept through a new summary', (
+      tester,
+    ) async {
+      final states = StreamController<ScoreState>();
+      addTearDown(states.close);
+      whenListen(score, states.stream, initialState: withArtist);
+      await pump(
+        tester,
+        withArtist,
+        panelTab: PanelTab.song,
+        scoreStreamed: true,
+      );
+      await tester.enterText(title, 'Riff');
+      states.add(
+        ScoreState(
+          song: SongSummary(title: 'Undone', tracks: withArtist.song!.tracks),
+          path: 'c.gp',
+          selectedTrackIndex: 1,
+        ),
+      );
+      await tester.pump();
+      expect(fieldText(tester, title), 'Riff');
+    });
+
     testWidgets('typing in progress is saved when the tab switches', (
       tester,
     ) async {

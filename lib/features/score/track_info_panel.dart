@@ -204,8 +204,8 @@ class _SongFieldState extends State<_SongField> {
   late final _controller = TextEditingController(text: widget.value);
   final _focus = FocusNode();
 
-  /// Submitting also lets go of focus, before the song reports the change.
-  String? _sent;
+  /// Until the owner types, the field follows the song, focused or not.
+  var _typed = false;
 
   @override
   void initState() {
@@ -218,20 +218,18 @@ class _SongFieldState extends State<_SongField> {
   @override
   void didUpdateWidget(_SongField old) {
     super.didUpdateWidget(old);
-    if (widget.value != old.value) {
-      _sent = null;
-      if (!_focus.hasFocus) _controller.text = widget.value;
-    }
+    if (widget.value != old.value && !_typed) _controller.text = widget.value;
   }
 
   void _commit() {
+    if (!_typed) return;
+    _typed = false;
     final text = _controller.text.trim();
-    if (text == widget.value.trim() || text == _sent) return;
+    if (text == widget.value.trim()) return;
     if (text.isEmpty && !widget.allowEmpty) {
       _controller.text = widget.value;
       return;
     }
-    _sent = text;
     widget.onCommit(text);
   }
 
@@ -253,6 +251,7 @@ class _SongFieldState extends State<_SongField> {
       isDense: true,
       border: const OutlineInputBorder(),
     ),
+    onChanged: (_) => _typed = true,
     onSubmitted: (_) => _commit(),
   );
 }
