@@ -201,8 +201,9 @@ void main() {
 
     test('a PDF uses the staves chosen for the song', () async {
       when(() => practice.load('a.gp')).thenAnswer(
-        (_) async =>
-            const PracticeSettings(tracks: {1: TrackPractice(showTab: false)}),
+        (_) async => const PracticeSettings(
+          tracks: {1: TrackPractice(showTab: false, showNumbered: true)},
+        ),
       );
       when(() => engine.exportFilePdf(any(), any())).thenAnswer(
         (_) async => const PdfPages(pages: ['<p>1</p>'], baseUrl: 'http://h/'),
@@ -217,6 +218,8 @@ void main() {
       expect(staves.single.index, 1);
       expect(staves.single.tab, isFalse);
       expect(staves.single.notation, isTrue);
+      expect(staves.single.numbered, isTrue);
+      expect(staves.single.slash, isFalse);
       verify(
         () => channel.makePdf(
           pages: ['<p>1</p>'],

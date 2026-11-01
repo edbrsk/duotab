@@ -324,9 +324,61 @@ void main() {
     },
   );
 
+  test('opening a song sends a saved slash view', () async {
+    await practice.save(
+      'fixture.gp',
+      const PracticeSettings(tracks: {1: TrackPractice(showSlash: true)}),
+    );
+    await openFixture();
+    final views =
+        verify(() => engine.setStaves(captureAny())).captured.single
+            as List<StaffView>;
+    expect(views.single.index, 1);
+    expect(views.single.slash, isTrue);
+    expect(views.single.notation, isTrue);
+  });
+
+  test('setStaffView sends slash and numbered', () async {
+    await openFixture();
+    await cubit.setStaffView(
+      1,
+      notation: true,
+      tab: true,
+      slash: true,
+      numbered: false,
+    );
+    expect(cubit.state.practice.tracks[1]!.showSlash, isTrue);
+    expect((await practice.load('fixture.gp'))!.tracks[1]!.showSlash, isTrue);
+    final views =
+        verify(() => engine.setStaves(captureAny())).captured.last
+            as List<StaffView>;
+    expect(views.single.slash, isTrue);
+    expect(views.single.numbered, isFalse);
+  });
+
+  test('setStaffView never hides both notation and tab', () async {
+    await openFixture();
+    clearInteractions(engine);
+    await cubit.setStaffView(
+      1,
+      notation: false,
+      tab: false,
+      slash: true,
+      numbered: true,
+    );
+    verifyNever(() => engine.setStaves(any()));
+    expect(cubit.state.practice.tracks[1]!.showNotation, isTrue);
+  });
+
   test('setStaffView updates, persists and sends', () async {
     await openFixture();
-    await cubit.setStaffView(2, notation: true, tab: false);
+    await cubit.setStaffView(
+      2,
+      notation: true,
+      tab: false,
+      slash: false,
+      numbered: false,
+    );
     expect(cubit.state.practice.tracks[2]!.showTab, isFalse);
     expect((await practice.load('fixture.gp'))!.tracks[2]!.showTab, isFalse);
     final views =

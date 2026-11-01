@@ -76,6 +76,8 @@ void main() {
         any(),
         notation: any(named: 'notation'),
         tab: any(named: 'tab'),
+        slash: any(named: 'slash'),
+        numbered: any(named: 'numbered'),
       ),
     ).thenAnswer((_) async {});
     when(() => playback.state).thenReturn(
@@ -217,8 +219,15 @@ void main() {
     final chip = find.widgetWithText(FilterChip, 'Standard notation');
     await tester.ensureVisible(chip);
     await tester.tap(chip);
-    verify(() => playback.setStaffView(1, notation: false, tab: true))
-        .called(1);
+    verify(
+      () => playback.setStaffView(
+        1,
+        notation: false,
+        tab: true,
+        slash: false,
+        numbered: false,
+      ),
+    ).called(1);
   });
 
   testWidgets('the last staff on cannot be turned off', (tester) async {

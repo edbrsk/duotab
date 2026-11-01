@@ -166,8 +166,7 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     await _send(
       () => engine.setStaves([
         for (final t in after.tracks)
-          if (resolved.tracks[t.index] case final p?)
-            StaffView(index: t.index, notation: p.showNotation, tab: p.showTab),
+          if (resolved.tracks[t.index] case final p?) p.staves(t.index),
       ]),
     );
   }
@@ -184,9 +183,8 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     _practiceReady = true;
     final hidden = [
       for (final t in song.tracks)
-        if (resolved.tracks[t.index] case final p?
-            when !p.showNotation || !p.showTab)
-          StaffView(index: t.index, notation: p.showNotation, tab: p.showTab),
+        if (resolved.tracks[t.index] case final p? when !p.drawsDefaultStaves)
+          p.staves(t.index),
     ];
     for (final command in [
       () => engine.setTracks([for (final t in song.tracks) _mix(t)]),
@@ -268,21 +266,24 @@ class PlaybackCubit extends Cubit<PlaybackState> {
     int track, {
     required bool notation,
     required bool tab,
+    required bool slash,
+    required bool numbered,
   }) async {
     final song = _song;
     if (!_practiceReady || song == null || track >= song.tracks.length) return;
+    // The cursor and taps work on the standard and tab staves.
+    if (!notation && !tab) return;
     final tracks = {...state.practice.tracks};
-    tracks[track] = (tracks[track] ?? const TrackPractice()).copyWith(
+    final changed = (tracks[track] ?? const TrackPractice()).copyWith(
       showNotation: notation,
       showTab: tab,
+      showSlash: slash,
+      showNumbered: numbered,
     );
+    tracks[track] = changed;
     await Future.wait([
       _updatePractice(state.practice.copyWith(tracks: tracks)),
-      _send(
-        () => engine.setStaves([
-          StaffView(index: track, notation: notation, tab: tab),
-        ]),
-      ),
+      _send(() => engine.setStaves([changed.staves(track)])),
     ]);
   }
 

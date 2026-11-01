@@ -243,6 +243,8 @@ class EditorCubit extends Cubit<EditorState> {
 
   Future<void> setTitle(String title) => command(SetTitle(title));
 
+  Future<void> setArtist(String artist) => command(SetArtist(artist));
+
   Future<void> retune(
     int track,
     List<int> tuning, {

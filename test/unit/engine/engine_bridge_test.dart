@@ -75,7 +75,13 @@ void main() {
     expect(transport.lastRequest['type'], 'setStaves');
     expect(transport.lastRequest['payload'], {
       'staves': [
-        {'index': 1, 'notation': false, 'tab': true},
+        {
+          'index': 1,
+          'notation': false,
+          'tab': true,
+          'slash': false,
+          'numbered': false,
+        },
       ],
     });
     transport.deliver({
@@ -217,7 +223,13 @@ void main() {
     expect(transport.lastRequest['payload'], {
       'path': 'a.gp',
       'staves': [
-        {'index': 1, 'notation': true, 'tab': false},
+        {
+          'index': 1,
+          'notation': true,
+          'tab': false,
+          'slash': false,
+          'numbered': false,
+        },
       ],
     });
     transport.deliver({

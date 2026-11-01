@@ -5,7 +5,6 @@ import 'dart:ui';
 import 'package:path/path.dart' as p;
 
 import '../../engine/engine_bridge.dart';
-import '../../engine/protocol.dart';
 import '../editor/song_saver.dart';
 import '../playback/practice_store.dart';
 import '../score/score_cubit.dart';
@@ -108,11 +107,7 @@ class SongExporter {
         final tracks = (await practice.load(source))?.tracks ?? const {};
         final pages = await engine.exportFilePdf(source, [
           for (final MapEntry(key: index, value: track) in tracks.entries)
-            StaffView(
-              index: index,
-              notation: track.showNotation,
-              tab: track.showTab,
-            ),
+            track.staves(index),
         ]);
         await channel.makePdf(
           pages: pages.pages,

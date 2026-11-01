@@ -105,6 +105,9 @@ class BarInfo {
 
 class SongSummary {
   final String title;
+
+  /// Empty when the song names none.
+  final String artist;
   final List<TrackSummary> tracks;
 
   /// Filled when the song is opened, empty in library summaries.
@@ -118,6 +121,7 @@ class SongSummary {
   const SongSummary({
     required this.title,
     required this.tracks,
+    this.artist = '',
     this.bars = const [],
     this.unplayableNotes = 0,
     this.masterDb = 0,
@@ -125,6 +129,7 @@ class SongSummary {
 
   factory SongSummary.fromJson(Map<String, dynamic> json) => SongSummary(
     title: json['title'] as String,
+    artist: json['artist'] as String? ?? '',
     tracks: [
       for (final t in json['tracks'] as List<dynamic>)
         TrackSummary.fromJson(t as Map<String, dynamic>),
@@ -193,17 +198,23 @@ class StaffView {
   final int index;
   final bool notation;
   final bool tab;
+  final bool slash;
+  final bool numbered;
 
   const StaffView({
     required this.index,
     required this.notation,
     required this.tab,
+    this.slash = false,
+    this.numbered = false,
   });
 
   Map<String, Object> toJson() => {
     'index': index,
     'notation': notation,
     'tab': tab,
+    'slash': slash,
+    'numbered': numbered,
   };
 }
 
@@ -732,6 +743,15 @@ class SetTitle extends EditCommand {
 
   @override
   Map<String, Object> toJson() => {'op': 'setTitle', 'title': title};
+}
+
+class SetArtist extends EditCommand {
+  final String artist;
+
+  const SetArtist(this.artist);
+
+  @override
+  Map<String, Object> toJson() => {'op': 'setArtist', 'artist': artist};
 }
 
 class SetTimeSignature extends EditCommand {

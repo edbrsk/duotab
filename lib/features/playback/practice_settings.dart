@@ -13,6 +13,8 @@ class TrackPractice {
   final bool toneChosen;
   final bool showNotation;
   final bool showTab;
+  final bool showSlash;
+  final bool showNumbered;
 
   /// Null for the file's own level; −∞ is [double.negativeInfinity].
   final double? volumeDb;
@@ -30,6 +32,8 @@ class TrackPractice {
     this.toneChosen = false,
     this.showNotation = true,
     this.showTab = true,
+    this.showSlash = false,
+    this.showNumbered = false,
     this.volumeDb,
     this.pan,
     this.legacyVolume,
@@ -42,6 +46,8 @@ class TrackPractice {
     bool? toneChosen,
     bool? showNotation,
     bool? showTab,
+    bool? showSlash,
+    bool? showNumbered,
     double? volumeDb,
     double? pan,
   }) => TrackPractice(
@@ -51,6 +57,8 @@ class TrackPractice {
     toneChosen: toneChosen ?? this.toneChosen,
     showNotation: showNotation ?? this.showNotation,
     showTab: showTab ?? this.showTab,
+    showSlash: showSlash ?? this.showSlash,
+    showNumbered: showNumbered ?? this.showNumbered,
     volumeDb: volumeDb ?? this.volumeDb,
     pan: pan ?? this.pan,
     legacyVolume: legacyVolume,
@@ -63,6 +71,8 @@ class TrackPractice {
     'toneChosen': toneChosen,
     'showNotation': showNotation,
     'showTab': showTab,
+    'showSlash': showSlash,
+    'showNumbered': showNumbered,
     'volumeDb': _dbToJson(volumeDb),
     'pan': pan,
   };
@@ -75,9 +85,23 @@ class TrackPractice {
     toneChosen: json['toneChosen'] as bool? ?? json['tone'] != null,
     showNotation: json['showNotation'] != false,
     showTab: json['showTab'] != false,
+    showSlash: json['showSlash'] == true,
+    showNumbered: json['showNumbered'] == true,
     volumeDb: _dbFromJson(json['volumeDb']),
     pan: (json['pan'] as num?)?.toDouble(),
     legacyVolume: json['volume'] as int?,
+  );
+
+  /// The engine draws notation and tab, and nothing else, until told.
+  bool get drawsDefaultStaves =>
+      showNotation && showTab && !showSlash && !showNumbered;
+
+  StaffView staves(int index) => StaffView(
+    index: index,
+    notation: showNotation,
+    tab: showTab,
+    slash: showSlash,
+    numbered: showNumbered,
   );
 }
 

@@ -96,6 +96,8 @@ class TrackInfoPanel extends StatelessWidget {
                     track.index,
                     notation: on,
                     tab: practice.showTab,
+                    slash: practice.showSlash,
+                    numbered: practice.showNumbered,
                   ),
           ),
           FilterChip(
@@ -107,6 +109,8 @@ class TrackInfoPanel extends StatelessWidget {
                     track.index,
                     notation: practice.showNotation,
                     tab: on,
+                    slash: practice.showSlash,
+                    numbered: practice.showNumbered,
                   ),
           ),
         ],

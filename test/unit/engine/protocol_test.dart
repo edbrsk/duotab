@@ -99,6 +99,38 @@ void main() {
 
     expect(song.bars, isEmpty);
     expect(song.tracks.single.barsWithNotes, isEmpty);
+    expect(song.artist, '');
+  });
+
+  test("a summary reads the song's artist", () {
+    final song = SongSummary.fromJson({
+      'title': 'T',
+      'artist': 'Rabea Massaad',
+      'tracks': const [],
+    });
+    expect(song.artist, 'Rabea Massaad');
+  });
+
+  test('SetArtist sends the artist', () {
+    expect(const SetArtist('A').toJson(), {'op': 'setArtist', 'artist': 'A'});
+  });
+
+  test('a staff view sends all four views', () {
+    expect(
+      const StaffView(
+        index: 1,
+        notation: true,
+        tab: false,
+        slash: true,
+      ).toJson(),
+      {
+        'index': 1,
+        'notation': true,
+        'tab': false,
+        'slash': true,
+        'numbered': false,
+      },
+    );
   });
 
   test('retune serialises its track, tuning and octave', () {
