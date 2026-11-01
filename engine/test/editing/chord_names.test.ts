@@ -40,7 +40,10 @@ test('names follow the lead-sheet table', () => {
 
 test('tones follow the tone table', () => {
   expect(chordTones(c('maj7'))).toEqual({ required: [0, 4, 11], optional: [7] });
-  expect(chordTones(c('m7b5')).optional).toEqual([6]);
+  // The altered 5th is what these sound like, so it always plays.
+  expect(chordTones(c('m7b5'))).toEqual({ required: [0, 3, 6, 10], optional: [] });
+  expect(chordTones(c('dim7'))).toEqual({ required: [0, 3, 6, 9], optional: [] });
+  expect(chordTones(c('aug'))).toEqual({ required: [0, 4, 8], optional: [] });
   expect(chordTones(c('5'))).toEqual({ required: [0, 7], optional: [] });
   const sevenThirteen = chordTones(c('7', ['13']));
   expect([...sevenThirteen.required].sort((a, b) => a - b)).toEqual([0, 4, 9, 10]);

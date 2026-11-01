@@ -2,16 +2,16 @@ import type { ChordAddition, ChordSpec, ChordType } from '../protocol';
 
 const ROOTS = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
 
-/** Each type's tones above the root, and its "5th": the one a position may leave out. */
+/** Each type's tones above the root, and the plain 5th a position may leave out; an altered 5th always plays. */
 const TYPES: Record<ChordType, { tones: number[]; fifth: number | null; base: string }> = {
   maj: { tones: [0, 4, 7], fifth: 7, base: '' },
   m: { tones: [0, 3, 7], fifth: 7, base: 'm' },
   '7': { tones: [0, 4, 7, 10], fifth: 7, base: '7' },
   maj7: { tones: [0, 4, 7, 11], fifth: 7, base: 'maj7' },
   m7: { tones: [0, 3, 7, 10], fifth: 7, base: 'm7' },
-  m7b5: { tones: [0, 3, 6, 10], fifth: 6, base: 'm7♭5' },
-  dim7: { tones: [0, 3, 6, 9], fifth: 6, base: 'dim7' },
-  aug: { tones: [0, 4, 8], fifth: 8, base: 'aug' },
+  m7b5: { tones: [0, 3, 6, 10], fifth: null, base: 'm7♭5' },
+  dim7: { tones: [0, 3, 6, 9], fifth: null, base: 'dim7' },
+  aug: { tones: [0, 4, 8], fifth: null, base: 'aug' },
   sus2: { tones: [0, 2, 7], fifth: 7, base: 'sus2' },
   sus4: { tones: [0, 5, 7], fifth: 7, base: 'sus4' },
   '6': { tones: [0, 4, 7, 9], fifth: 7, base: '6' },
