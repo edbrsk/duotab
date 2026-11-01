@@ -33,9 +33,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('lists each package once, under the app logo', (tester) async {
+  testWidgets("lists each package once, under the app's name", (tester) async {
     await pump(tester);
-    expect(find.byKey(const Key('appLogo')), findsOneWidget);
+    expect(find.text('DuoScore'), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
     expect(find.text('alphaTab'), findsOneWidget);
     expect(find.text('Bravura'), findsOneWidget);
     expect(find.text('Powered by Flutter'), findsNothing);

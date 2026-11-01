@@ -68,14 +68,16 @@ void main() {
     verify(() => settings.setDefaultTone(Tone.highGain)).called(1);
   });
 
-  testWidgets('the app logo and name sit above the options', (tester) async {
+  testWidgets("the app's name heads the options, with no logo", (tester) async {
     await pump(tester);
-    final logo = tester.getRect(find.byKey(const Key('appLogo')));
-    final name = tester.getRect(find.text('DuoScore'));
-    final countIn = tester.getRect(find.text('Count-in'));
-    expect(logo.center.dx, closeTo(890 / 2, 1));
-    expect(logo.bottom, lessThanOrEqualTo(name.top));
-    expect(name.bottom, lessThan(countIn.top));
+    final name = find.text('DuoScore');
+    expect(tester.widget<Text>(name).style?.fontFamily, 'Didot');
+    expect(tester.getRect(name).center.dx, closeTo(890 / 2, 1));
+    expect(
+      tester.getRect(name).bottom,
+      lessThan(tester.getRect(find.text('Count-in')).top),
+    );
+    expect(find.byType(Image), findsNothing);
   });
 
   testWidgets('opens the licence screen', (tester) async {

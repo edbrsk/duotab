@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../../presentation/widgets/app_logo_header.dart';
+import '../../presentation/widgets/app_name_header.dart';
 import '../playback/tone.dart';
 import '../playback/tone_label.dart';
 import 'licences_page.dart';
@@ -21,7 +21,7 @@ class SettingsPage extends StatelessWidget {
       child: SafeArea(
         child: ListView(
           children: [
-            const AppLogoHeader(),
+            const AppNameHeader(),
             SwitchListTile(
               title: Text(l10n.countIn),
               value: settings.countIn,

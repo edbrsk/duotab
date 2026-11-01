@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/design/design_tokens.dart';
 import '../../l10n/app_localizations.dart';
-import '../../presentation/widgets/app_logo_header.dart';
+import '../../presentation/widgets/app_name_header.dart';
 
 /// Every bundled package's licence. Flutter's own licence page can't drop
 /// its "Powered by Flutter" line.
@@ -42,7 +42,7 @@ class _LicencesPageState extends State<LicencesPage> {
           }
           return ListView(
             children: [
-              const AppLogoHeader(),
+              const AppNameHeader(),
               for (final MapEntry(key: package, value: entries)
                   in byPackage.entries)
                 ListTile(
