@@ -9,10 +9,12 @@ This file is the handoff between sessions: how the owner works, how to build and
 | `docs/superpowers/specs/2026-10-29-duoscore-design.md` | The whole app: goals, layout, track drawer, engine, playback, editor, retuning, files, library, licences, test assets |
 | `docs/superpowers/specs/2026-10-30-duoscore-mixer-design.md` | dB faders, meters, pan, master |
 | `docs/superpowers/specs/2026-10-31-duoscore-folded-player-design.md` | The closed phone's outer screen as a player |
+| `docs/superpowers/specs/2026-11-01-duoscore-chords-design.md` | Chord symbols built by tapping, with playable positions for the track's tuning |
+| `docs/superpowers/specs/2026-11-01-duoscore-song-track-panel-design.md` | The right panel's Song \| Track tabs, the four notation views, title and artist, export |
 
 The **Status** lines in those files still say "awaiting the owner's review"; all three were approved and are built. The main design names the app folder `.../sideprojects/duoscore`; the repo is `.../sideprojects/duotab`.
 
-Each built piece of work has a plan in `docs/superpowers/plans/` (plans 1–10) and a git tag (below).
+Each built piece of work has a plan in `docs/superpowers/plans/` (plans 1–12) and a git tag (below).
 
 ## Working with the owner
 
@@ -43,9 +45,9 @@ flutter pub get
 
 | What | Command |
 |---|---|
-| Engine tests | `npm --prefix engine test` (328 pass, 3 skip without the private sample) |
+| Engine tests | `npm --prefix engine test` (367 pass, 3 skip without the private sample) |
 | Engine types | `cd engine && npx tsc --noEmit` |
-| App tests | `flutter test` (568 pass) |
+| App tests | `flutter test` (635 pass) |
 | Lints | `flutter analyze` (must say `No issues found!`) |
 | iOS tests | `cd ios && xcodebuild test -workspace Runner.xcworkspace -scheme Runner -destination 'id=<simulator id>' -only-testing:RunnerTests` |
 | Simulator build | `flutter build ios --simulator` |
@@ -133,9 +135,9 @@ flutter pub get
 - Use 382 × 678 when testing a screen at the outer screen's width.
 - Hinge status unknown or missing counts as open.
 
-## Status (2026-11-01)
+## Status (2026-11-02)
 
-The app code on `main` is as of tag `new-song-fixes-done`. Everything below is built, reviewed and checked by the owner on the simulator.
+The app code on `main` is as of tag `edit-strip-done`. Everything below is built, reviewed and checked by the owner on the simulator.
 
 | Tag | What |
 |---|---|
@@ -147,6 +149,9 @@ The app code on `main` is as of tag `new-song-fixes-done`. Everything below is b
 | `polish-done` | ☰ fully tappable in Split View, ✕ placed for right-to-left, a stronger speed-menu width test |
 | `library-order-search-done` | Library: newest song first, from DuoScore's own record of when each song arrived (`added_dates.dart`); search that filters as you type, ignoring case and accents |
 | `new-song-fixes-done` | A new song's guitar starts at 0 dB; palette symbols fitted and centred by their ink at a fixed size. Found on the owner's first real-device install |
+| `chords-done` | Plan 11: chord symbols built by tapping (root, type, additions, slash bass), with up to four playable positions per neck region for the track's tuning, written on the cursor's beat and kept in `.gp` |
+| `song-track-panel-done` | The right panel in two parts, Details over Input, each scrolling and folding on its own. Plan 12: Details holds Song \| Track tabs. Song has title and artist edited in place, and export as a format dropdown. Track has the name, the four notation views (standard, tab, slash, numbered; standard or tab stays on), tuning and Retune, and tone as a dropdown. The title row above the sheet is gone |
+| `edit-strip-done` | Undo, redo and ◀ ▲ ▼ ▶ in a fixed strip under the panel, out of the palette and the pad; a collapsed track drawer is only its header, without add or mixer, and its meters stop |
 
 Older tags (`tone-fix`, `tremolo-fix`, `library-files`, …) mark one-off fixes along the way.
 
@@ -159,9 +164,27 @@ Older tags (`tone-fix`, `tremolo-fix`, `library-files`, …) mark one-off fixes 
    - **Outer-screen height:** whether the sheet has room with the banner, transport and an open drawer.
    - **Screen awake:** that it stays awake while a song plays and dims after pausing.
    - **AirPods:** the cursor runs slightly ahead of the sound. This is known and unfixed.
+   - **Guitar Pro 8 and chords:** that Guitar Pro 8 opens a DuoScore-saved file with chords and shows their names. Not checked yet.
 2. **Drums**, the next phase. It needs its own design first: drum notation, its own palette and input, and how the mixer handles drum channel 9.
 3. **Left to the builder in the main design**, not started: Settings beyond count-in, metronome and default tone.
-4. **Parked by the owner:**
+4. **Small things left for later** (found by the final reviews, not fixed):
+   - **Chords:**
+     - unused chords pile up in the staff's chord list; a replaced chord from another file with a diagram can still show at the top of the score;
+     - aug, m7♭5 and dim7 positions may drop their defining "5th";
+     - only the first finger barres, so shapes like C9 x 3 2 3 3 3 aren't offered;
+     - the pruning rules and the four-per-region cap can together drop a shape from every region;
+     - diagram dots overlap on 8 strings; the 96 pt position tiles may clip at large text;
+     - a chord written over a note tied into the next beat may change that note's fret;
+     - `EditorState.position` isn't cleared on a track switch.
+   - **Panel:**
+     - the Song \| Track and Frets \| Chords labels keep one colour; only the background shows the choice;
+     - a tab tap in the play-only panel unfolds the editing panel's Details part;
+     - a title the engine refuses stays in the field; an untitled song can't be given exactly its file name as title;
+     - the view keys have no VoiceOver button or selected semantics;
+     - the keyboard comes back after an export started while a field was focused;
+     - the floating ☰ in Split View is light on the paper sheet, and a long title can run under it;
+     - typing 1, an arrow that can't move, then 2 quickly makes fret 12.
+5. **Parked by the owner:**
    - **Mid-song pan and volume changes** are lost when DuoScore saves. The owner doesn't need them for now. Doing it later means:
      - writing `DSPParam_11` and `DSPParam_12` automations into the saved `.gp`;
      - reading them back on open, so there's one copy that both Guitar Pro and DuoScore use;
