@@ -87,6 +87,8 @@ export type BarInfo = { index: number; startTick: number; startMs: number; tempo
 
 export type SongSummary = {
   title: string;
+  /** The song names no title; `title` is its file name. */
+  untitled: boolean;
   artist: string;
   tracks: TrackSummary[];
   /** Filled by `open`, empty from `summarize`. */

@@ -109,6 +109,15 @@ void main() {
       'tracks': const [],
     });
     expect(song.artist, 'Rabea Massaad');
+    expect(song.untitled, isFalse);
+    expect(
+      SongSummary.fromJson({
+        'title': 'My Riff',
+        'untitled': true,
+        'tracks': const [],
+      }).untitled,
+      isTrue,
+    );
   });
 
   test('SetArtist sends the artist', () {

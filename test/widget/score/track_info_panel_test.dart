@@ -614,6 +614,28 @@ void main() {
       verify(() => editor.setArtist('Rabea Massaad')).called(1);
     });
 
+    testWidgets('an untitled song shows its file name as a hint', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        const ScoreState(
+          song: SongSummary(title: 'My Riff', untitled: true, tracks: []),
+          path: 'My Riff.gp',
+        ),
+        panelTab: PanelTab.song,
+      );
+      expect(fieldText(tester, title), '');
+      final decoration = tester.widget<TextField>(title).decoration!;
+      expect(decoration.hintText, 'My Riff');
+      // A label resting inside an empty field would hide the hint.
+      expect(decoration.floatingLabelBehavior, FloatingLabelBehavior.always);
+      await tester.enterText(title, 'My Riff');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      verify(() => editor.setTitle('My Riff')).called(1);
+    });
+
     testWidgets('a field left unchanged saves nothing', (tester) async {
       await pump(tester, drawn, panelTab: PanelTab.song);
       await tester.tap(title);

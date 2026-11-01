@@ -176,7 +176,9 @@ class _SongTab extends StatelessWidget {
           _SongField(
             key: const Key('song-title'),
             label: l10n.songTitle,
-            value: song.title,
+            // Typing anything, even the file name, then makes it the title.
+            value: song.untitled ? '' : song.title,
+            hint: song.untitled ? song.title : null,
             allowEmpty: false,
             onCommit: onlyHere(editor.setTitle),
           ),
@@ -205,6 +207,7 @@ class _SongTab extends StatelessWidget {
 class _SongField extends StatefulWidget {
   final String label;
   final String value;
+  final String? hint;
   final bool allowEmpty;
   final Future<void> Function(String text) onCommit;
 
@@ -213,6 +216,7 @@ class _SongField extends StatefulWidget {
     required this.value,
     required this.allowEmpty,
     required this.onCommit,
+    this.hint,
     super.key,
   });
 
@@ -273,6 +277,10 @@ class _SongFieldState extends State<_SongField> {
     textInputAction: TextInputAction.done,
     decoration: InputDecoration(
       labelText: widget.label,
+      hintText: widget.hint,
+      floatingLabelBehavior: widget.hint == null
+          ? null
+          : FloatingLabelBehavior.always,
       isDense: true,
       border: const OutlineInputBorder(),
     ),

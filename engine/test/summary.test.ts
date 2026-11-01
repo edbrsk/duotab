@@ -18,6 +18,8 @@ test('summarizes a generated song with two guitars and drums', () => {
 test('falls back to the file name for an untitled song', () => {
   const s = summarize(gpBytes(twoGuitarsAndDrums.replace('\\title "Fixture"', '')), 'My Riff.gp');
   expect(s.title).toBe('My Riff');
+  expect(s.untitled).toBe(true);
+  expect(summarize(gpBytes(twoGuitarsAndDrums), 'Fixture.gp').untitled).toBe(false);
 });
 
 test("reports the song's artist, trimmed, or nothing", () => {

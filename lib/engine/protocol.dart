@@ -108,6 +108,9 @@ class SongSummary {
 
   /// Empty when the song names none.
   final String artist;
+
+  /// The song names no title; [title] is its file name.
+  final bool untitled;
   final List<TrackSummary> tracks;
 
   /// Filled when the song is opened, empty in library summaries.
@@ -122,6 +125,7 @@ class SongSummary {
     required this.title,
     required this.tracks,
     this.artist = '',
+    this.untitled = false,
     this.bars = const [],
     this.unplayableNotes = 0,
     this.masterDb = 0,
@@ -130,6 +134,7 @@ class SongSummary {
   factory SongSummary.fromJson(Map<String, dynamic> json) => SongSummary(
     title: json['title'] as String,
     artist: json['artist'] as String? ?? '',
+    untitled: json['untitled'] as bool? ?? false,
     tracks: [
       for (final t in json['tracks'] as List<dynamic>)
         TrackSummary.fromJson(t as Map<String, dynamic>),
