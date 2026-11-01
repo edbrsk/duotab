@@ -179,6 +179,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get song => 'Song';
 
   @override
+  String get details => 'Details';
+
+  @override
   String get information => 'Information';
 
   @override

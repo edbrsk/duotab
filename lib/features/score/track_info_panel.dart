@@ -55,7 +55,16 @@ class TrackInfoPanel extends StatelessWidget {
     return Material(
       type: MaterialType.transparency,
       child: editable
-          ? _SplitPanel(body: body)
+          ? _SplitPanel(
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _TabSwitch(),
+                  const SizedBox(height: Spacing.sm),
+                  body,
+                ],
+              ),
+            )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -81,43 +90,51 @@ class _TabSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final settings = context.read<SettingsCubit>();
-    final (tab, folded) = context.select<SettingsCubit, (PanelTab, bool)>(
-      (c) => (c.state.panelTab, c.state.trackDetailsFolded),
-    );
-    // SegmentedButton reports no change for the chosen tab, which unfolds too.
-    return Listener(
-      onPointerUp: folded
-          ? (_) => settings.setTrackDetailsFolded(folded: false)
-          : null,
-      child: SegmentedButton<PanelTab>(
-        showSelectedIcon: false,
-        style: SegmentedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-        ),
-        segments: [
-          for (final (value, label) in [
-            (PanelTab.song, l10n.song),
-            (PanelTab.track, l10n.trackHeading),
-          ])
-            ButtonSegment(
-              value: value,
-              label: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-            ),
-        ],
-        selected: {tab},
-        onSelectionChanged: (s) => settings.setPanelTab(s.single),
+    return _Pills<PanelTab>(
+      segments: [
+        (PanelTab.song, l10n.song),
+        (PanelTab.track, l10n.trackHeading),
+      ],
+      selected: context.select<SettingsCubit, PanelTab>(
+        (c) => c.state.panelTab,
       ),
+      onChanged: context.read<SettingsCubit>().setPanelTab,
     );
   }
+}
+
+/// The panel's two-way switches, alike in size.
+class _Pills<T> extends StatelessWidget {
+  final List<(T, String)> segments;
+  final T selected;
+  final ValueChanged<T> onChanged;
+
+  const _Pills({
+    required this.segments,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) => SegmentedButton<T>(
+    showSelectedIcon: false,
+    // The panel is narrow beside the vertical bar.
+    style: SegmentedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+    ),
+    segments: [
+      for (final (value, label) in segments)
+        ButtonSegment(
+          value: value,
+          label: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label, maxLines: 1, softWrap: false),
+          ),
+        ),
+    ],
+    selected: {selected},
+    onSelectionChanged: (s) => onChanged(s.single),
+  );
 }
 
 class _SongTab extends StatelessWidget {
@@ -169,16 +186,19 @@ class _SongTab extends StatelessWidget {
             onCommit: onlyHere(editor.setArtist),
           ),
         ],
-        if (onExport case final onExport?) ...[
-          _heading(context, l10n.export),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: ExportButton(
-              onExport: onExport,
-              canExportPdf: song.guitarTracks.isNotEmpty,
+        if (onExport case final onExport?)
+          Padding(
+            padding: const EdgeInsets.only(top: Spacing.sm),
+            child: Row(
+              children: [
+                Text(l10n.export.toUpperCase(), style: textTheme.labelSmall),
+                ExportButton(
+                  onExport: onExport,
+                  canExportPdf: song.guitarTracks.isNotEmpty,
+                ),
+              ],
             ),
           ),
-        ],
       ],
     );
   }
@@ -255,6 +275,8 @@ class _SongFieldState extends State<_SongField> {
       border: const OutlineInputBorder(),
     ),
     onChanged: (_) => _typed = true,
+    // On iOS a tap elsewhere keeps the keyboard up unless told otherwise.
+    onTapOutside: (_) => _focus.unfocus(),
     onSubmitted: (_) => _commit(),
   );
 }
@@ -467,7 +489,7 @@ class _SplitPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _PartHeader(
-          title: const _TabSwitch(),
+          title: Text(l10n.details, style: textTheme.titleMedium),
           folded: detailsFolded,
           foldTooltip: l10n.hideTrackDetails,
           unfoldTooltip: l10n.showTrackDetails,
@@ -624,28 +646,11 @@ class _PadSwitch extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SegmentedButton<bool>(
-          showSelectedIcon: false,
-          // The panel is narrow beside the vertical bar.
-          style: SegmentedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-          ),
-          segments: [
-            for (final (value, label) in [
-              (false, l10n.frets),
-              (true, l10n.chords),
-            ])
-              ButtonSegment(
-                value: value,
-                label: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(label, maxLines: 1, softWrap: false),
-                ),
-              ),
-          ],
-          selected: {chords},
-          onSelectionChanged: (s) =>
-              context.read<SettingsCubit>().setChordsShown(shown: s.single),
+        _Pills<bool>(
+          segments: [(false, l10n.frets), (true, l10n.chords)],
+          selected: chords,
+          onChanged: (shown) =>
+              context.read<SettingsCubit>().setChordsShown(shown: shown),
         ),
         const SizedBox(height: Spacing.sm),
         if (chords) const ChordPicker() else const FretPad(),

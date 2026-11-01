@@ -59,7 +59,7 @@ class _ExportButtonState extends State<ExportButton> {
     }
     return PopupMenuButton<ExportFormat>(
       tooltip: l10n.export,
-      icon: const Icon(Icons.ios_share, color: Colors.black38),
+      icon: const Icon(Icons.ios_share, color: AppColors.accent),
       onSelected: _export,
       itemBuilder: (_) => [
         PopupMenuItem(value: ExportFormat.gp, child: Text(l10n.exportGp)),

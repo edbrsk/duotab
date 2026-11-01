@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
+import 'package:duoscore/core/design/design_tokens.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/chord_picker.dart';
 import 'package:duoscore/features/editor/cursor_keys.dart';
@@ -466,12 +467,13 @@ void main() {
     expect(part.height, lessThan(2000 * 0.4));
   });
 
-  testWidgets('a folded upper part shows only the tabs', (tester) async {
+  testWidgets('a folded upper part shows only its name, like Input', (
+    tester,
+  ) async {
     await pump(tester, drawn, trackDetailsFolded: true);
-    expect(find.text('Song'), findsOneWidget);
-    expect(find.text('Track'), findsOneWidget);
+    expect(find.text('Details'), findsOneWidget);
+    expect(find.text('Song'), findsNothing);
     expect(find.text('Guitar 1'), findsNothing);
-    expect(find.textContaining('E♭ A♭'), findsNothing);
     expect(find.byType(DropdownButton<Tone>), findsNothing);
     expect(find.byType(FretPad), findsOneWidget);
 
@@ -479,19 +481,16 @@ void main() {
     verify(() => settings.setTrackDetailsFolded(folded: false)).called(1);
   });
 
-  testWidgets('a tab tap while folded unfolds on that tab', (tester) async {
-    await pump(tester, drawn, trackDetailsFolded: true);
-    await tester.tap(find.text('Song'));
-    verify(() => settings.setPanelTab(PanelTab.song)).called(1);
-    verify(() => settings.setTrackDetailsFolded(folded: false)).called(1);
-  });
-
-  testWidgets('tapping the chosen tab while folded unfolds too', (
+  testWidgets('the Song | Track pills match the Frets | Chords pills', (
     tester,
   ) async {
-    await pump(tester, drawn, trackDetailsFolded: true);
-    await tester.tap(find.text('Track'));
-    verify(() => settings.setTrackDetailsFolded(folded: false)).called(1);
+    await pump(tester, drawn, height: 2000);
+    final tabs = tester.getSize(find.byType(SegmentedButton<PanelTab>));
+    final pads = tester.getSize(find.byType(SegmentedButton<bool>));
+    expect(tabs, pads);
+    final song = tester.renderObject<RenderParagraph>(find.text('Song'));
+    final frets = tester.renderObject<RenderParagraph>(find.text('Frets'));
+    expect(song.text.style?.fontSize, frets.text.style?.fontSize);
   });
 
   testWidgets('a tab tap switches and is remembered', (tester) async {
@@ -539,9 +538,9 @@ void main() {
 
   testWidgets('both part headers use the same text size', (tester) async {
     await pump(tester, drawn, trackDetailsFolded: true, inputFolded: true);
-    final tab = tester.renderObject<RenderParagraph>(find.text('Track'));
+    final details = tester.renderObject<RenderParagraph>(find.text('Details'));
     final input = tester.renderObject<RenderParagraph>(find.text('Input'));
-    expect(input.text.style?.fontSize, tab.text.style?.fontSize);
+    expect(input.text.style?.fontSize, details.text.style?.fontSize);
   });
 
   const withArtist = ScoreState(
@@ -765,6 +764,33 @@ void main() {
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump();
       verify(() => editor.setArtist('Rabea Massaad')).called(1);
+    });
+
+    testWidgets('a tap outside a field saves it', (tester) async {
+      await pump(tester, withArtist, panelTab: PanelTab.song);
+      await tester.enterText(artist, 'Rabea Massaad');
+      await tester.tap(find.text('INFORMATION'));
+      await tester.pump();
+      verify(() => editor.setArtist('Rabea Massaad')).called(1);
+    });
+
+    testWidgets('the export button sits beside its label, in the accent', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        withArtist,
+        panelTab: PanelTab.song,
+        onExport: (_, _) async {},
+      );
+      final label = tester.getRect(find.text('EXPORT'));
+      final icon = tester.getRect(find.byIcon(Icons.ios_share));
+      expect(icon.left, greaterThan(label.right));
+      expect(icon.center.dy, closeTo(label.center.dy, 4));
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.ios_share)).color,
+        AppColors.accent,
+      );
     });
 
     testWidgets('export sits in the Song tab', (tester) async {

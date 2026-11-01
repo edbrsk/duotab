@@ -394,6 +394,12 @@ abstract class AppLocalizations {
   /// **'Song'**
   String get song;
 
+  /// No description provided for @details.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get details;
+
   /// No description provided for @information.
   ///
   /// In en, this message translates to:
