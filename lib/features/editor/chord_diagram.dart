@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 /// A chord box: the low string on the left, five frets from [firstFret].
 class ChordDiagram extends StatelessWidget {
   static const _frets = 5;
+  static const height = 66.0;
 
   /// Low string first; −1 for a string not played.
   final List<int> frets;
@@ -12,7 +15,8 @@ class ChordDiagram extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-    size: const Size(56, 66),
+    // Seven and eight strings widen the box rather than crowd the dots.
+    size: Size(max(56, 12 + (frets.length - 1) * 8), height),
     painter: _DiagramPainter(
       frets,
       firstFret,

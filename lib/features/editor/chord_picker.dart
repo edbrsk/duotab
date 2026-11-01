@@ -259,7 +259,14 @@ class _ChordPickerState extends State<ChordPicker> {
                   Text(l10n.noChordPosition, style: textTheme.bodySmall)
                 else
                   SizedBox(
-                    height: 96,
+                    // A horizontal list needs its height: the box and its label.
+                    height:
+                        ChordDiagram.height +
+                        2 * Spacing.xs +
+                        MediaQuery.textScalerOf(context)
+                                .scale(textTheme.labelSmall?.fontSize ?? 11) *
+                            (textTheme.labelSmall?.height ?? 1.45) +
+                        4,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: positions.positions.length,

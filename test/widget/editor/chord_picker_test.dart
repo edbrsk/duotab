@@ -58,6 +58,7 @@ void main() {
     WidgetTester tester,
     EditorState state, {
     Stream<ScoreState>? scores,
+    double textScale = 1,
   }) async {
     tester.view
       ..physicalSize = const Size(240, 900)
@@ -79,6 +80,11 @@ void main() {
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
         home: Scaffold(
           body: MultiBlocProvider(
             providers: [
@@ -258,5 +264,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     verify(() => editor.chordPositions(_cmaj7)).called(1);
+  });
+
+  testWidgets('position tiles fit their label at large text', (tester) async {
+    await pump(tester, const EditorState(position: _at), textScale: 1.6);
+    await tapKey(tester, 'C');
+    await tapKey(tester, 'maj7');
+    expect(find.byType(ChordDiagram), findsNWidgets(3));
+    expect(tester.takeException(), isNull);
   });
 }
