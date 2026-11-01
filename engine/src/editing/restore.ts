@@ -18,6 +18,8 @@ export function carryPlaybackSettings(current: alphaTab.model.Score, restored: a
     target.playbackInfo.volume = track.playbackInfo.volume;
     target.staves[0].showStandardNotation = track.staves[0].showStandardNotation;
     target.staves[0].showTablature = track.staves[0].showTablature;
+    target.staves[0].showSlash = track.staves[0].showSlash;
+    target.staves[0].showNumbered = track.staves[0].showNumbered;
   }
 }
 

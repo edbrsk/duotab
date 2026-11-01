@@ -8,8 +8,13 @@ test('a restored song keeps the tones and staves chosen since', () => {
   const restored = score(twoGuitarsAndDrums);
   current.tracks[0].playbackInfo.program = 30;
   current.tracks[1].staves[0].showStandardNotation = false;
+  current.tracks[1].staves[0].showSlash = true;
+  current.tracks[1].staves[0].showNumbered = true;
 
   carryPlaybackSettings(current, restored);
+
+  expect(restored.tracks[1].staves[0].showSlash).toBe(true);
+  expect(restored.tracks[1].staves[0].showNumbered).toBe(true);
 
   expect(restored.tracks[0].playbackInfo.program).toBe(30);
   expect(restored.tracks[1].staves[0].showStandardNotation).toBe(false);
