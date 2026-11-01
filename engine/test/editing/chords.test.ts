@@ -144,3 +144,32 @@ test("chords are kept under numbers, as Guitar Pro's own files keep them", () =>
   expect(ids[0]).toBe(ids[1]);
   expect(ids[2]).not.toBe(ids[0]);
 });
+
+test("a chord no beat uses any more leaves the staff's list", () => {
+  const staff = s.tracks[0].staves[0];
+  const foreign = new alphaTab.model.Chord();
+  foreign.name = 'N.C.';
+  foreign.showDiagram = true;
+  staff.addChord('x', foreign);
+  beat(0, 1).chordId = 'x';
+  setChord(s, at(0, 1), cmaj7, OPEN);
+  expect(staff.chords!.has('x')).toBe(false);
+
+  setChord(s, at(0, 2), cmaj7, OPEN);
+  setChord(s, at(0, 1), cmaj7, BARRE);
+  // Beat 2 still uses the open shape.
+  expect([...staff.chords!.values()].map((c) => c.strings.join())).toHaveLength(2);
+
+  setRest(s, at(0, 2));
+  expect(staff.chords!.size).toBe(1);
+  for (const string of [2, 3, 4, 5, 6]) deleteNote(s, at(0, 1, string));
+  expect(staff.chords!.size).toBe(0);
+});
+
+test('a chord the file lists but no beat uses stays', () => {
+  const staff = s.tracks[0].staves[0];
+  staff.addChord('lib', new alphaTab.model.Chord());
+  setChord(s, at(0, 1), cmaj7, OPEN);
+  setRest(s, at(0, 1));
+  expect(staff.chords!.has('lib')).toBe(true);
+});

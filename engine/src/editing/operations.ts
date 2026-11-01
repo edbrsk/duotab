@@ -1,6 +1,7 @@
 import * as alphaTab from '@coderline/alphatab';
 
 import type { EditPosition } from '../protocol';
+import { releaseChord } from './chords';
 import { finishEdit } from './finish';
 import { type IdSource, idSource } from './ids';
 import { barOf, beatOf, type Direction, staffOf, voiceOf } from './position';
@@ -45,7 +46,7 @@ export function deleteNote(score: Score, at: EditPosition, settings = defaultSet
   if (note) {
     beat.removeNote(note);
     // A rest carries no chord.
-    if (beat.notes.length === 0) beat.chordId = null;
+    if (beat.notes.length === 0) releaseChord(beat);
     // A grace note without notes has no rest to become.
     if (beat.graceType !== alphaTab.model.GraceType.None && beat.notes.length === 0) {
       removeBeat(score, at, beat);
@@ -98,7 +99,7 @@ export function setDuration(
 export function setRest(score: Score, at: EditPosition, settings = defaultSettings): EditPosition {
   const beat = beatOf(score, at);
   for (const note of [...beat.notes]) beat.removeNote(note);
-  beat.chordId = null;
+  releaseChord(beat);
   beat.isEmpty = false;
   finishEdit(score, at, settings);
   return at;

@@ -32,10 +32,21 @@ export function setChord(score: Score, at: EditPosition, spec: ChordSpec, frets:
   chord.firstFret = position.open ? 1 : position.lowestFret;
   // The sheet shows the name only.
   chord.showDiagram = false;
+  releaseChord(beat);
   beat.chordId = chordId(staff, chord);
   beat.isEmpty = false;
   finishEdit(score, at, settings);
   return at;
+}
+
+/** Takes the beat's chord off it, and out of the staff once no beat uses it, so its diagram goes too. */
+export function releaseChord(beat: alphaTab.model.Beat): void {
+  const id = beat.chordId;
+  if (id === null) return;
+  beat.chordId = null;
+  const staff = beat.voice.bar.staff;
+  const used = staff.bars.some((bar) => bar.voices.some((v) => v.beats.some((b) => b.chordId === id)));
+  if (!used) staff.chords?.delete(id);
 }
 
 /** An identical chord's id, or the lowest free number: Guitar Pro numbers its chords. */
