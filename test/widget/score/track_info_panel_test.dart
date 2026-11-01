@@ -486,6 +486,14 @@ void main() {
     verify(() => settings.setTrackDetailsFolded(folded: false)).called(1);
   });
 
+  testWidgets('tapping the chosen tab while folded unfolds too', (
+    tester,
+  ) async {
+    await pump(tester, drawn, trackDetailsFolded: true);
+    await tester.tap(find.text('Track'));
+    verify(() => settings.setTrackDetailsFolded(folded: false)).called(1);
+  });
+
   testWidgets('a tab tap switches and is remembered', (tester) async {
     await pump(tester, drawn);
     await tester.tap(find.text('Song'));

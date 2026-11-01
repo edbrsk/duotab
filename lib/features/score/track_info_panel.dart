@@ -85,34 +85,37 @@ class _TabSwitch extends StatelessWidget {
     final (tab, folded) = context.select<SettingsCubit, (PanelTab, bool)>(
       (c) => (c.state.panelTab, c.state.trackDetailsFolded),
     );
-    return SegmentedButton<PanelTab>(
-      showSelectedIcon: false,
-      style: SegmentedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-      ),
-      segments: [
-        for (final (value, label) in [
-          (PanelTab.song, l10n.song),
-          (PanelTab.track, l10n.trackHeading),
-        ])
-          ButtonSegment(
-            value: value,
-            label: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                maxLines: 1,
-                softWrap: false,
-                style: Theme.of(context).textTheme.titleMedium,
+    // SegmentedButton reports no change for the chosen tab, which unfolds too.
+    return Listener(
+      onPointerUp: folded
+          ? (_) => settings.setTrackDetailsFolded(folded: false)
+          : null,
+      child: SegmentedButton<PanelTab>(
+        showSelectedIcon: false,
+        style: SegmentedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+        ),
+        segments: [
+          for (final (value, label) in [
+            (PanelTab.song, l10n.song),
+            (PanelTab.track, l10n.trackHeading),
+          ])
+            ButtonSegment(
+              value: value,
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  softWrap: false,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
             ),
-          ),
-      ],
-      selected: {tab},
-      onSelectionChanged: (s) {
-        settings.setPanelTab(s.single);
-        if (folded) settings.setTrackDetailsFolded(folded: false);
-      },
+        ],
+        selected: {tab},
+        onSelectionChanged: (s) => settings.setPanelTab(s.single),
+      ),
     );
   }
 }
