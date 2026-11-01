@@ -71,7 +71,7 @@ export class EditSession {
       this.position = clampPosition(score, { ...command.position, track: this.track });
       return { edited: false };
     }
-    if (command.op === 'setTitle') {
+    if (command.op === 'setTitle' || command.op === 'setArtist') {
       const at = this.position ?? { track: this.track, bar: 0, voice: 0, beat: 0, string: 1 };
       const { edited } = runCommand(score, at, command, this.history, this.settings);
       if (edited) this.clearMarks();

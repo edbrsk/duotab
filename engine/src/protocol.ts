@@ -87,6 +87,7 @@ export type BarInfo = { index: number; startTick: number; startMs: number; tempo
 
 export type SongSummary = {
   title: string;
+  artist: string;
   tracks: TrackSummary[];
   /** Filled by `open`, empty from `summarize`. */
   bars: BarInfo[];
@@ -203,6 +204,7 @@ export type EditCommand =
   | { op: 'setChord'; chord: ChordSpec; frets: number[] }
   /** Needs no cursor. */
   | { op: 'setTitle'; title: string }
+  | { op: 'setArtist'; artist: string }
   | { op: 'setTimeSignature'; numerator: number; denominator: number }
   /** Null removes the bar's tempo marking. */
   | { op: 'setTempo'; bpm: number | null }

@@ -10,6 +10,7 @@ import { classifyTrack } from './track_kind';
 export function summarizeScore(score: alphaTab.model.Score, fileName: string): SongSummary {
   return {
     title: score.title.trim() || fileName.replace(/\.[^.]+$/, ''),
+    artist: score.artist.trim(),
     tracks: score.tracks.map((track, index) => {
       const staff = track.staves[0];
       // alphaTab gives percussion staves a default guitar tuning; it means nothing there.

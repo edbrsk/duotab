@@ -416,8 +416,8 @@ async function run(request: Request): Promise<unknown> {
           await drawAfterTrackEdit(api, mixer, session.track, command.op);
         } else {
           api.render();
-          // The title is not in the MIDI.
-          if (command.op !== 'setTitle') await mixer.regenerate();
+          // The title and artist are not in the MIDI.
+          if (command.op !== 'setTitle' && command.op !== 'setArtist') await mixer.regenerate();
         }
       }
       return editState(result.edited);

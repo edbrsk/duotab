@@ -20,6 +20,13 @@ test('falls back to the file name for an untitled song', () => {
   expect(s.title).toBe('My Riff');
 });
 
+test("reports the song's artist, trimmed, or nothing", () => {
+  const s = score(twoGuitarsAndDrums);
+  expect(summarizeScore(s, 'f.gp').artist).toBe('');
+  s.artist = '  Rabea Massaad ';
+  expect(summarizeScore(s, 'f.gp').artist).toBe('Rabea Massaad');
+});
+
 test('summarize reports a broken file as an error', () => {
   expect(() => summarize(new TextEncoder().encode('not a song'), 'notes.gp5')).toThrow();
   expect(() => summarize(gpBytes(twoGuitarsAndDrums).slice(0, 200), 'truncated.gp')).toThrow();

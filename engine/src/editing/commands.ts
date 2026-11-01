@@ -20,7 +20,7 @@ const shape = (score: Score, at: EditPosition) => {
   const staff = staffOf(score, { ...at, track: Math.min(at.track, score.tracks.length - 1) });
   const tracks = score.tracks.map((t) => `${t.name}:${t.staves[0].tuning}:${t.playbackInfo.primaryChannel}`);
   const chords = [...(staff.chords?.values() ?? [])].map((c) => `${c.name}:${c.strings}${c.showDiagram}`);
-  return `${score.title}|${tracks}|${staff.stringTuning.name}${chords}|${staff.bars
+  return `${score.title}|${score.artist}|${tracks}|${staff.stringTuning.name}${chords}|${staff.bars
     .map((bar) => {
       const master = bar.masterBar;
       const tempo = master.tempoAutomations.map((a) => `${a.ratioPosition}@${a.value}`);
@@ -153,6 +153,9 @@ export function runCommand(
         return at;
       case 'setTitle':
         score.title = command.title.trim();
+        return at;
+      case 'setArtist':
+        score.artist = command.artist.trim();
         return at;
     }
   })();

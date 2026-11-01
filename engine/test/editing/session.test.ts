@@ -82,6 +82,15 @@ test('the title changes without a cursor', () => {
   expect(session.state(s, true).song.title).toBe('Riff');
 });
 
+test('the artist changes without a cursor', () => {
+  const s = score(fourQuarters);
+  const session = new EditSession();
+  session.open(s, 0);
+  expect(session.command(s, { op: 'setArtist', artist: 'Rabea' })).toEqual({ edited: true });
+  expect(session.position).toBeNull();
+  expect(session.state(s, true).song.artist).toBe('Rabea');
+});
+
 test('the state tells the bar and whether paste can run', () => {
   const s = score(twoTracksThreeBars);
   const session = new EditSession();

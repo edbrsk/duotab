@@ -106,6 +106,24 @@ test('the same title is not an edit', () => {
   expect(history.canUndo).toBe(false);
 });
 
+test('a new artist is an edit and can be undone', async () => {
+  const s = score(fourQuarters);
+  const history = new History();
+  expect(runCommand(s, start, { op: 'setArtist', artist: '  Rabea  ' }, history).edited).toBe(true);
+  expect(s.artist).toBe('Rabea');
+  expect(runCommand(s, start, { op: 'setArtist', artist: 'Rabea' }, history).edited).toBe(false);
+  expect(runCommand(s, start, { op: 'setArtist', artist: '' }, history).edited).toBe(true);
+  expect(s.artist).toBe('');
+  expect((await history.undo(s))!.artist).toBe('Rabea');
+});
+
+test('Guitar Pro keeps the artist', () => {
+  const s = score(fourQuarters);
+  runCommand(s, start, { op: 'setArtist', artist: 'Rabea Massaad' }, new History());
+  const bytes = new alphaTab.exporter.Gp7Exporter().export(s, new alphaTab.Settings());
+  expect(alphaTab.importer.ScoreLoader.loadScoreFromBytes(bytes, new alphaTab.Settings()).artist).toBe('Rabea Massaad');
+});
+
 test('bar commands are edits and undo', async () => {
   for (const command of [
     { op: 'setTimeSignature', numerator: 3, denominator: 4 },
