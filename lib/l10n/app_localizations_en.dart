@@ -170,10 +170,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inputHeading => 'Input';
 
   @override
-  String get hideTrackDetails => 'Hide track details';
+  String get hideTrackDetails => 'Hide details';
 
   @override
-  String get showTrackDetails => 'Show track details';
+  String get showTrackDetails => 'Show details';
+
+  @override
+  String get song => 'Song';
+
+  @override
+  String get information => 'Information';
+
+  @override
+  String get musicalNotation => 'Musical notation';
+
+  @override
+  String get viewStandard => 'Standard';
+
+  @override
+  String get viewSlash => 'Slash';
+
+  @override
+  String get viewNumbered => 'Numbered';
+
+  @override
+  String get tablature => 'Tablature';
+
+  @override
+  String get slashNotation => 'Slash notation';
+
+  @override
+  String get numberedNotation => 'Numbered notation';
 
   @override
   String get hideInput => 'Hide input';

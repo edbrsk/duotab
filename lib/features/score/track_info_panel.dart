@@ -18,8 +18,7 @@ import '../playback/tone_label.dart';
 import '../settings/settings_cubit.dart';
 import 'score_cubit.dart';
 
-/// The drawn guitar track: name, tuning, string count and tone, and the
-/// input that writes on it.
+/// The song and its drawn track, over the input that writes on it.
 class TrackInfoPanel extends StatelessWidget {
   final bool editable;
 
@@ -27,160 +26,108 @@ class TrackInfoPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final textTheme = Theme.of(context).textTheme;
     final scoreState = context.watch<ScoreCubit>().state;
-    final track = scoreState.song?.tracks
+    final song = scoreState.song;
+    if (song == null) return const SizedBox.shrink();
+    final track = song.tracks
         .where((t) => t.index == scoreState.selectedTrackIndex)
         .firstOrNull;
-    final practice = context.select<PlaybackCubit, TrackPractice>(
-      (c) =>
-          (track == null ? null : c.state.practice.tracks[track.index]) ??
-          const TrackPractice(),
+    final tab = context.select<SettingsCubit, PanelTab>(
+      (c) => c.state.panelTab,
     );
-    final tone = practice.tone;
-    Widget heading(String text) => Padding(
-      padding: const EdgeInsets.only(top: Spacing.md, bottom: Spacing.xs),
-      child: Text(text.toUpperCase(), style: textTheme.labelSmall),
-    );
+    final body = tab == PanelTab.song
+        ? const SizedBox.shrink()
+        : track == null
+        ? const SizedBox.shrink()
+        : _TrackTab(track: track, editable: editable);
 
-    if (track == null) {
-      return Material(
-        type: MaterialType.transparency,
-        child: ListView(children: [heading(l10n.trackHeading)]),
-      );
-    }
-    final tuning = track.tuning;
-    final details = [
-      if (tuning != null) ...[
-        heading(l10n.tuning),
-        Text(tuningLabel(tuning)),
-        Text(l10n.stringsCount(tuning.length)),
-        if (editable) ...[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
-              onPressed: () async {
-                final editor = context.read<EditorCubit>();
-                final chosen = await showDialog<RetuneChoice>(
-                  context: context,
-                  builder: (_) =>
-                      RetuneDialog(trackName: track.name, tuning: tuning),
-                );
-                if (chosen != null) {
-                  await editor.retune(
-                    track.index,
-                    chosen.tuning,
-                    keepFrets: chosen.keepFrets,
-                  );
-                }
-              },
-              child: Text(l10n.retune),
-            ),
-          ),
-          _RetuneReportCard(track: track.index),
-        ],
-      ],
-      heading(l10n.notation),
-      Wrap(
-        spacing: Spacing.xs,
-        children: [
-          FilterChip(
-            label: Text(l10n.standardNotation),
-            selected: practice.showNotation,
-            // At least one staff stays drawn.
-            onSelected: practice.showNotation && !practice.showTab
-                ? null
-                : (on) => context.read<PlaybackCubit>().setStaffView(
-                    track.index,
-                    notation: on,
-                    tab: practice.showTab,
-                    slash: practice.showSlash,
-                    numbered: practice.showNumbered,
-                  ),
-          ),
-          FilterChip(
-            label: Text(l10n.tab),
-            selected: practice.showTab,
-            onSelected: practice.showTab && !practice.showNotation
-                ? null
-                : (on) => context.read<PlaybackCubit>().setStaffView(
-                    track.index,
-                    notation: practice.showNotation,
-                    tab: on,
-                    slash: practice.showSlash,
-                    numbered: practice.showNumbered,
-                  ),
-          ),
-        ],
-      ),
-      heading(l10n.tone),
-      RadioGroup<Tone>(
-        groupValue: tone,
-        onChanged: (value) {
-          if (value != null) {
-            context.read<PlaybackCubit>().setTone(track.index, value);
-          }
-        },
-        child: Column(
-          children: [
-            for (final t in Tone.values)
-              RadioListTile<Tone>(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                value: t,
-                title: Text(toneLabel(l10n, t)),
-              ),
-          ],
-        ),
-      ),
-    ];
-
-    if (!editable) {
-      return Material(
-        type: MaterialType.transparency,
-        child: ListView(
-          children: [
-            heading(l10n.trackHeading),
-            Text(track.name, style: textTheme.titleMedium),
-            ...details,
-          ],
-        ),
-      );
-    }
     return Material(
       type: MaterialType.transparency,
-      child: _SplitPanel(track: track, details: details),
+      child: editable
+          ? _SplitPanel(body: body)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _TabSwitch(),
+                Expanded(child: SingleChildScrollView(child: body)),
+              ],
+            ),
     );
   }
 }
 
-/// The track's details over the input, each part scrolling on its own and
-/// folding to its header.
-class _SplitPanel extends StatelessWidget {
-  final TrackSummary track;
-  final List<Widget> details;
+Widget _heading(BuildContext context, String text) => Padding(
+  padding: const EdgeInsets.only(top: Spacing.md, bottom: Spacing.xs),
+  child: Text(
+    text.toUpperCase(),
+    style: Theme.of(context).textTheme.labelSmall,
+  ),
+);
 
-  const _SplitPanel({required this.track, required this.details});
+class _TabSwitch extends StatelessWidget {
+  const _TabSwitch();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final settings = context.read<SettingsCubit>();
+    final (tab, folded) = context.select<SettingsCubit, (PanelTab, bool)>(
+      (c) => (c.state.panelTab, c.state.trackDetailsFolded),
+    );
+    return SegmentedButton<PanelTab>(
+      showSelectedIcon: false,
+      style: SegmentedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+      ),
+      segments: [
+        for (final (value, label) in [
+          (PanelTab.song, l10n.song),
+          (PanelTab.track, l10n.trackHeading),
+        ])
+          ButtonSegment(
+            value: value,
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                softWrap: false,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ),
+      ],
+      selected: {tab},
+      onSelectionChanged: (s) {
+        settings.setPanelTab(s.single);
+        if (folded) settings.setTrackDetailsFolded(folded: false);
+      },
+    );
+  }
+}
+
+class _TrackTab extends StatelessWidget {
+  final TrackSummary track;
+  final bool editable;
+
+  const _TrackTab({required this.track, required this.editable});
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final textTheme = Theme.of(context).textTheme;
-    final settingsCubit = context.read<SettingsCubit>();
-    final (detailsFolded, inputFolded) = context
-        .select<SettingsCubit, (bool, bool)>(
-          (c) => (c.state.trackDetailsFolded, c.state.inputFolded),
-        );
-
-    final trackPart = Column(
-      key: const Key('track-details'),
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    final practice = context.select<PlaybackCubit, TrackPractice>(
+      (c) => c.state.practice.tracks[track.index] ?? const TrackPractice(),
+    );
+    final tuning = track.tuning;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _PartHeader(
-          title: Tooltip(
+        _heading(context, l10n.information),
+        if (!editable)
+          Text(track.name, style: textTheme.titleMedium)
+        else
+          Tooltip(
             message: l10n.renameTrack,
             child: TextButton.icon(
               style: TextButton.styleFrom(
@@ -209,6 +156,165 @@ class _SplitPanel extends StatelessWidget {
               ),
             ),
           ),
+        _heading(context, l10n.musicalNotation),
+        _ViewKeys(track: track.index, practice: practice),
+        if (tuning != null) ...[
+          const SizedBox(height: Spacing.sm),
+          Text('${tuningLabel(tuning)} · ${l10n.stringsCount(tuning.length)}'),
+          if (editable) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                onPressed: () async {
+                  final editor = context.read<EditorCubit>();
+                  final chosen = await showDialog<RetuneChoice>(
+                    context: context,
+                    builder: (_) =>
+                        RetuneDialog(trackName: track.name, tuning: tuning),
+                  );
+                  if (chosen != null) {
+                    await editor.retune(
+                      track.index,
+                      chosen.tuning,
+                      keepFrets: chosen.keepFrets,
+                    );
+                  }
+                },
+                child: Text(l10n.retune),
+              ),
+            ),
+            _RetuneReportCard(track: track.index),
+          ],
+        ],
+        _heading(context, l10n.tone),
+        DropdownButton<Tone>(
+          value: practice.tone,
+          isExpanded: true,
+          underline: const SizedBox.shrink(),
+          onChanged: (tone) {
+            if (tone != null) {
+              context.read<PlaybackCubit>().setTone(track.index, tone);
+            }
+          },
+          items: [
+            for (final tone in Tone.values)
+              DropdownMenuItem(value: tone, child: Text(toneLabel(l10n, tone))),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Guitar Pro's four views of a track.
+class _ViewKeys extends StatelessWidget {
+  final int track;
+  final TrackPractice practice;
+
+  const _ViewKeys({required this.track, required this.practice});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final p = practice;
+    void send({bool? notation, bool? tab, bool? slash, bool? numbered}) =>
+        context.read<PlaybackCubit>().setStaffView(
+          track,
+          notation: notation ?? p.showNotation,
+          tab: tab ?? p.showTab,
+          slash: slash ?? p.showSlash,
+          numbered: numbered ?? p.showNumbered,
+        );
+    // The cursor and taps work on the standard and tab staves.
+    final keys = [
+      (
+        l10n.viewStandard,
+        l10n.standardNotation,
+        p.showNotation,
+        p.showNotation && !p.showTab
+            ? null
+            : () => send(notation: !p.showNotation),
+      ),
+      (
+        l10n.tab,
+        l10n.tablature,
+        p.showTab,
+        p.showTab && !p.showNotation ? null : () => send(tab: !p.showTab),
+      ),
+      (
+        l10n.viewSlash,
+        l10n.slashNotation,
+        p.showSlash,
+        () => send(slash: !p.showSlash),
+      ),
+      (
+        l10n.viewNumbered,
+        l10n.numberedNotation,
+        p.showNumbered,
+        () => send(numbered: !p.showNumbered),
+      ),
+    ];
+    return Row(
+      children: [
+        for (final (i, (label, tooltip, on, onTap)) in keys.indexed) ...[
+          if (i > 0) const SizedBox(width: Spacing.xs),
+          Expanded(
+            child: Tooltip(
+              message: tooltip,
+              child: Material(
+                key: on ? const Key('view-selected') : null,
+                color: on ? AppColors.accent : AppColors.key,
+                borderRadius: BorderRadius.circular(6),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(6),
+                  onTap: onTap,
+                  child: SizedBox(
+                    height: AccessibleSizes.minTouchTarget,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(label, maxLines: 1, softWrap: false),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// The song or track over the input, each part scrolling on its own and
+/// folding to its header.
+class _SplitPanel extends StatelessWidget {
+  final Widget body;
+
+  const _SplitPanel({required this.body});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final textTheme = Theme.of(context).textTheme;
+    final settingsCubit = context.read<SettingsCubit>();
+    final (detailsFolded, inputFolded) = context
+        .select<SettingsCubit, (bool, bool)>(
+          (c) => (c.state.trackDetailsFolded, c.state.inputFolded),
+        );
+
+    final upperPart = Column(
+      key: const Key('track-details'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _PartHeader(
+          title: const _TabSwitch(),
           folded: detailsFolded,
           foldTooltip: l10n.hideTrackDetails,
           unfoldTooltip: l10n.showTrackDetails,
@@ -219,10 +325,7 @@ class _SplitPanel extends StatelessWidget {
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(bottom: Spacing.sm),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: details,
-              ),
+              child: body,
             ),
           ),
       ],
@@ -241,7 +344,7 @@ class _SplitPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (inputFolded)
-            Flexible(child: trackPart)
+            Flexible(child: upperPart)
           else
             ConstrainedBox(
               // The input is what's used while writing; folding the track
@@ -249,7 +352,7 @@ class _SplitPanel extends StatelessWidget {
               constraints: BoxConstraints(
                 maxHeight: constraints.maxHeight * 0.4,
               ),
-              child: trackPart,
+              child: upperPart,
             ),
           const Divider(height: 1),
           if (inputFolded)

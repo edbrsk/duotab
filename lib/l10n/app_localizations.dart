@@ -379,14 +379,68 @@ abstract class AppLocalizations {
   /// No description provided for @hideTrackDetails.
   ///
   /// In en, this message translates to:
-  /// **'Hide track details'**
+  /// **'Hide details'**
   String get hideTrackDetails;
 
   /// No description provided for @showTrackDetails.
   ///
   /// In en, this message translates to:
-  /// **'Show track details'**
+  /// **'Show details'**
   String get showTrackDetails;
+
+  /// No description provided for @song.
+  ///
+  /// In en, this message translates to:
+  /// **'Song'**
+  String get song;
+
+  /// No description provided for @information.
+  ///
+  /// In en, this message translates to:
+  /// **'Information'**
+  String get information;
+
+  /// No description provided for @musicalNotation.
+  ///
+  /// In en, this message translates to:
+  /// **'Musical notation'**
+  String get musicalNotation;
+
+  /// No description provided for @viewStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get viewStandard;
+
+  /// No description provided for @viewSlash.
+  ///
+  /// In en, this message translates to:
+  /// **'Slash'**
+  String get viewSlash;
+
+  /// No description provided for @viewNumbered.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbered'**
+  String get viewNumbered;
+
+  /// No description provided for @tablature.
+  ///
+  /// In en, this message translates to:
+  /// **'Tablature'**
+  String get tablature;
+
+  /// No description provided for @slashNotation.
+  ///
+  /// In en, this message translates to:
+  /// **'Slash notation'**
+  String get slashNotation;
+
+  /// No description provided for @numberedNotation.
+  ///
+  /// In en, this message translates to:
+  /// **'Numbered notation'**
+  String get numberedNotation;
 
   /// No description provided for @hideInput.
   ///

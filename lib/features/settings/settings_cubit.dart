@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/storage/json_file.dart';
 import '../playback/tone.dart';
 
+enum PanelTab { song, track }
+
 class AppSettings {
   final bool countIn;
   final bool metronome;
@@ -18,6 +20,7 @@ class AppSettings {
   /// The track panel's two parts, each folded to its header.
   final bool trackDetailsFolded;
   final bool inputFolded;
+  final PanelTab panelTab;
 
   const AppSettings({
     this.countIn = false,
@@ -28,6 +31,7 @@ class AppSettings {
     this.chordsShown = false,
     this.trackDetailsFolded = false,
     this.inputFolded = false,
+    this.panelTab = PanelTab.track,
   });
 
   AppSettings copyWith({
@@ -39,6 +43,7 @@ class AppSettings {
     bool? chordsShown,
     bool? trackDetailsFolded,
     bool? inputFolded,
+    PanelTab? panelTab,
   }) => AppSettings(
     countIn: countIn ?? this.countIn,
     metronome: metronome ?? this.metronome,
@@ -48,6 +53,7 @@ class AppSettings {
     chordsShown: chordsShown ?? this.chordsShown,
     trackDetailsFolded: trackDetailsFolded ?? this.trackDetailsFolded,
     inputFolded: inputFolded ?? this.inputFolded,
+    panelTab: panelTab ?? this.panelTab,
   );
 }
 
@@ -72,6 +78,11 @@ class SettingsCubit extends Cubit<AppSettings> {
         chordsShown: json['chordsShown'] == true,
         trackDetailsFolded: json['trackDetailsFolded'] == true,
         inputFolded: json['inputFolded'] == true,
+        panelTab:
+            PanelTab.values
+                .where((t) => t.name == json['panelTab'])
+                .firstOrNull ??
+            PanelTab.track,
       ),
     );
   }
@@ -100,6 +111,9 @@ class SettingsCubit extends Cubit<AppSettings> {
   Future<void> setInputFolded({required bool folded}) =>
       _update(state.copyWith(inputFolded: folded));
 
+  Future<void> setPanelTab(PanelTab tab) =>
+      _update(state.copyWith(panelTab: tab));
+
   Future<void> _update(AppSettings settings) async {
     emit(settings);
     await file.write({
@@ -111,6 +125,7 @@ class SettingsCubit extends Cubit<AppSettings> {
       'chordsShown': settings.chordsShown,
       'trackDetailsFolded': settings.trackDetailsFolded,
       'inputFolded': settings.inputFolded,
+      'panelTab': settings.panelTab.name,
     });
   }
 }

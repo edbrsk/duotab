@@ -56,6 +56,7 @@ void main() {
   setUpAll(() {
     registerFallbackValue(Tone.clean);
     registerFallbackValue(const SetRest());
+    registerFallbackValue(PanelTab.track);
   });
 
   setUp(() {
@@ -69,6 +70,7 @@ void main() {
         .thenAnswer((_) async {});
     when(() => settings.setInputFolded(folded: any(named: 'folded')))
         .thenAnswer((_) async {});
+    when(() => settings.setPanelTab(any())).thenAnswer((_) async {});
     when(() => editor.state).thenReturn(const EditorState());
     when(() => playback.setTone(any(), any())).thenAnswer((_) async {});
     when(
@@ -99,6 +101,7 @@ void main() {
     bool chordsShown = false,
     bool trackDetailsFolded = false,
     bool inputFolded = false,
+    PanelTab panelTab = PanelTab.track,
     double height = 626,
     double textScale = 1,
   }) async {
@@ -107,6 +110,7 @@ void main() {
         chordsShown: chordsShown,
         trackDetailsFolded: trackDetailsFolded,
         inputFolded: inputFolded,
+        panelTab: panelTab,
       ),
     );
     tester.view
@@ -140,18 +144,43 @@ void main() {
 
   const drawn = ScoreState(song: _song, path: 'c.gp', selectedTrackIndex: 1);
 
+  bool selectedView(String label) => find
+      .ancestor(
+        of: find.text(label),
+        matching: find.byKey(const Key('view-selected')),
+      )
+      .evaluate()
+      .isNotEmpty;
+
+  Future<void> chooseTone(WidgetTester tester, String tone) async {
+    await tester.ensureVisible(find.byType(DropdownButton<Tone>));
+    await tester.tap(find.byType(DropdownButton<Tone>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tone).last);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets("shows the drawn track's name, tuning and string count", (
     tester,
   ) async {
     await pump(tester, drawn);
     expect(find.text('Guitar 1'), findsOneWidget);
-    expect(find.text('E♭ A♭ D♭ G♭ B♭ E♭'), findsOneWidget);
-    expect(find.text('6 strings'), findsOneWidget);
+    expect(find.text('E♭ A♭ D♭ G♭ B♭ E♭ · 6 strings'), findsOneWidget);
+    expect(find.text('Retune…'), findsOneWidget);
   });
 
   testWidgets('the switch labels stay on one line', (tester) async {
     await pump(tester, drawn, textScale: 1.3);
-    for (final label in ['Frets', 'Chords']) {
+    for (final label in [
+      'Frets',
+      'Chords',
+      'Song',
+      'Track',
+      'Standard',
+      'Tab',
+      'Slash',
+      'Numbered',
+    ]) {
       final text = tester.renderObject<RenderParagraph>(find.text(label));
       expect(
         text.size.height,
@@ -186,39 +215,55 @@ void main() {
     expect(find.byTooltip('Rename track'), findsNothing);
     expect(find.text('Retune…'), findsNothing);
     expect(find.text('Guitar 1'), findsOneWidget);
-    expect(find.byType(FilterChip), findsNWidgets(2));
-    expect(find.byType(RadioListTile<Tone>), findsNWidgets(3));
-
-    await tester.tap(find.text('High gain'));
+    expect(find.byTooltip('Numbered notation'), findsOneWidget);
+    await tester.tap(find.byTooltip('Numbered notation'));
+    verify(
+      () => playback.setStaffView(
+        1,
+        notation: true,
+        tab: true,
+        slash: false,
+        numbered: true,
+      ),
+    ).called(1);
+    await chooseTone(tester, 'High gain');
     verify(() => playback.setTone(1, Tone.highGain)).called(1);
   });
 
   testWidgets("marks the track's tone and changes it", (tester) async {
     await pump(tester, drawn);
-    final group = tester.widget<RadioGroup<Tone>>(
-      find.byType(RadioGroup<Tone>),
+    final dropdown = tester.widget<DropdownButton<Tone>>(
+      find.byType(DropdownButton<Tone>),
     );
-    expect(group.groupValue, Tone.overdrive);
-    await tester.ensureVisible(find.text('High gain'));
-    await tester.tap(find.text('High gain'));
+    expect(dropdown.value, Tone.overdrive);
+    expect(find.byType(RadioListTile<Tone>), findsNothing);
+    await chooseTone(tester, 'High gain');
     verify(() => playback.setTone(1, Tone.highGain)).called(1);
   });
 
-  testWidgets("notation toggles show the drawn track's staves", (tester) async {
+  testWidgets("the four views show the drawn track's choice", (tester) async {
+    when(() => playback.state).thenReturn(
+      const PlaybackState(
+        practice: PracticeSettings(
+          tracks: {1: TrackPractice(tone: Tone.overdrive, showSlash: true)},
+        ),
+      ),
+    );
     await pump(tester, drawn);
-    for (final label in ['Standard notation', 'Tab']) {
-      final chip = tester.widget<FilterChip>(
-        find.widgetWithText(FilterChip, label),
-      );
-      expect(chip.selected, isTrue);
+    for (final (label, on) in [
+      ('Standard', true),
+      ('Tab', true),
+      ('Slash', true),
+      ('Numbered', false),
+    ]) {
+      expect(selectedView(label), on, reason: label);
     }
   });
 
   testWidgets('turning one off calls the cubit', (tester) async {
     await pump(tester, drawn);
-    final chip = find.widgetWithText(FilterChip, 'Standard notation');
-    await tester.ensureVisible(chip);
-    await tester.tap(chip);
+    await tester.ensureVisible(find.text('Standard'));
+    await tester.tap(find.text('Standard'));
     verify(
       () => playback.setStaffView(
         1,
@@ -230,7 +275,9 @@ void main() {
     ).called(1);
   });
 
-  testWidgets('the last staff on cannot be turned off', (tester) async {
+  testWidgets("the last of Standard and Tab can't be turned off", (
+    tester,
+  ) async {
     when(() => playback.state).thenReturn(
       const PlaybackState(
         practice: PracticeSettings(
@@ -239,15 +286,32 @@ void main() {
       ),
     );
     await pump(tester, drawn);
-    final chip = tester.widget<FilterChip>(
-      find.widgetWithText(FilterChip, 'Standard notation'),
+    await tester.ensureVisible(find.text('Standard'));
+    await tester.tap(find.text('Standard'));
+    verifyNever(
+      () => playback.setStaffView(
+        any(),
+        notation: any(named: 'notation'),
+        tab: any(named: 'tab'),
+        slash: any(named: 'slash'),
+        numbered: any(named: 'numbered'),
+      ),
     );
-    expect(chip.onSelected, isNull);
+    await tester.tap(find.text('Slash'));
+    verify(
+      () => playback.setStaffView(
+        1,
+        notation: true,
+        tab: false,
+        slash: true,
+        numbered: false,
+      ),
+    ).called(1);
   });
 
   testWidgets('is empty without a drawn track', (tester) async {
     await pump(tester, const ScoreState());
-    expect(find.byType(RadioListTile<Tone>), findsNothing);
+    expect(find.byType(DropdownButton<Tone>), findsNothing);
   });
 
   testWidgets('the track name renames the track', (tester) async {
@@ -382,7 +446,7 @@ void main() {
     await pump(tester, drawn);
     final part = tester.getSize(find.byKey(const Key('track-details')));
     expect(part.height, lessThanOrEqualTo(626 * 0.4));
-    await tester.ensureVisible(find.text('High gain'));
+    await tester.ensureVisible(find.byType(DropdownButton<Tone>));
     await tester.pump();
     expect(onScreen(tester, find.byType(CursorKeys), 626), isTrue);
   });
@@ -395,17 +459,40 @@ void main() {
     expect(part.height, lessThan(2000 * 0.4));
   });
 
-  testWidgets('a folded track part shows only its name', (tester) async {
+  testWidgets('a folded upper part shows only the tabs', (tester) async {
     await pump(tester, drawn, trackDetailsFolded: true);
-    expect(find.text('Guitar 1'), findsOneWidget);
+    expect(find.text('Song'), findsOneWidget);
+    expect(find.text('Track'), findsOneWidget);
+    expect(find.text('Guitar 1'), findsNothing);
     expect(find.textContaining('E♭ A♭'), findsNothing);
-    expect(find.textContaining('strings'), findsNothing);
-    expect(find.text('Retune…'), findsNothing);
-    expect(find.byType(RadioListTile<Tone>), findsNothing);
+    expect(find.byType(DropdownButton<Tone>), findsNothing);
     expect(find.byType(FretPad), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Show track details'));
+    await tester.tap(find.byTooltip('Show details'));
     verify(() => settings.setTrackDetailsFolded(folded: false)).called(1);
+  });
+
+  testWidgets('a tab tap while folded unfolds on that tab', (tester) async {
+    await pump(tester, drawn, trackDetailsFolded: true);
+    await tester.tap(find.text('Song'));
+    verify(() => settings.setPanelTab(PanelTab.song)).called(1);
+    verify(() => settings.setTrackDetailsFolded(folded: false)).called(1);
+  });
+
+  testWidgets('a tab tap switches and is remembered', (tester) async {
+    await pump(tester, drawn);
+    await tester.tap(find.text('Song'));
+    verify(() => settings.setPanelTab(PanelTab.song)).called(1);
+    verifyNever(
+      () => settings.setTrackDetailsFolded(folded: any(named: 'folded')),
+    );
+  });
+
+  testWidgets('the Song tab hides the track', (tester) async {
+    await pump(tester, drawn, panelTab: PanelTab.song);
+    expect(find.text('Guitar 1'), findsNothing);
+    expect(find.byType(DropdownButton<Tone>), findsNothing);
+    expect(find.byType(FretPad), findsOneWidget);
   });
 
   testWidgets('a folded input part shows only its name', (tester) async {
@@ -414,7 +501,7 @@ void main() {
     expect(find.byType(CursorKeys), findsNothing);
     expect(find.text('Input'), findsOneWidget);
     expect(find.text('Chords'), findsNothing);
-    expect(find.byType(RadioListTile<Tone>), findsNWidgets(3));
+    expect(find.byType(DropdownButton<Tone>), findsOneWidget);
 
     await tester.tap(find.byTooltip('Show input'));
     verify(() => settings.setInputFolded(folded: false)).called(1);
@@ -422,7 +509,7 @@ void main() {
 
   testWidgets('each open part folds from its header', (tester) async {
     await pump(tester, drawn);
-    await tester.tap(find.byTooltip('Hide track details'));
+    await tester.tap(find.byTooltip('Hide details'));
     verify(() => settings.setTrackDetailsFolded(folded: true)).called(1);
     await tester.tap(find.byTooltip('Hide input'));
     verify(() => settings.setInputFolded(folded: true)).called(1);
@@ -431,13 +518,14 @@ void main() {
   testWidgets('a play-only panel is one part without arrows', (tester) async {
     await pump(tester, drawn, editable: false);
     expect(find.byType(CursorKeys), findsNothing);
-    expect(find.byTooltip('Hide track details'), findsNothing);
+    expect(find.byTooltip('Hide details'), findsNothing);
+    expect(find.text('Song'), findsOneWidget);
   });
 
   testWidgets('both part headers use the same text size', (tester) async {
     await pump(tester, drawn, trackDetailsFolded: true, inputFolded: true);
-    final name = tester.renderObject<RenderParagraph>(find.text('Guitar 1'));
+    final tab = tester.renderObject<RenderParagraph>(find.text('Track'));
     final input = tester.renderObject<RenderParagraph>(find.text('Input'));
-    expect(input.text.style?.fontSize, name.text.style?.fontSize);
+    expect(input.text.style?.fontSize, tab.text.style?.fontSize);
   });
 }
