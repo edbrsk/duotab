@@ -887,6 +887,26 @@ void main() {
       expect(find.byIcon(Icons.ios_share), findsNothing);
     });
 
+    testWidgets('opening export saves a field and the keyboard stays away', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        withArtist,
+        panelTab: PanelTab.song,
+        onExport: (_, _) async {},
+      );
+      await tester.enterText(artist, 'Rabea Massaad');
+      await tester.ensureVisible(find.byType(DropdownButton<ExportFormat>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButton<ExportFormat>));
+      await tester.pumpAndSettle();
+      verify(() => editor.setArtist('Rabea Massaad')).called(1);
+      await tester.tap(find.text('Guitar Pro file (.gp)').last);
+      await tester.pumpAndSettle();
+      expect(tester.testTextInput.isVisible, isFalse);
+    });
+
     testWidgets('export sits in the Song tab', (tester) async {
       ExportFormat? exported;
       await pump(
