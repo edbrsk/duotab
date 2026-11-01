@@ -167,6 +167,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chords => 'Chords';
 
   @override
+  String get inputHeading => 'Input';
+
+  @override
+  String get hideTrackDetails => 'Hide track details';
+
+  @override
+  String get showTrackDetails => 'Show track details';
+
+  @override
+  String get hideInput => 'Hide input';
+
+  @override
+  String get showInput => 'Show input';
+
+  @override
   String get chordRoot => 'Root';
 
   @override

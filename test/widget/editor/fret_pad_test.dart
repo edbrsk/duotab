@@ -88,16 +88,15 @@ void main() {
     verify(() => editor.command(const SetFret(7))).called(1);
   });
 
-  testWidgets('the arrows move the cursor', (tester) async {
+  testWidgets('the arrows live outside the pad', (tester) async {
     await pump(tester, const EditorState(position: _at));
-    for (final (tooltip, direction) in [
-      ('Next beat', 'right'),
-      ('Previous beat', 'left'),
-      ('String up', 'up'),
-      ('String down', 'down'),
+    for (final tooltip in [
+      'Next beat',
+      'Previous beat',
+      'String up',
+      'String down',
     ]) {
-      await tester.tap(find.byTooltip(tooltip));
-      verify(() => editor.command(Move(direction))).called(1);
+      expect(find.byTooltip(tooltip), findsNothing);
     }
   });
 

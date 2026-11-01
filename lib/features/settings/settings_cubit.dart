@@ -15,6 +15,10 @@ class AppSettings {
   /// The track panel's pad builds chords instead of frets.
   final bool chordsShown;
 
+  /// The track panel's two parts, each folded to its header.
+  final bool trackDetailsFolded;
+  final bool inputFolded;
+
   const AppSettings({
     this.countIn = false,
     this.metronome = false,
@@ -22,6 +26,8 @@ class AppSettings {
     this.trackPanelCollapsed = false,
     this.paletteCollapsed = false,
     this.chordsShown = false,
+    this.trackDetailsFolded = false,
+    this.inputFolded = false,
   });
 
   AppSettings copyWith({
@@ -31,6 +37,8 @@ class AppSettings {
     bool? trackPanelCollapsed,
     bool? paletteCollapsed,
     bool? chordsShown,
+    bool? trackDetailsFolded,
+    bool? inputFolded,
   }) => AppSettings(
     countIn: countIn ?? this.countIn,
     metronome: metronome ?? this.metronome,
@@ -38,6 +46,8 @@ class AppSettings {
     trackPanelCollapsed: trackPanelCollapsed ?? this.trackPanelCollapsed,
     paletteCollapsed: paletteCollapsed ?? this.paletteCollapsed,
     chordsShown: chordsShown ?? this.chordsShown,
+    trackDetailsFolded: trackDetailsFolded ?? this.trackDetailsFolded,
+    inputFolded: inputFolded ?? this.inputFolded,
   );
 }
 
@@ -60,6 +70,8 @@ class SettingsCubit extends Cubit<AppSettings> {
         trackPanelCollapsed: json['trackPanelCollapsed'] == true,
         paletteCollapsed: json['paletteCollapsed'] == true,
         chordsShown: json['chordsShown'] == true,
+        trackDetailsFolded: json['trackDetailsFolded'] == true,
+        inputFolded: json['inputFolded'] == true,
       ),
     );
   }
@@ -82,6 +94,12 @@ class SettingsCubit extends Cubit<AppSettings> {
   Future<void> setChordsShown({required bool shown}) =>
       _update(state.copyWith(chordsShown: shown));
 
+  Future<void> setTrackDetailsFolded({required bool folded}) =>
+      _update(state.copyWith(trackDetailsFolded: folded));
+
+  Future<void> setInputFolded({required bool folded}) =>
+      _update(state.copyWith(inputFolded: folded));
+
   Future<void> _update(AppSettings settings) async {
     emit(settings);
     await file.write({
@@ -91,6 +109,8 @@ class SettingsCubit extends Cubit<AppSettings> {
       'trackPanelCollapsed': settings.trackPanelCollapsed,
       'paletteCollapsed': settings.paletteCollapsed,
       'chordsShown': settings.chordsShown,
+      'trackDetailsFolded': settings.trackDetailsFolded,
+      'inputFolded': settings.inputFolded,
     });
   }
 }

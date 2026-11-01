@@ -370,6 +370,36 @@ abstract class AppLocalizations {
   /// **'Chords'**
   String get chords;
 
+  /// No description provided for @inputHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Input'**
+  String get inputHeading;
+
+  /// No description provided for @hideTrackDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide track details'**
+  String get hideTrackDetails;
+
+  /// No description provided for @showTrackDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Show track details'**
+  String get showTrackDetails;
+
+  /// No description provided for @hideInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide input'**
+  String get hideInput;
+
+  /// No description provided for @showInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Show input'**
+  String get showInput;
+
   /// No description provided for @chordRoot.
   ///
   /// In en, this message translates to:

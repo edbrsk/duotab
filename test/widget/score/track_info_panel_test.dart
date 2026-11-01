@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/chord_picker.dart';
+import 'package:duoscore/features/editor/cursor_keys.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
 import 'package:duoscore/features/editor/fret_pad.dart';
 import 'package:duoscore/features/playback/playback_cubit.dart';
@@ -52,7 +53,10 @@ void main() {
   late _Editor editor;
   late _Settings settings;
 
-  setUpAll(() => registerFallbackValue(Tone.clean));
+  setUpAll(() {
+    registerFallbackValue(Tone.clean);
+    registerFallbackValue(const SetRest());
+  });
 
   setUp(() {
     score = _Score();
@@ -60,6 +64,10 @@ void main() {
     editor = _Editor();
     settings = _Settings();
     when(() => settings.setChordsShown(shown: any(named: 'shown')))
+        .thenAnswer((_) async {});
+    when(() => settings.setTrackDetailsFolded(folded: any(named: 'folded')))
+        .thenAnswer((_) async {});
+    when(() => settings.setInputFolded(folded: any(named: 'folded')))
         .thenAnswer((_) async {});
     when(() => editor.state).thenReturn(const EditorState());
     when(() => playback.setTone(any(), any())).thenAnswer((_) async {});
@@ -87,11 +95,18 @@ void main() {
     ScoreState state, {
     bool editable = true,
     bool chordsShown = false,
+    bool trackDetailsFolded = false,
+    bool inputFolded = false,
     double height = 626,
     double textScale = 1,
   }) async {
-    when(() => settings.state)
-        .thenReturn(AppSettings(chordsShown: chordsShown));
+    when(() => settings.state).thenReturn(
+      AppSettings(
+        chordsShown: chordsShown,
+        trackDetailsFolded: trackDetailsFolded,
+        inputFolded: inputFolded,
+      ),
+    );
     tester.view
       ..physicalSize = Size(220, height)
       ..devicePixelRatio = 1;
@@ -182,6 +197,7 @@ void main() {
       find.byType(RadioGroup<Tone>),
     );
     expect(group.groupValue, Tone.overdrive);
+    await tester.ensureVisible(find.text('High gain'));
     await tester.tap(find.text('High gain'));
     verify(() => playback.setTone(1, Tone.highGain)).called(1);
   });
@@ -198,7 +214,9 @@ void main() {
 
   testWidgets('turning one off calls the cubit', (tester) async {
     await pump(tester, drawn);
-    await tester.tap(find.widgetWithText(FilterChip, 'Standard notation'));
+    final chip = find.widgetWithText(FilterChip, 'Standard notation');
+    await tester.ensureVisible(chip);
+    await tester.tap(chip);
     verify(() => playback.setStaffView(1, notation: false, tab: true))
         .called(1);
   });
@@ -284,10 +302,10 @@ void main() {
       find.text("12 notes moved to another string, 3 can't be played"),
       findsOneWidget,
     );
-    await tester.ensureVisible(find.text('Octave up'));
-    await tester.tap(find.text('Undo'));
-    await tester.tap(find.text('Octave up'));
-    await tester.tap(find.text('Octave down'));
+    for (final label in ['Undo', 'Octave up', 'Octave down']) {
+      await tester.ensureVisible(find.text(label));
+      await tester.tap(find.text(label));
+    }
     verify(() => editor.undo()).called(1);
     verify(() => editor.retuneOctave(1)).called(1);
     verify(() => editor.retuneOctave(-1)).called(1);
@@ -319,5 +337,89 @@ void main() {
     when(() => editor.state).thenReturn(reported(moved: 0, unplayable: 0));
     await pump(tester, drawn);
     expect(find.text('Octave up'), findsNothing);
+  });
+
+  bool onScreen(WidgetTester tester, Finder finder, double height) {
+    final box = tester.getRect(finder);
+    return box.top >= 0 && box.bottom <= height;
+  }
+
+  testWidgets('the arrows stay on screen below a long chord picker', (
+    tester,
+  ) async {
+    when(() => editor.state).thenReturn(
+      const EditorState(
+        position: EditPosition(track: 1, bar: 0, voice: 0, beat: 0, string: 1),
+      ),
+    );
+    when(() => editor.command(any())).thenAnswer((_) async {});
+    await pump(tester, drawn, chordsShown: true);
+    expect(find.byType(ChordPicker), findsOneWidget);
+    expect(onScreen(tester, find.byType(CursorKeys), 626), isTrue);
+    await tester.tap(find.byTooltip('Next beat'));
+    verify(() => editor.command(const Move('right'))).called(1);
+  });
+
+  testWidgets('the frets pad shares the same arrows', (tester) async {
+    await pump(tester, drawn);
+    expect(find.byType(FretPad), findsOneWidget);
+    expect(find.byType(CursorKeys), findsOneWidget);
+    expect(onScreen(tester, find.byType(CursorKeys), 626), isTrue);
+  });
+
+  testWidgets('the track part takes at most 40% and scrolls on its own', (
+    tester,
+  ) async {
+    await pump(tester, drawn);
+    final part = tester.getSize(find.byKey(const Key('track-details')));
+    expect(part.height, lessThanOrEqualTo(626 * 0.4));
+    await tester.ensureVisible(find.text('High gain'));
+    await tester.pump();
+    expect(onScreen(tester, find.byType(CursorKeys), 626), isTrue);
+  });
+
+  testWidgets('a short track part is only as tall as its contents', (
+    tester,
+  ) async {
+    await pump(tester, drawn, height: 2000);
+    final part = tester.getSize(find.byKey(const Key('track-details')));
+    expect(part.height, lessThan(2000 * 0.4));
+  });
+
+  testWidgets('a folded track part keeps its name and tuning', (tester) async {
+    await pump(tester, drawn, trackDetailsFolded: true);
+    expect(find.text('Guitar 1'), findsOneWidget);
+    expect(find.text('E♭ A♭ D♭ G♭ B♭ E♭ · 6 strings'), findsOneWidget);
+    expect(find.text('Retune…'), findsNothing);
+    expect(find.byType(RadioListTile<Tone>), findsNothing);
+    expect(find.byType(FretPad), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Show track details'));
+    verify(() => settings.setTrackDetailsFolded(folded: false)).called(1);
+  });
+
+  testWidgets('a folded input part says which pad is chosen', (tester) async {
+    await pump(tester, drawn, inputFolded: true, chordsShown: true);
+    expect(find.byType(ChordPicker), findsNothing);
+    expect(find.byType(CursorKeys), findsNothing);
+    expect(find.text('Input · Chords'), findsOneWidget);
+    expect(find.byType(RadioListTile<Tone>), findsNWidgets(3));
+
+    await tester.tap(find.byTooltip('Show input'));
+    verify(() => settings.setInputFolded(folded: false)).called(1);
+  });
+
+  testWidgets('each open part folds from its header', (tester) async {
+    await pump(tester, drawn);
+    await tester.tap(find.byTooltip('Hide track details'));
+    verify(() => settings.setTrackDetailsFolded(folded: true)).called(1);
+    await tester.tap(find.byTooltip('Hide input'));
+    verify(() => settings.setInputFolded(folded: true)).called(1);
+  });
+
+  testWidgets('a play-only panel is one part without arrows', (tester) async {
+    await pump(tester, drawn, editable: false);
+    expect(find.byType(CursorKeys), findsNothing);
+    expect(find.byTooltip('Hide track details'), findsNothing);
   });
 }

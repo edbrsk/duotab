@@ -6,8 +6,7 @@ import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
 import 'editor_cubit.dart';
 import 'fret_entry.dart';
-
-const _keyHeight = 44.0;
+import 'pad_key.dart';
 
 class FretPad extends StatefulWidget {
   const FretPad({super.key});
@@ -32,29 +31,26 @@ class _FretPadState extends State<FretPad> {
       editor.command(command);
     }
 
-    Widget digit(int d) => _Key(
+    Widget digit(int d) => PadKey(
       label: '$d',
       onPressed: () {
         final fret = _entry.digit(d);
         send(SetFret(fret, combine: _entry.combined));
       },
     );
-    Widget icon(IconData icon, String tooltip, EditCommand command) =>
-        _Key(icon: icon, tooltip: tooltip, onPressed: () => send(command));
 
     final rows = [
       [digit(1), digit(2), digit(3)],
       [digit(4), digit(5), digit(6)],
       [digit(7), digit(8), digit(9)],
       [
-        icon(Icons.chevron_left, l10n.previousBeat, const Move('left')),
+        PadKey(
+          icon: Icons.backspace_outlined,
+          tooltip: l10n.deleteNote,
+          onPressed: () => send(const DeleteNote()),
+        ),
         digit(0),
-        icon(Icons.chevron_right, l10n.nextBeat, const Move('right')),
-      ],
-      [
-        icon(Icons.keyboard_arrow_up, l10n.stringUp, const Move('up')),
-        icon(Icons.backspace_outlined, l10n.deleteNote, const DeleteNote()),
-        icon(Icons.keyboard_arrow_down, l10n.stringDown, const Move('down')),
+        const SizedBox.shrink(),
       ],
     ];
     // A digit after the cursor moves starts a new fret.
@@ -84,35 +80,5 @@ class _FretPadState extends State<FretPad> {
         ),
       ),
     );
-  }
-}
-
-class _Key extends StatelessWidget {
-  final String? label;
-  final IconData? icon;
-  final String? tooltip;
-  final VoidCallback onPressed;
-
-  const _Key({required this.onPressed, this.label, this.icon, this.tooltip});
-
-  @override
-  Widget build(BuildContext context) {
-    final key = Material(
-      color: AppColors.key,
-      borderRadius: BorderRadius.circular(6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(6),
-        onTap: onPressed,
-        child: SizedBox(
-          height: _keyHeight,
-          child: Center(
-            child: icon != null
-                ? Icon(icon, size: IconSizes.md)
-                : Text(label!, style: Theme.of(context).textTheme.titleMedium),
-          ),
-        ),
-      ),
-    );
-    return tooltip == null ? key : Tooltip(message: tooltip, child: key);
   }
 }

@@ -26,6 +26,8 @@ void main() {
     expect(cubit.state.trackPanelCollapsed, isFalse);
     expect(cubit.state.paletteCollapsed, isFalse);
     expect(cubit.state.chordsShown, isFalse);
+    expect(cubit.state.trackDetailsFolded, isFalse);
+    expect(cubit.state.inputFolded, isFalse);
     await cubit.close();
   });
 
@@ -38,6 +40,8 @@ void main() {
     await cubit.setChordsShown(shown: true);
     await cubit.setTrackPanelCollapsed(collapsed: true);
     await cubit.setPaletteCollapsed(collapsed: true);
+    await cubit.setTrackDetailsFolded(folded: true);
+    await cubit.setInputFolded(folded: true);
     await cubit.close();
 
     final fresh = SettingsCubit(JsonFile(file));
@@ -48,6 +52,8 @@ void main() {
     expect(fresh.state.trackPanelCollapsed, isTrue);
     expect(fresh.state.paletteCollapsed, isTrue);
     expect(fresh.state.chordsShown, isTrue);
+    expect(fresh.state.trackDetailsFolded, isTrue);
+    expect(fresh.state.inputFolded, isTrue);
     await fresh.close();
   });
 }
