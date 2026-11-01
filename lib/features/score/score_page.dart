@@ -189,7 +189,6 @@ class _TitleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final style = Theme.of(context).textTheme.titleMedium
         ?.copyWith(color: Colors.black87, fontFamily: 'Georgia');
     return Padding(
@@ -197,37 +196,56 @@ class _TitleRow extends StatelessWidget {
         top: MediaQuery.paddingOf(context).top + Spacing.sm,
         bottom: Spacing.xs,
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Flexible(
-            child: !editable
-                ? Text(song.title, style: style)
-                : Tooltip(
-                    message: l10n.changeTitle,
-                    child: TextButton.icon(
-                      onPressed: () async {
-                        final editor = context.read<EditorCubit>();
-                        final title = await showDialog<String>(
-                          context: context,
-                          builder: (_) => TitleDialog(title: song.title),
-                        );
-                        if (title != null) await editor.setTitle(title);
-                      },
-                      iconAlignment: IconAlignment.end,
-                      icon: const Icon(Icons.edit, color: Colors.black38),
-                      label: Text(song.title, style: style),
-                    ),
-                  ),
-          ),
-          if (onExport case final onExport?)
-            ExportButton(
-              onExport: onExport,
-              canExportPdf: song.guitarTracks.isNotEmpty,
+          Padding(
+            // Room for the button, so the title stays centred and clear of it.
+            padding: EdgeInsets.symmetric(
+              horizontal: panelButton == null
+                  ? 0
+                  : AccessibleSizes.minTouchTarget,
             ),
-          ?panelButton,
+            child: _titleAndExport(context, style),
+          ),
+          if (panelButton case final panelButton?)
+            PositionedDirectional(end: 0, child: panelButton),
         ],
       ),
+    );
+  }
+
+  Widget _titleAndExport(BuildContext context, TextStyle? style) {
+    final l10n = AppLocalizations.of(context)!;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Flexible(
+          child: !editable
+              ? Text(song.title, style: style)
+              : Tooltip(
+                  message: l10n.changeTitle,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final editor = context.read<EditorCubit>();
+                      final title = await showDialog<String>(
+                        context: context,
+                        builder: (_) => TitleDialog(title: song.title),
+                      );
+                      if (title != null) await editor.setTitle(title);
+                    },
+                    iconAlignment: IconAlignment.end,
+                    icon: const Icon(Icons.edit, color: Colors.black38),
+                    label: Text(song.title, style: style),
+                  ),
+                ),
+        ),
+        if (onExport case final onExport?)
+          ExportButton(
+            onExport: onExport,
+            canExportPdf: song.guitarTracks.isNotEmpty,
+          ),
+      ],
     );
   }
 }

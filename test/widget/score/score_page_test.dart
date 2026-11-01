@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
+import 'package:duoscore/core/design/design_tokens.dart';
 import 'package:duoscore/core/duo/vertical_bar_edge_provider.dart';
 import 'package:duoscore/engine/engine_bridge.dart';
 import 'package:duoscore/engine/protocol.dart';
@@ -216,6 +217,23 @@ void main() {
 
       await pumpPage(tester, width: 466);
       expect(panel, findsNothing);
+    });
+
+    testWidgets('without a bar, the button sits at the top right', (
+      tester,
+    ) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466);
+
+      final button = tester.getRect(
+        find.ancestor(
+          of: find.byTooltip(show),
+          matching: find.byType(IconButton),
+        ),
+      );
+      final title = tester.getRect(find.text(drumsAndTwoGuitars.title));
+      expect(button.right, greaterThan(466 - Spacing.md - 1));
+      expect(title.center.dx, closeTo(466 / 2, 1));
     });
 
     testWidgets('another song opens on its sheet', (tester) async {
