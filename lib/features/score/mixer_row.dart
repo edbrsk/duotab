@@ -152,7 +152,8 @@ class _ChannelRow extends StatelessWidget {
                     SizedBox(
                       key: const ValueKey('readout'),
                       height: 12,
-                      child: Align(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
                         alignment: Alignment.centerRight,
                         child: text,
                       ),

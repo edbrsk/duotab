@@ -7,6 +7,7 @@ import 'package:duoscore/features/score/mixer_row.dart';
 import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -134,6 +135,30 @@ void main() {
       greaterThan(100),
     );
     expect(find.text('−6.0 dB'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('in a narrow drawer large text still shows the whole level', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
+          child: const MixerRow(track: _guitar, volumeDb: -6, pan: 0),
+        ),
+      ),
+      width: 165,
+    );
+    final readout = tester.renderObject<RenderParagraph>(find.text('−6.0 dB'));
+    expect(
+      readout.size.height,
+      greaterThanOrEqualTo(readout.getMinIntrinsicHeight(double.infinity)),
+    );
+    expect(tester.getSize(find.byKey(const ValueKey('readout'))).height, 12);
     expect(tester.takeException(), isNull);
   });
 
