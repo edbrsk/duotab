@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest';
 
 import { newSong } from '../../src/editing/new_song';
+import { dbFromVolume } from '../../src/mix_values';
 
 const sevenStrings = [64, 59, 55, 50, 45, 40, 35];
 
@@ -23,4 +24,9 @@ test('the title becomes the song title, and the track is a clean guitar', () => 
   expect(s.title).toBe('Riff "One"');
   expect(s.tracks[0].name).toBe('Guitar');
   expect(s.tracks[0].playbackInfo.program).toBe(27);
+});
+
+test("the new song's guitar starts at 0 dB", () => {
+  const s = newSong({ title: 'Riff', tuning: sevenStrings.slice(0, 6), tempo: 120, numerator: 4, denominator: 4 });
+  expect(dbFromVolume(s.tracks[0].playbackInfo.volume)).toBe(0);
 });

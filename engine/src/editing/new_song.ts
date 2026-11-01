@@ -2,6 +2,7 @@ import * as alphaTab from '@coderline/alphatab';
 
 import type { NewSongOptions } from '../protocol';
 import { restsFilling } from './operations';
+import { NEW_TRACK_VOLUME } from './tracks';
 
 const BARS = 4;
 const CLEAN = 27;
@@ -23,5 +24,6 @@ export function newSong(options: NewSongOptions, settings = new alphaTab.Setting
   const score = importer.readScore();
   // Set on the model, so no character of the title can break the alphaTex.
   score.title = options.title;
+  score.tracks[0].playbackInfo.volume = NEW_TRACK_VOLUME;
   return score;
 }

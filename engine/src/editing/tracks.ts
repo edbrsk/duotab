@@ -10,7 +10,8 @@ type Track = alphaTab.model.Track;
 
 const defaultSettings = new alphaTab.Settings();
 const DRUM_CHANNEL = 9;
-const NEW_TRACK_VOLUME = 12;
+/** alphaTab's 0 dB; its own default for a new track is 15, about +6 dB. */
+export const NEW_TRACK_VOLUME = 12;
 
 export const isGuitar = (track: Track) =>
   classifyTrack({
