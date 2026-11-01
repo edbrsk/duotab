@@ -284,6 +284,55 @@ void main() {
     ).called(1);
   });
 
+  testWidgets('VoiceOver hears each view key as a switch, on or off', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    when(() => playback.state).thenReturn(
+      const PlaybackState(
+        practice: PracticeSettings(
+          tracks: {1: TrackPractice(tone: Tone.overdrive, showTab: false)},
+        ),
+      ),
+    );
+    await pump(tester, drawn, height: 2000);
+    SemanticsNode node(String name) => tester.getSemantics(
+      find.descendant(of: find.byTooltip(name), matching: find.byType(InkWell)),
+    );
+    expect(
+      node('Standard notation'),
+      matchesSemantics(
+        isButton: true,
+        hasToggledState: true,
+        isToggled: true,
+        hasEnabledState: true,
+        tooltip: 'Standard notation',
+        label: 'Standard',
+      ),
+    );
+    expect(
+      node('Slash notation'),
+      matchesSemantics(
+        isButton: true,
+        hasToggledState: true,
+        hasEnabledState: true,
+        isEnabled: true,
+        hasTapAction: true,
+        hasFocusAction: true,
+        isFocusable: true,
+        tooltip: 'Slash notation',
+        label: 'Slash',
+      ),
+    );
+    // The locked key looks as unavailable as it is.
+    final locked = find.ancestor(
+      of: find.text('Standard'),
+      matching: find.byType(Opacity),
+    );
+    expect(tester.widget<Opacity>(locked.first).opacity, lessThan(1));
+    semantics.dispose();
+  });
+
   testWidgets("the last of Standard and Tab can't be turned off", (
     tester,
   ) async {

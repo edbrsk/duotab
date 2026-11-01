@@ -447,21 +447,29 @@ class _ViewKeys extends StatelessWidget {
           Expanded(
             child: Tooltip(
               message: tooltip,
-              child: Material(
-                key: on ? const Key('view-selected') : null,
-                color: on ? AppColors.accent : AppColors.key,
-                borderRadius: BorderRadius.circular(6),
-                child: InkWell(
+              child: Opacity(
+                opacity: onTap == null ? 0.5 : 1,
+                child: Material(
+                  key: on ? const Key('view-selected') : null,
+                  color: on ? AppColors.accent : AppColors.key,
                   borderRadius: BorderRadius.circular(6),
-                  onTap: onTap,
-                  child: SizedBox(
-                    height: AccessibleSizes.minTouchTarget,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(label, maxLines: 1, softWrap: false),
+                  child: Semantics(
+                    button: true,
+                    toggled: on,
+                    enabled: onTap != null,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(6),
+                      onTap: onTap,
+                      child: SizedBox(
+                        height: AccessibleSizes.minTouchTarget,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(label, maxLines: 1, softWrap: false),
+                            ),
+                          ),
                         ),
                       ),
                     ),
