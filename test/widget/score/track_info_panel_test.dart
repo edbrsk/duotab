@@ -424,4 +424,11 @@ void main() {
     expect(find.byType(CursorKeys), findsNothing);
     expect(find.byTooltip('Hide track details'), findsNothing);
   });
+
+  testWidgets('both part headers use the same text size', (tester) async {
+    await pump(tester, drawn, trackDetailsFolded: true, inputFolded: true);
+    final name = tester.renderObject<RenderParagraph>(find.text('Guitar 1'));
+    final input = tester.renderObject<RenderParagraph>(find.text('Input'));
+    expect(input.text.style?.fontSize, name.text.style?.fontSize);
+  });
 }

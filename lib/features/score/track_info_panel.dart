@@ -225,7 +225,7 @@ class _SplitPanel extends StatelessWidget {
     );
 
     final inputHeader = _PartHeader(
-      title: Text(l10n.inputHeading, style: textTheme.titleSmall),
+      title: Text(l10n.inputHeading, style: textTheme.titleMedium),
       folded: inputFolded,
       foldTooltip: l10n.hideInput,
       unfoldTooltip: l10n.showInput,
