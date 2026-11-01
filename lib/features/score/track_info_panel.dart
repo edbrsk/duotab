@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -158,10 +160,11 @@ class _SongTab extends StatelessWidget {
     final editor = context.read<EditorCubit>();
     final score = context.read<ScoreCubit>();
     // A field can let go of its text after another song has opened.
-    void Function(String) onlyHere(Future<void> Function(String) change) =>
-        (text) {
-          if (score.state.openId == openId) change(text);
-        };
+    Future<void> Function(String) onlyHere(
+      Future<void> Function(String) change,
+    ) => (text) async {
+      if (score.state.openId == openId) await change(text);
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -203,7 +206,7 @@ class _SongField extends StatefulWidget {
   final String label;
   final String value;
   final bool allowEmpty;
-  final void Function(String text) onCommit;
+  final Future<void> Function(String text) onCommit;
 
   const _SongField({
     required this.label,
@@ -247,7 +250,12 @@ class _SongFieldState extends State<_SongField> {
       _controller.text = widget.value;
       return;
     }
-    widget.onCommit(text);
+    // A change the song refused leaves its own value standing.
+    unawaited(
+      widget.onCommit(text).then((_) {
+        if (mounted && !_typed) _controller.text = widget.value;
+      }),
+    );
   }
 
   @override

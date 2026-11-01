@@ -627,6 +627,17 @@ void main() {
       verifyNever(() => editor.setArtist(any()));
     });
 
+    testWidgets('a title the song keeps refusing comes back to its own', (
+      tester,
+    ) async {
+      await pump(tester, withArtist, panelTab: PanelTab.song);
+      await tester.enterText(title, 'Riff');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      verify(() => editor.setTitle('Riff')).called(1);
+      expect(fieldText(tester, title), 'Collateral');
+    });
+
     testWidgets('an empty title is not saved and comes back', (tester) async {
       await pump(tester, withArtist, panelTab: PanelTab.song);
       await tester.enterText(title, '   ');
