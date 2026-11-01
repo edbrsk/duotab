@@ -218,6 +218,19 @@ void main() {
       expect(panel, findsNothing);
     });
 
+    testWidgets('another song opens on its sheet', (tester) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466);
+      await tester.tap(find.byTooltip(show));
+      await tester.pumpAndSettle();
+
+      await cubit.open('beat.gp');
+      await tester.pumpAndSettle();
+
+      expect(panel, findsNothing);
+      expect(find.byTooltip(show), findsOneWidget);
+    });
+
     testWidgets('no song, no track panel button', (tester) async {
       await pumpPage(tester, width: 466);
       expect(find.byTooltip(show), findsNothing);

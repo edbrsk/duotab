@@ -38,6 +38,7 @@ class ScorePage extends StatefulWidget {
 
 class _ScorePageState extends State<ScorePage> {
   var _playOnlyPanelOpen = false;
+  int? _openId;
 
   @override
   void didChangeDependencies() {
@@ -55,6 +56,10 @@ class _ScorePageState extends State<ScorePage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final state = context.watch<ScoreCubit>().state;
+    if (state.openId != _openId) {
+      _openId = state.openId;
+      _playOnlyPanelOpen = false;
+    }
     final message = switch (state) {
       ScoreState(:final error?) => l10n.scoreError(error),
       ScoreState(song: null, loading: false) => l10n.noSongOpen,
