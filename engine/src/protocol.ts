@@ -38,7 +38,7 @@ export type LevelsPayload = { tracks: ([number, number] | null)[]; master: [numb
 
 export type SetTracksPayload = { tracks: TrackMix[] };
 
-export type StaffView = { index: number; notation: boolean; tab: boolean };
+export type StaffView = { index: number; notation: boolean; tab: boolean; slash: boolean; numbered: boolean };
 
 export type SetStavesPayload = { staves: StaffView[] };
 

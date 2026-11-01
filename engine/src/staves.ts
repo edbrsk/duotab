@@ -4,7 +4,8 @@ import type { StaffView } from './protocol';
 
 /**
  * Guitar Pro files save which staves a track shows, and alphaTab draws only
- * those; DuoScore draws notation above tab unless the owner hides one.
+ * those; DuoScore draws notation above tab, without slash or numbered, until
+ * the owner chooses otherwise.
  */
 export function showNotationAndTab(score: alphaTab.model.Score): void {
   for (const track of score.tracks) {
@@ -12,6 +13,8 @@ export function showNotationAndTab(score: alphaTab.model.Score): void {
     if (staff.isPercussion || staff.tuning.length === 0) continue;
     staff.showStandardNotation = true;
     staff.showTablature = true;
+    staff.showSlash = false;
+    staff.showNumbered = false;
   }
 }
 
@@ -22,5 +25,7 @@ export function setStaves(score: alphaTab.model.Score, views: StaffView[]): void
     if (!staff) throw new Error(`no track ${view.index}`);
     staff.showStandardNotation = view.notation;
     staff.showTablature = view.tab;
+    staff.showSlash = view.slash;
+    staff.showNumbered = view.numbered;
   }
 }

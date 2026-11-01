@@ -21,13 +21,35 @@ test('opens every string track with notation and tab', () => {
 
 test('setStaves hides what is asked', () => {
   const s = score(twoGuitarsAndDrums);
-  setStaves(s, [{ index: 0, notation: false, tab: true }]);
+  setStaves(s, [{ index: 0, notation: false, tab: true, slash: false, numbered: false }]);
   expect(s.tracks[0].staves[0].showStandardNotation).toBe(false);
   expect(s.tracks[0].staves[0].showTablature).toBe(true);
 });
 
 test('setStaves refuses to hide both', () => {
-  expect(() => setStaves(score(twoGuitarsAndDrums), [{ index: 0, notation: false, tab: false }])).toThrow(
+  expect(() => setStaves(score(twoGuitarsAndDrums), [{ index: 0, notation: false, tab: false, slash: false, numbered: false }])).toThrow(
     'a track needs notation or tab',
   );
+});
+
+test('setStaves draws slash and numbered alongside tab', () => {
+  const s = score(twoGuitarsAndDrums);
+  setStaves(s, [{ index: 0, notation: false, tab: true, slash: true, numbered: true }]);
+  const staff = s.tracks[0].staves[0];
+  expect([staff.showStandardNotation, staff.showTablature, staff.showSlash, staff.showNumbered]).toEqual([false, true, true, true]);
+});
+
+test('slash or numbered alone is refused', () => {
+  expect(() =>
+    setStaves(score(twoGuitarsAndDrums), [{ index: 0, notation: false, tab: false, slash: true, numbered: true }]),
+  ).toThrow('a track needs notation or tab');
+});
+
+test('opening shows notation and tab only', () => {
+  const s = score(twoGuitarsAndDrums);
+  const staff = s.tracks[0].staves[0];
+  staff.showSlash = true;
+  staff.showNumbered = true;
+  showNotationAndTab(s);
+  expect([staff.showStandardNotation, staff.showTablature, staff.showSlash, staff.showNumbered]).toEqual([true, true, false, false]);
 });

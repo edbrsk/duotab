@@ -22,7 +22,7 @@ test('a file prints its first guitar track', () => {
 
 test('a file prints with the staves chosen for that track', () => {
   const both = filePdf(gpBytes(longRiff), [], alphaTab.StaveProfile.ScoreTab, fontUrl);
-  const notationOnly = filePdf(gpBytes(longRiff), [{ index: 0, notation: true, tab: false }], alphaTab.StaveProfile.ScoreTab, fontUrl);
+  const notationOnly = filePdf(gpBytes(longRiff), [{ index: 0, notation: true, tab: false, slash: false, numbered: false }], alphaTab.StaveProfile.ScoreTab, fontUrl);
   expect(notationOnly.join('').length).toBeLessThan(both.join('').length);
 });
 
@@ -41,6 +41,6 @@ test('a library PDF prints the first guitar track after drums', () => {
   expect(song.tracks.map((t) => t.name)).toEqual(['Drums', 'Guitar B', 'Guitar A']);
   const bytes = new alphaTab.exporter.Gp7Exporter().export(song, new alphaTab.Settings());
   const both = filePdf(bytes, [], alphaTab.StaveProfile.ScoreTab, fontUrl);
-  const notation = filePdf(bytes, [{ index: 1, notation: true, tab: false }], alphaTab.StaveProfile.ScoreTab, fontUrl);
+  const notation = filePdf(bytes, [{ index: 1, notation: true, tab: false, slash: false, numbered: false }], alphaTab.StaveProfile.ScoreTab, fontUrl);
   expect(notation.join('').length).toBeLessThan(both.join('').length);
 });
