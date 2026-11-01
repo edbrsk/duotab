@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/design/design_tokens.dart';
 import '../../core/duo/vertical_bar_edge_provider.dart';
 import '../../engine/engine_host.dart';
-import '../../engine/protocol.dart';
 import '../../l10n/app_localizations.dart';
 import '../../presentation/shell/app_destinations.dart';
 import '../../presentation/shell/bar_actions.dart';
@@ -14,8 +13,6 @@ import '../../presentation/workspace/workspace_layout.dart';
 import '../editor/edit_failure.dart';
 import '../editor/editor_cubit.dart';
 import '../editor/palette.dart';
-import '../editor/title_dialog.dart';
-import '../export/export_button.dart';
 import '../export/song_exporter.dart';
 import '../playback/transport_bar.dart';
 import '../settings/settings_cubit.dart';
@@ -108,47 +105,47 @@ class _ScorePageState extends State<ScorePage> {
                 onTogglePalette: () => context
                     .read<SettingsCubit>()
                     .setPaletteCollapsed(collapsed: !paletteCollapsed),
-                trackPanel: const TrackInfoPanel(),
+                trackPanel: TrackInfoPanel(onExport: widget.onExport),
                 trackPanelCollapsed: collapsed,
                 onToggleTrackPanel: () => context
                     .read<SettingsCubit>()
                     .setTrackPanelCollapsed(collapsed: !collapsed),
                 transport: state.song != null ? const TransportBar() : null,
                 drawer: state.song != null ? const TrackDrawer() : null,
-                score: Column(
-                  children: [
-                    if (state.song case final song?)
-                      _TitleRow(
-                        song: song,
-                        editable: !playOnly,
-                        onExport: widget.onExport,
-                        panelButton: hasPlayOnlyPanel && !hasBar && !panelOpen
-                            ? _PanelButton(action: panelButton)
-                            : null,
+                score: Padding(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.paddingOf(context).top,
+                  ),
+                  // The engine stays mounted even with nothing to show: it
+                  // also answers the library's requests.
+                  child: Stack(
+                    children: [
+                      Offstage(
+                        offstage: message != null,
+                        child: widget.engineView ?? const EngineView(),
                       ),
-                    Expanded(
-                      // The engine stays mounted even with nothing to show:
-                      // it also answers the library's requests.
-                      child: Stack(
-                        children: [
-                          Offstage(
-                            offstage: message != null,
-                            child: widget.engineView ?? const EngineView(),
-                          ),
-                          if (message != null)
-                            Center(
-                              child: Text(
-                                message,
-                                style: textTheme.titleMedium?.copyWith(
-                                  color: Colors.black54,
-                                ),
-                              ),
+                      if (message != null)
+                        Center(
+                          child: Text(
+                            message,
+                            style: textTheme.titleMedium?.copyWith(
+                              color: Colors.black54,
                             ),
-                          if (state.loading) const LinearProgressIndicator(),
-                        ],
-                      ),
-                    ),
-                  ],
+                          ),
+                        ),
+                      if (state.loading) const LinearProgressIndicator(),
+                      // The sheet's own title sits centred, clear of it.
+                      if (state.song != null &&
+                          hasPlayOnlyPanel &&
+                          !hasBar &&
+                          !panelOpen)
+                        PositionedDirectional(
+                          top: Spacing.xs,
+                          end: 0,
+                          child: _PanelButton(action: panelButton),
+                        ),
+                    ],
+                  ),
                 ),
               ),
               if (hasPlayOnlyPanel)
@@ -162,6 +159,7 @@ class _ScorePageState extends State<ScorePage> {
                             closeButton: hasBar
                                 ? null
                                 : _PanelButton(action: panelButton),
+                            onExport: widget.onExport,
                           )
                         : null,
                   ),
@@ -170,88 +168,6 @@ class _ScorePageState extends State<ScorePage> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _TitleRow extends StatelessWidget {
-  final SongSummary song;
-  final bool editable;
-  final Future<void> Function(ExportFormat format, Rect anchor)? onExport;
-  final Widget? panelButton;
-
-  const _TitleRow({
-    required this.song,
-    required this.editable,
-    required this.onExport,
-    required this.panelButton,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.titleMedium
-        ?.copyWith(color: Colors.black87, fontFamily: 'Georgia');
-    return Padding(
-      padding: EdgeInsets.only(
-        top: MediaQuery.paddingOf(context).top + Spacing.sm,
-        bottom: Spacing.xs,
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Padding(
-            // Room for the button, so the title stays centred and clear of it.
-            padding: EdgeInsets.symmetric(
-              horizontal: panelButton == null
-                  ? 0
-                  : AccessibleSizes.minTouchTarget,
-            ),
-            // The stack takes this height, and clips the button to it.
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                minHeight: AccessibleSizes.minTouchTarget,
-              ),
-              child: Center(child: _titleAndExport(context, style)),
-            ),
-          ),
-          if (panelButton case final panelButton?)
-            PositionedDirectional(end: 0, child: panelButton),
-        ],
-      ),
-    );
-  }
-
-  Widget _titleAndExport(BuildContext context, TextStyle? style) {
-    final l10n = AppLocalizations.of(context)!;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-          child: !editable
-              ? Text(song.title, style: style)
-              : Tooltip(
-                  message: l10n.changeTitle,
-                  child: TextButton.icon(
-                    onPressed: () async {
-                      final editor = context.read<EditorCubit>();
-                      final title = await showDialog<String>(
-                        context: context,
-                        builder: (_) => TitleDialog(title: song.title),
-                      );
-                      if (title != null) await editor.setTitle(title);
-                    },
-                    iconAlignment: IconAlignment.end,
-                    icon: const Icon(Icons.edit, color: Colors.black38),
-                    label: Text(song.title, style: style),
-                  ),
-                ),
-        ),
-        if (onExport case final onExport?)
-          ExportButton(
-            onExport: onExport,
-            canExportPdf: song.guitarTracks.isNotEmpty,
-          ),
-      ],
     );
   }
 }
@@ -300,8 +216,9 @@ class _PanelTransition extends StatelessWidget {
 class _PlayOnlyPanel extends StatelessWidget {
   /// Shown when no vertical bar carries the button.
   final Widget? closeButton;
+  final Future<void> Function(ExportFormat format, Rect anchor)? onExport;
 
-  const _PlayOnlyPanel({this.closeButton});
+  const _PlayOnlyPanel({this.closeButton, this.onExport});
 
   @override
   Widget build(BuildContext context) {
@@ -329,7 +246,7 @@ class _PlayOnlyPanel extends StatelessWidget {
                 removeLeft: true,
                 removeTop: true,
                 removeRight: true,
-                child: const TrackInfoPanel(editable: false),
+                child: TrackInfoPanel(editable: false, onExport: onExport),
               ),
             ),
           ],

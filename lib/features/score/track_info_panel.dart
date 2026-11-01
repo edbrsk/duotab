@@ -10,6 +10,8 @@ import '../editor/editor_cubit.dart';
 import '../editor/fret_pad.dart';
 import '../editor/retune_dialog.dart';
 import '../editor/title_dialog.dart';
+import '../export/export_button.dart';
+import '../export/song_exporter.dart';
 import '../library/song_list_entry.dart';
 import '../playback/playback_cubit.dart';
 import '../playback/practice_settings.dart';
@@ -21,8 +23,9 @@ import 'score_cubit.dart';
 /// The song and its drawn track, over the input that writes on it.
 class TrackInfoPanel extends StatelessWidget {
   final bool editable;
+  final Future<void> Function(ExportFormat format, Rect anchor)? onExport;
 
-  const TrackInfoPanel({this.editable = true, super.key});
+  const TrackInfoPanel({this.editable = true, this.onExport, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +39,14 @@ class TrackInfoPanel extends StatelessWidget {
       (c) => c.state.panelTab,
     );
     final body = tab == PanelTab.song
-        ? const SizedBox.shrink()
+        ? _SongTab(
+            // A field's typing belongs to the song it was typed for.
+            key: ValueKey(scoreState.path),
+            song: song,
+            path: scoreState.path,
+            editable: editable,
+            onExport: onExport,
+          )
         : track == null
         ? const SizedBox.shrink()
         : _TrackTab(track: track, editable: editable);
@@ -104,6 +114,146 @@ class _TabSwitch extends StatelessWidget {
       },
     );
   }
+}
+
+class _SongTab extends StatelessWidget {
+  final SongSummary song;
+  final String? path;
+  final bool editable;
+  final Future<void> Function(ExportFormat format, Rect anchor)? onExport;
+
+  const _SongTab({
+    required this.song,
+    required this.path,
+    required this.editable,
+    required this.onExport,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final textTheme = Theme.of(context).textTheme;
+    final editor = context.read<EditorCubit>();
+    final score = context.read<ScoreCubit>();
+    // A field can let go of its text after another song has opened.
+    void Function(String) onlyHere(Future<void> Function(String) change) =>
+        (text) {
+          if (score.state.path == path) change(text);
+        };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _heading(context, l10n.information),
+        if (!editable) ...[
+          Text(song.title, style: textTheme.titleMedium),
+          if (song.artist.isNotEmpty) Text(song.artist),
+        ] else ...[
+          _SongField(
+            key: const Key('song-title'),
+            label: l10n.songTitle,
+            value: song.title,
+            allowEmpty: false,
+            onCommit: onlyHere(editor.setTitle),
+          ),
+          const SizedBox(height: Spacing.sm),
+          _SongField(
+            key: const Key('song-artist'),
+            label: l10n.artist,
+            value: song.artist,
+            allowEmpty: true,
+            onCommit: onlyHere(editor.setArtist),
+          ),
+        ],
+        if (onExport case final onExport?) ...[
+          _heading(context, l10n.export),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: ExportButton(
+              onExport: onExport,
+              canExportPdf: song.guitarTracks.isNotEmpty,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Saves on submit or when it lets go of focus, including when it goes away.
+class _SongField extends StatefulWidget {
+  final String label;
+  final String value;
+  final bool allowEmpty;
+  final void Function(String text) onCommit;
+
+  const _SongField({
+    required this.label,
+    required this.value,
+    required this.allowEmpty,
+    required this.onCommit,
+    super.key,
+  });
+
+  @override
+  State<_SongField> createState() => _SongFieldState();
+}
+
+class _SongFieldState extends State<_SongField> {
+  late final _controller = TextEditingController(text: widget.value);
+  final _focus = FocusNode();
+
+  /// Submitting also lets go of focus, before the song reports the change.
+  String? _sent;
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() {
+      if (!_focus.hasFocus) _commit();
+    });
+  }
+
+  @override
+  void didUpdateWidget(_SongField old) {
+    super.didUpdateWidget(old);
+    if (widget.value != old.value) {
+      _sent = null;
+      if (!_focus.hasFocus) _controller.text = widget.value;
+    }
+  }
+
+  void _commit() {
+    final text = _controller.text.trim();
+    if (text == widget.value.trim() || text == _sent) return;
+    if (text.isEmpty && !widget.allowEmpty) {
+      _controller.text = widget.value;
+      return;
+    }
+    _sent = text;
+    widget.onCommit(text);
+  }
+
+  @override
+  void dispose() {
+    _commit();
+    _focus.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: _controller,
+    focusNode: _focus,
+    textInputAction: TextInputAction.done,
+    decoration: InputDecoration(
+      labelText: widget.label,
+      isDense: true,
+      border: const OutlineInputBorder(),
+    ),
+    onSubmitted: (_) => _commit(),
+  );
 }
 
 class _TrackTab extends StatelessWidget {

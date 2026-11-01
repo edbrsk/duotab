@@ -1312,6 +1312,12 @@ abstract class AppLocalizations {
   /// **'Title'**
   String get songTitle;
 
+  /// No description provided for @artist.
+  ///
+  /// In en, this message translates to:
+  /// **'Artist'**
+  String get artist;
+
   /// No description provided for @changeTitle.
   ///
   /// In en, this message translates to:

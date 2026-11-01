@@ -224,22 +224,24 @@ void main() {
       expect(panel, findsNothing);
     });
 
-    testWidgets('without a bar, the button sits at the top right', (
-      tester,
-    ) async {
-      await cubit.open('fixture.gp');
-      await pumpPage(tester, width: 466);
+    testWidgets(
+      'without a bar, the button floats at the top right of the sheet',
+      (tester) async {
+        await cubit.open('fixture.gp');
+        await pumpPage(tester, width: 466);
 
-      final button = tester.getRect(
-        find.ancestor(
-          of: find.byTooltip(show),
-          matching: find.byType(IconButton),
-        ),
-      );
-      final title = tester.getRect(find.text(drumsAndTwoGuitars.title));
-      expect(button.right, greaterThan(466 - Spacing.md - 1));
-      expect(title.center.dx, closeTo(466 / 2, 1));
-    });
+        final button = tester.getRect(
+          find.ancestor(
+            of: find.byTooltip(show),
+            matching: find.byType(IconButton),
+          ),
+        );
+        expect(button.right, greaterThan(466 - Spacing.md - 1));
+        final sheet = tester.getRect(find.text('engine view'));
+        expect(button.bottom, greaterThan(sheet.top));
+        expect(button.top, lessThanOrEqualTo(sheet.top + Spacing.md));
+      },
+    );
 
     testWidgets('without a bar, the whole button can be tapped', (
       tester,
@@ -310,11 +312,24 @@ void main() {
       expect(find.byTooltip(show), findsNothing);
     });
 
-    testWidgets("the title can't be changed", (tester) async {
+    testWidgets('the sheet has no title row', (tester) async {
       await cubit.open('fixture.gp');
-      await pumpPage(tester, width: 466);
-      expect(find.byTooltip('Change title'), findsNothing);
-      expect(find.text(drumsAndTwoGuitars.title), findsOneWidget);
+      await pumpPage(tester, width: 466, onExport: (_, _) async {});
+      expect(find.text(drumsAndTwoGuitars.title), findsNothing);
+      expect(find.byType(ExportButton), findsNothing);
+    });
+
+    testWidgets("the panel's Song tab has export", (tester) async {
+      when(() => settings.state)
+          .thenReturn(const AppSettings(panelTab: PanelTab.song));
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466, onExport: (_, _) async {});
+      await tester.tap(find.byTooltip(show));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(of: panel, matching: find.byType(ExportButton)),
+        findsOneWidget,
+      );
     });
 
     testWidgets("a tap doesn't move the edit cursor", (tester) async {
@@ -327,16 +342,20 @@ void main() {
     });
   });
 
-  testWidgets('the export button shows beside the title when a song is open', (
-    tester,
-  ) async {
+  testWidgets('export is in the Song tab, not above the sheet', (tester) async {
+    when(() => settings.state)
+        .thenReturn(const AppSettings(panelTab: PanelTab.song));
+    await cubit.open('fixture.gp');
     await pumpPage(tester, onExport: (_, _) async {});
     await tester.pump();
-    expect(find.byType(ExportButton), findsNothing);
-
-    await cubit.open('fixture.gp');
-    await tester.pump();
     expect(find.byType(ExportButton), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('trackPanel')),
+        matching: find.byType(ExportButton),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('a failed track edit says why', (tester) async {
@@ -380,22 +399,6 @@ void main() {
     expect(find.text(message), findsOneWidget);
   });
 
-  testWidgets('a long title beside the export button does not overflow', (
-    tester,
-  ) async {
-    when(() => engine.open('long.gp')).thenAnswer(
-      (_) async => SongSummary(
-        title: 'A very long song title ' * 6,
-        tracks: drumsAndTwoGuitars.tracks,
-      ),
-    );
-    await pumpPage(tester, onExport: (_, _) async {});
-    await cubit.open('long.gp');
-    await tester.pump();
-    expect(tester.takeException(), isNull);
-    expect(find.byType(ExportButton), findsOneWidget);
-  });
-
   testWidgets('the right panel shows the drawn track', (tester) async {
     await cubit.open('fixture.gp');
     await pumpPage(tester);
@@ -409,22 +412,13 @@ void main() {
     );
   });
 
-  testWidgets('tapping the title changes it', (tester) async {
-    when(() => editor.setTitle(any())).thenAnswer((_) async {});
+  testWidgets('the title is edited in the Song tab, not above the sheet', (
+    tester,
+  ) async {
     await cubit.open('fixture.gp');
     await pumpPage(tester);
-    await tester.tap(find.byTooltip('Change title'));
-    await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      drumsAndTwoGuitars.title,
-    );
-    await tester.enterText(find.byType(TextField), 'Riff');
-    await tester.pump();
-    await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
-    verify(() => editor.setTitle('Riff')).called(1);
-    expect(find.byType(TextField), findsNothing);
+    expect(find.byTooltip('Change title'), findsNothing);
+    expect(find.text(drumsAndTwoGuitars.title), findsNothing);
   });
 
   testWidgets('says when a song has no guitar track', (tester) async {

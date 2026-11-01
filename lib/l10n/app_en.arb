@@ -328,6 +328,7 @@
   "undo": "Undo",
   "redo": "Redo",
   "songTitle": "Title",
+  "artist": "Artist",
   "changeTitle": "Change title",
   "retune": "Retune…",
   "retuneHeading": "Retune {track}",

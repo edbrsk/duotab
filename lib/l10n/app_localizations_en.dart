@@ -661,6 +661,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get songTitle => 'Title';
 
   @override
+  String get artist => 'Artist';
+
+  @override
   String get changeTitle => 'Change title';
 
   @override

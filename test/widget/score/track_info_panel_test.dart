@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/chord_picker.dart';
 import 'package:duoscore/features/editor/cursor_keys.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
 import 'package:duoscore/features/editor/fret_pad.dart';
+import 'package:duoscore/features/export/export_button.dart';
+import 'package:duoscore/features/export/song_exporter.dart';
 import 'package:duoscore/features/playback/playback_cubit.dart';
 import 'package:duoscore/features/playback/practice_settings.dart';
 import 'package:duoscore/features/playback/tone.dart';
@@ -102,8 +106,11 @@ void main() {
     bool trackDetailsFolded = false,
     bool inputFolded = false,
     PanelTab panelTab = PanelTab.track,
+    double width = 220,
     double height = 626,
+    Future<void> Function(ExportFormat, Rect)? onExport,
     double textScale = 1,
+    bool scoreStreamed = false,
   }) async {
     when(() => settings.state).thenReturn(
       AppSettings(
@@ -114,10 +121,10 @@ void main() {
       ),
     );
     tester.view
-      ..physicalSize = Size(220, height)
+      ..physicalSize = Size(width, height)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    when(() => score.state).thenReturn(state);
+    if (!scoreStreamed) when(() => score.state).thenReturn(state);
     await tester.pumpWidget(
       MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -135,7 +142,7 @@ void main() {
               BlocProvider<EditorCubit>.value(value: editor),
               BlocProvider<SettingsCubit>.value(value: settings),
             ],
-            child: TrackInfoPanel(editable: editable),
+            child: TrackInfoPanel(editable: editable, onExport: onExport),
           ),
         ),
       ),
@@ -527,5 +534,199 @@ void main() {
     final tab = tester.renderObject<RenderParagraph>(find.text('Track'));
     final input = tester.renderObject<RenderParagraph>(find.text('Input'));
     expect(input.text.style?.fontSize, tab.text.style?.fontSize);
+  });
+
+  const withArtist = ScoreState(
+    song: SongSummary(
+      title: 'Collateral',
+      artist: 'Rabea',
+      tracks: [
+        TrackSummary(
+          index: 1,
+          name: 'Guitar 1',
+          kind: TrackKind.guitar,
+          stringCount: 6,
+          tuning: [63, 58, 54, 49, 44, 39],
+          midiProgram: 29,
+        ),
+      ],
+    ),
+    path: 'c.gp',
+    selectedTrackIndex: 1,
+  );
+  final title = find.descendant(
+    of: find.byKey(const Key('song-title')),
+    matching: find.byType(TextField),
+  );
+  final artist = find.descendant(
+    of: find.byKey(const Key('song-artist')),
+    matching: find.byType(TextField),
+  );
+  String fieldText(WidgetTester tester, Finder field) =>
+      tester.widget<TextField>(field).controller!.text;
+
+  group('Song tab', () {
+    setUp(() {
+      when(() => editor.setTitle(any())).thenAnswer((_) async {});
+      when(() => editor.setArtist(any())).thenAnswer((_) async {});
+    });
+
+    testWidgets('shows the title and artist in fields', (tester) async {
+      await pump(tester, withArtist, panelTab: PanelTab.song);
+      expect(fieldText(tester, title), 'Collateral');
+      expect(fieldText(tester, artist), 'Rabea');
+    });
+
+    testWidgets('a submitted title is saved', (tester) async {
+      await pump(tester, withArtist, panelTab: PanelTab.song);
+      await tester.enterText(title, '  Riff ');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      verify(() => editor.setTitle('Riff')).called(1);
+    });
+
+    testWidgets('the artist is saved when the field loses focus', (
+      tester,
+    ) async {
+      await pump(tester, withArtist, panelTab: PanelTab.song);
+      await tester.enterText(artist, 'Rabea Massaad');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      verify(() => editor.setArtist('Rabea Massaad')).called(1);
+    });
+
+    testWidgets('a field left unchanged saves nothing', (tester) async {
+      await pump(tester, drawn, panelTab: PanelTab.song);
+      await tester.tap(title);
+      await tester.pump();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      await tester.tap(artist);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      verifyNever(() => editor.setTitle(any()));
+      verifyNever(() => editor.setArtist(any()));
+    });
+
+    testWidgets('an empty title is not saved and comes back', (tester) async {
+      await pump(tester, withArtist, panelTab: PanelTab.song);
+      await tester.enterText(title, '   ');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      verifyNever(() => editor.setTitle(any()));
+      expect(fieldText(tester, title), 'Collateral');
+    });
+
+    testWidgets('clearing the artist clears it', (tester) async {
+      await pump(tester, withArtist, panelTab: PanelTab.song);
+      await tester.enterText(artist, '');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      verify(() => editor.setArtist('')).called(1);
+    });
+
+    testWidgets('a new summary refreshes a field not being edited', (
+      tester,
+    ) async {
+      final states = StreamController<ScoreState>();
+      addTearDown(states.close);
+      whenListen(score, states.stream, initialState: withArtist);
+      await pump(
+        tester,
+        withArtist,
+        panelTab: PanelTab.song,
+        scoreStreamed: true,
+      );
+      states.add(
+        ScoreState(
+          song: SongSummary(
+            title: 'Undone',
+            tracks: withArtist.song!.tracks,
+          ),
+          path: 'c.gp',
+          selectedTrackIndex: 1,
+        ),
+      );
+      await tester.pump();
+      expect(fieldText(tester, title), 'Undone');
+      expect(fieldText(tester, artist), '');
+    });
+
+    testWidgets('typing in progress is saved when the tab switches', (
+      tester,
+    ) async {
+      await pump(tester, withArtist, panelTab: PanelTab.song);
+      await tester.enterText(artist, 'Rabea Massaad');
+      await pump(tester, withArtist);
+      verify(() => editor.setArtist('Rabea Massaad')).called(1);
+    });
+
+    testWidgets('typing in progress never reaches another song', (
+      tester,
+    ) async {
+      final states = StreamController<ScoreState>();
+      addTearDown(states.close);
+      whenListen(score, states.stream, initialState: withArtist);
+      await pump(
+        tester,
+        withArtist,
+        panelTab: PanelTab.song,
+        scoreStreamed: true,
+      );
+      await tester.enterText(artist, 'Rabea Massaad');
+      const other = ScoreState(song: _song, path: 'other.gp');
+      when(() => score.state).thenReturn(other);
+      states.add(other);
+      await tester.pump();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      verifyNever(() => editor.setArtist(any()));
+    });
+
+    testWidgets('export sits in the Song tab', (tester) async {
+      ExportFormat? exported;
+      await pump(
+        tester,
+        withArtist,
+        panelTab: PanelTab.song,
+        onExport: (format, _) async => exported = format,
+      );
+      final button = tester.widget<ExportButton>(find.byType(ExportButton));
+      expect(button.canExportPdf, isTrue);
+      await button.onExport(ExportFormat.gp, Rect.zero);
+      expect(exported, ExportFormat.gp);
+    });
+
+    testWidgets('play-only, the song is text with export', (tester) async {
+      await pump(
+        tester,
+        withArtist,
+        editable: false,
+        panelTab: PanelTab.song,
+        onExport: (_, _) async {},
+      );
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('Collateral'), findsOneWidget);
+      expect(find.text('Rabea'), findsOneWidget);
+      expect(find.byType(ExportButton), findsOneWidget);
+    });
+
+    for (final tab in PanelTab.values) {
+      testWidgets(
+        'play-only on the outer screen at large text fits (${tab.name})',
+        (tester) async {
+          await pump(
+            tester,
+            withArtist,
+            editable: false,
+            panelTab: tab,
+            width: 350,
+            textScale: 1.3,
+            onExport: (_, _) async {},
+          );
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
   });
 }
