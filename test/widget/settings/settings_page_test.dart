@@ -25,9 +25,12 @@ void main() {
 
   setUpAll(() => registerFallbackValue(Tone.clean));
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(
+    WidgetTester tester, {
+    Size size = const Size(890, 1200),
+  }) async {
     tester.view
-      ..physicalSize = const Size(890, 1200)
+      ..physicalSize = size
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
@@ -63,5 +66,17 @@ void main() {
     await tester.tap(find.text('Licences'));
     await tester.pumpAndSettle();
     expect(find.byType(LicensePage), findsOneWidget);
+  });
+
+  testWidgets('fits beside the vertical bar on the outer screen', (
+    tester,
+  ) async {
+    await pump(tester, size: const Size(382, 678));
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('Licences'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LicensePage), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

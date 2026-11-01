@@ -365,6 +365,40 @@ void main() {
     expect(find.text('Revert to original'), findsNothing);
   });
 
+  testWidgets('fits beside the vertical bar on the outer screen', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(382, 678)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    const long = LibraryState(
+      loading: false,
+      songs: [
+        SongListEntry(
+          path: 'l (DuoScore).gp',
+          name: 'A song with a rather long name for a narrow screen',
+          tuningLabel: 'D♭ A♭ D♭ G♭ B♭ E♭',
+          stringCount: 6,
+          readable: true,
+          original: 'l.gp',
+        ),
+      ],
+    );
+    await pumpPage(tester, long);
+
+    for (final action in ['Rename', 'Delete', 'Revert to original']) {
+      await chooseFromMenu(tester, action);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('New song'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets("Export shares the song from the menu's button", (tester) async {
     final exports = <(String, ExportFormat, Rect)>[];
     await pumpPage(

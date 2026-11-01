@@ -110,6 +110,20 @@ void main() {
     expect(find.widgetWithText(MenuItemButton, '50%'), findsOneWidget);
   });
 
+  testWidgets('the speed menu fits beside the outer screen\'s bar', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(382, 678)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pump(tester, const PlaybackState());
+    await tester.tap(find.byKey(const Key('speedButton')));
+    await tester.pumpAndSettle();
+    expect(find.text('50%'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('loop toggle sets looping', (tester) async {
     await pump(tester, const PlaybackState());
     await tester.tap(find.byTooltip('Loop'));
