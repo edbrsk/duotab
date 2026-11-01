@@ -60,8 +60,6 @@ const _clashes = [
 
 const _keyHeight = 34.0;
 
-/// Builds a chord symbol by tapping and writes one of its positions on the
-/// cursor's beat.
 class ChordPicker extends StatefulWidget {
   const ChordPicker({super.key});
 
@@ -300,7 +298,6 @@ class _ChordPickerState extends State<ChordPicker> {
   }
 }
 
-/// Four keys to a row.
 List<int>? _tuningOf(ScoreState state) => state.song?.tracks
     .where((t) => t.index == state.selectedTrackIndex)
     .firstOrNull

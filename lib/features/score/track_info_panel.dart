@@ -669,7 +669,6 @@ class _RetuneReportCard extends StatelessWidget {
   }
 }
 
-/// Frets or chords on the pad; the choice is remembered.
 class _PadSwitch extends StatelessWidget {
   const _PadSwitch();
 
