@@ -112,10 +112,10 @@ class _ScorePageState extends State<ScorePage> {
                     .setTrackPanelCollapsed(collapsed: !collapsed),
                 transport: state.song != null ? const TransportBar() : null,
                 drawer: state.song != null ? const TrackDrawer() : null,
-                score: Padding(
-                  padding: EdgeInsets.only(
-                    top: MediaQuery.paddingOf(context).top,
-                  ),
+                score: SafeArea(
+                  left: false,
+                  right: false,
+                  bottom: false,
                   // The engine stays mounted even with nothing to show: it
                   // also answers the library's requests.
                   child: Stack(

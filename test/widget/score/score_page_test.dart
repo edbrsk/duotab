@@ -72,12 +72,17 @@ void main() {
     BarActions? barActions,
     double rightPadding = 0,
     double leftPadding = 0,
+    double topPadding = 0,
     TextDirection direction = TextDirection.ltr,
   }) async {
     tester.view
       ..physicalSize = Size(width, 626)
       ..devicePixelRatio = 1
-      ..padding = FakeViewPadding(left: leftPadding, right: rightPadding);
+      ..padding = FakeViewPadding(
+        left: leftPadding,
+        right: rightPadding,
+        top: topPadding,
+      );
     addTearDown(tester.view.reset);
     Widget app = MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -312,6 +317,14 @@ void main() {
       expect(find.byTooltip(show), findsNothing);
     });
 
+    testWidgets('the sheet starts right below the banner', (tester) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466, topPadding: 40);
+      final banner = tester.getRect(find.text('Make DuoScore wider to edit'));
+      final sheet = tester.getRect(find.text('engine view'));
+      expect(sheet.top - banner.bottom, lessThan(40));
+    });
+
     testWidgets('the sheet has no title row', (tester) async {
       await cubit.open('fixture.gp');
       await pumpPage(tester, width: 466, onExport: (_, _) async {});
@@ -409,6 +422,15 @@ void main() {
         matching: find.text('Guitar 1'),
       ),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('the sheet keeps clear of the status bar', (tester) async {
+    await cubit.open('fixture.gp');
+    await pumpPage(tester, topPadding: 40);
+    expect(
+      tester.getRect(find.text('engine view')).top,
+      greaterThanOrEqualTo(40),
     );
   });
 

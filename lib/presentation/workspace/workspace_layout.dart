@@ -66,7 +66,12 @@ class _WorkspaceLayoutState extends State<WorkspaceLayout> {
             color: AppColors.paper,
             child: SizedBox.expand(
               key: const Key('score'),
-              child: widget.score,
+              // The banner above has already kept clear of the status bar.
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: collapsed,
+                child: widget.score,
+              ),
             ),
           ),
         ),
