@@ -44,6 +44,8 @@ export function deleteNote(score: Score, at: EditPosition, settings = defaultSet
   const note = beat.notes.find((n) => n.string === at.string);
   if (note) {
     beat.removeNote(note);
+    // A rest carries no chord.
+    if (beat.notes.length === 0) beat.chordId = null;
     // A grace note without notes has no rest to become.
     if (beat.graceType !== alphaTab.model.GraceType.None && beat.notes.length === 0) {
       removeBeat(score, at, beat);
@@ -96,6 +98,7 @@ export function setDuration(
 export function setRest(score: Score, at: EditPosition, settings = defaultSettings): EditPosition {
   const beat = beatOf(score, at);
   for (const note of [...beat.notes]) beat.removeNote(note);
+  beat.chordId = null;
   beat.isEmpty = false;
   finishEdit(score, at, settings);
   return at;

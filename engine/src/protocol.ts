@@ -1,6 +1,6 @@
 // Mirrored by hand in lib/engine/protocol.dart: change both together.
 
-export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setMaster' | 'setMeters' | 'setOutputLatency' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'undo' | 'redo' | 'newSong' | 'exportGp' | 'exportPdf' | 'exportFileGp' | 'exportFilePdf';
+export type RequestType = 'ping' | 'summarize' | 'open' | 'renderTrack' | 'play' | 'pause' | 'stop' | 'seekBar' | 'setTracks' | 'setMaster' | 'setMeters' | 'setOutputLatency' | 'setSpeed' | 'setLooping' | 'setRange' | 'setPlayerOptions' | 'setStaves' | 'edit' | 'chordPositions' | 'undo' | 'redo' | 'newSong' | 'exportGp' | 'exportPdf' | 'exportFileGp' | 'exportFilePdf';
 
 export type Request = { id: number; type: RequestType; payload: unknown };
 
@@ -200,6 +200,7 @@ export type EditCommand =
   | { op: 'setTuplet'; tuplet: Tuplet }
   | { op: 'addGrace' }
   | { op: 'setBend'; bend: Bend | null }
+  | { op: 'setChord'; chord: ChordSpec; frets: number[] }
   /** Needs no cursor. */
   | { op: 'setTitle'; title: string }
   | { op: 'setTimeSignature'; numerator: number; denominator: number }
@@ -239,6 +240,10 @@ export type ChordSpec = { root: number; type: ChordType; additions: ChordAdditio
  */
 export type ChordPosition = { frets: number[]; open: boolean; lowestFret: number };
 
+export type ChordPositionsPayload = { track: number; chord: ChordSpec };
+
+export type ChordPositionsReply = { name: string; positions: ChordPosition[] };
+
 export type EditPayload = { command: EditCommand };
 
 /** What a retune keeps: each note's sound, or its string and fret. */
@@ -269,6 +274,10 @@ export type EditState = {
     hasNote: boolean;
     /** Null also for a bend shape outside the four kinds. */
     bend: Bend | null;
+    /** `spec` is null for a name DuoScore can't build, such as "N.C.". */
+    chord: { name: string; spec: ChordSpec | null } | null;
+    /** Low string first, −1 where the beat has no note. */
+    frets: number[];
   } | null;
   /** Null without a cursor. */
   bar: BarProperties | null;

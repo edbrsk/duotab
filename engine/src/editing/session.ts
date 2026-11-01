@@ -12,6 +12,7 @@ import { isGuitar, nearestGuitar } from './tracks';
 import { History } from './history';
 import { beatOf, clampPosition } from './position';
 import { activeTechniques, bendAt, dynamicAt, tupletAt } from './techniques';
+import { chordAt, fretsAt } from './chords';
 
 type Score = alphaTab.model.Score;
 
@@ -164,6 +165,8 @@ export class EditSession {
               tuplet: tupletAt(score, at),
               hasNote: beat.notes.some((n) => n.string === at.string),
               bend: bendAt(score, at),
+              chord: chordAt(beat),
+              frets: fretsAt(beat),
             }
           : null,
       bar: at ? barProperties(score, at) : null,

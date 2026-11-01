@@ -8,6 +8,7 @@ import { setRepeatEnd, toggleDirection, toggleEnding, toggleRepeatStart } from '
 import { addTrack, moveTrack, removeTrack, renameTrack } from './tracks';
 import type { NoteMark } from './fingering';
 import { retune } from './retune';
+import { setChord } from './chords';
 import { deleteNote, move, selectVoice, setDuration, setFret, setRest } from './operations';
 import { clampPosition, staffOf } from './position';
 import { activeTechniques, addGrace, bendAt, setBend, setDynamic, setTuplet, toggleTechnique } from './techniques';
@@ -18,7 +19,7 @@ type Score = alphaTab.model.Score;
 const shape = (score: Score, at: EditPosition) => {
   const staff = staffOf(score, { ...at, track: Math.min(at.track, score.tracks.length - 1) });
   const tracks = score.tracks.map((t) => `${t.name}:${t.staves[0].tuning}:${t.playbackInfo.primaryChannel}`);
-  const chords = [...(staff.chords?.values() ?? [])].map((c) => `${c.strings}${c.showDiagram}`);
+  const chords = [...(staff.chords?.values() ?? [])].map((c) => `${c.name}:${c.strings}${c.showDiagram}`);
   return `${score.title}|${tracks}|${staff.stringTuning.name}${chords}|${staff.bars
     .map((bar) => {
       const master = bar.masterBar;
@@ -28,7 +29,7 @@ const shape = (score: Score, at: EditPosition) => {
         .map((voice) =>
           voice.beats
             .map((b) => {
-              const value = `${b.duration}.${b.dots}${b.isEmpty ? 'e' : ''}g${b.graceType}t${b.tupletNumerator}:${b.tupletDenominator}d${b.dynamics}`;
+              const value = `${b.duration}.${b.dots}${b.isEmpty ? 'e' : ''}g${b.graceType}t${b.tupletNumerator}:${b.tupletDenominator}d${b.dynamics}c${b.chordId}`;
               const position = { ...at, bar: bar.index, voice: voice.index, beat: b.index };
               const notes = b.notes.map((n) => {
                 const note = { ...position, string: n.string };
@@ -109,6 +110,8 @@ export function runCommand(
         return addGrace(score, at, settings);
       case 'setBend':
         return setBend(score, at, command.bend, settings);
+      case 'setChord':
+        return setChord(score, at, command.chord, command.frets, settings);
       case 'setTimeSignature':
         return setTimeSignature(score, at, command.numerator, command.denominator, settings);
       case 'setTempo':

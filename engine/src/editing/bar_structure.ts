@@ -125,7 +125,7 @@ export function deleteBar(score: Score, at: EditPosition, settings = defaultSett
 }
 
 /** The chord's id in `staff`, adding it there under a free id when the id means another chord. */
-function chordIn(staff: alphaTab.model.Staff, chord: alphaTab.model.Chord | null, id: string): string | null {
+export function chordIn(staff: alphaTab.model.Staff, chord: alphaTab.model.Chord | null, id: string): string | null {
   if (!chord) return null;
   const same = (other: alphaTab.model.Chord | undefined) =>
     other?.name === chord.name && other.strings.join() === chord.strings.join();

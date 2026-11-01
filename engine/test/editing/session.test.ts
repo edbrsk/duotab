@@ -64,6 +64,8 @@ test('the state lists the techniques at the cursor', () => {
     tuplet: 1,
     hasNote: true,
     bend: null,
+    chord: null,
+    frets: [-1, -1, -1, 5, -1, -1],
   });
   session.command(s, { op: 'setBend', bend: { kind: 'bendRelease', amount: 6 } });
   expect(session.state(s, true).beat?.bend).toEqual({ kind: 'bendRelease', amount: 6 });

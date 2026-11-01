@@ -15,6 +15,8 @@ import { EditSession } from './editing/session';
 import { drawnUnplayable, fingerUnstrung, type NoteMark } from './editing/fingering';
 import { isGuitar } from './editing/tracks';
 import type {
+  ChordPositionsPayload,
+  ChordPositionsReply,
   EditPayload,
   EditState,
   EngineEvent,
@@ -47,6 +49,8 @@ import { LongPressSelection } from './touch_selection';
 import { fileGp, filePdf } from './file_export';
 import { OpenState } from './open_state';
 import { printPages } from './print_pages';
+import { chordName } from './editing/chord_names';
+import { chordPositions, openStringsOf } from './editing/chord_positions';
 import { dropRenderedByLine } from './rendered_by';
 import { nextRender } from './render_wait';
 
@@ -420,6 +424,13 @@ async function run(request: Request): Promise<unknown> {
         }
       }
       return editState(result.edited);
+    }
+    case 'chordPositions': {
+      if (!api.score) throw new Error('no song open');
+      const { track, chord } = request.payload as ChordPositionsPayload;
+      const staff = api.score.tracks[track]?.staves[0];
+      if (!staff) throw new Error(`no track ${track}`);
+      return { name: chordName(chord), positions: chordPositions(chord, openStringsOf(staff)) } satisfies ChordPositionsReply;
     }
     case 'undo':
       if (!api.score) throw new Error('no song open');
