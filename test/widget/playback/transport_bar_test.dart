@@ -92,6 +92,22 @@ void main() {
     expect(find.text('♩ = 90'), findsOneWidget);
   });
 
+  testWidgets('the tempo marking keeps its size when it fits', (tester) async {
+    tester.view
+      ..physicalSize = const Size(420, 678)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pump(
+      tester,
+      const PlaybackState(bar: 2, practice: PracticeSettings(speed: 0.75)),
+    );
+    final tempo = find.text('♩ = 90');
+    expect(
+      tester.getRect(tempo).width,
+      tester.renderObject<RenderBox>(tempo).size.width,
+    );
+  });
+
   testWidgets('speed shortcuts set 50, 75 and 100 percent', (tester) async {
     await pump(tester, const PlaybackState());
     for (final (label, speed) in [('50%', 0.5), ('75%', 0.75), ('100%', 1.0)]) {

@@ -136,8 +136,14 @@ class _ChannelRow extends StatelessWidget {
         final text = Text(
           readout,
           textAlign: TextAlign.right,
-          style: (compact ? textTheme.labelSmall : textTheme.bodySmall)
-              ?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+          style:
+              (compact
+                      // One line of labelSmall is 16 high; the slot above the fader is 12.
+                      ? textTheme.labelSmall?.copyWith(height: 1)
+                      : textTheme.bodySmall)
+                  ?.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
         );
         return Row(
           children: [
@@ -146,16 +152,14 @@ class _ChannelRow extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Keyed: the readout comes and goes above the fader, which
-                  // would otherwise rebuild the fader and meter.
+                  // Keyed, or the readout coming and going remounts the fader and meter.
                   if (compact)
                     SizedBox(
                       key: const ValueKey('readout'),
                       height: 12,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
+                      child: Align(
                         alignment: Alignment.centerRight,
-                        child: text,
+                        child: FittedBox(fit: BoxFit.scaleDown, child: text),
                       ),
                     ),
                   SizedBox(

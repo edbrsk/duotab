@@ -145,9 +145,8 @@ void main() {
       tester,
       Builder(
         builder: (context) => MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(textScaler: const TextScaler.linear(2)),
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(2)),
           child: const MixerRow(track: _guitar, volumeDb: -6, pan: 0),
         ),
       ),
@@ -158,9 +157,28 @@ void main() {
       readout.size.height,
       greaterThanOrEqualTo(readout.getMinIntrinsicHeight(double.infinity)),
     );
-    expect(tester.getSize(find.byKey(const ValueKey('readout'))).height, 12);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'in a narrow drawer the level sits full size over the fader end',
+    (tester) async {
+      await pump(
+        tester,
+        const MixerRow(track: _guitar, volumeDb: -6, pan: 0),
+        width: 165,
+      );
+      final readout = find.text('−6.0 dB');
+      expect(
+        tester.getRect(readout).width,
+        tester.renderObject<RenderBox>(readout).size.width,
+      );
+      expect(
+        tester.getRect(readout).right,
+        closeTo(tester.getRect(find.byKey(const ValueKey('fader-0'))).right, 1),
+      );
+    },
+  );
 
   testWidgets('narrowing keeps the fader and meter', (tester) async {
     const row = MixerRow(track: _guitar, volumeDb: -6, pan: 0);

@@ -45,17 +45,21 @@ class _TransportBarState extends State<TransportBar> {
             ),
             const SizedBox(width: Spacing.sm),
             if (tempo != null)
-              // Beside the outer screen's bar, large text would not fit.
-              Flexible(
-                child: TextButton(
-                  onPressed: _speedMenu.open,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(l10n.tempoMarking(tempo.round())),
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton(
+                    onPressed: _speedMenu.open,
+                    // Beside the outer screen's bar, large text would not fit.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(l10n.tempoMarking(tempo.round())),
+                    ),
                   ),
                 ),
-              ),
-            const Spacer(),
+              )
+            else
+              const Spacer(),
             SpeedControl(controller: _speedMenu),
             IconButton(
               tooltip: l10n.loop,
