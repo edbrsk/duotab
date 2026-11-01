@@ -137,6 +137,13 @@ void main() {
     await tester.tap(find.byKey(const Key('speedButton')));
     await tester.pumpAndSettle();
     expect(find.text('50%'), findsOneWidget);
+    for (final part in [find.byType(MenuItemButton), find.byType(Slider)]) {
+      for (final element in part.evaluate()) {
+        final rect = tester.getRect(find.byWidget(element.widget));
+        expect(rect.left, greaterThanOrEqualTo(0));
+        expect(rect.right, lessThanOrEqualTo(382));
+      }
+    }
     expect(tester.takeException(), isNull);
   });
 
