@@ -129,6 +129,7 @@ class EditorCubit extends Cubit<EditorState> {
   final _edited = StreamController<void>.broadcast();
   final _failures = StreamController<String>.broadcast();
   int? _openId;
+  int? _drawnTrack;
 
   /// While false, a tap on the sheet only seeks, which the engine has done.
   bool placesOnTap = true;
@@ -136,6 +137,7 @@ class EditorCubit extends Cubit<EditorState> {
   EditorCubit({required this.engine, required this.score})
     : super(const EditorState()) {
     _openId = score.state.openId;
+    _drawnTrack = score.state.selectedTrackIndex;
     _events = engine.events.listen((event) {
       if (event.type == 'tapped' && placesOnTap) {
         final position = EditPosition.fromJson(
@@ -145,9 +147,25 @@ class EditorCubit extends Cubit<EditorState> {
       }
     });
     _songs = score.stream.listen((scoreState) {
-      if (scoreState.openId == _openId) return;
-      _openId = scoreState.openId;
-      emit(EditorState(duration: state.duration, dots: state.dots));
+      if (scoreState.openId != _openId) {
+        _openId = scoreState.openId;
+        _drawnTrack = scoreState.selectedTrackIndex;
+        emit(EditorState(duration: state.duration, dots: state.dots));
+      } else if (scoreState.selectedTrackIndex != _drawnTrack) {
+        _drawnTrack = scoreState.selectedTrackIndex;
+        // The engine drops its cursor when another track is drawn.
+        emit(
+          EditorState(
+            duration: state.duration,
+            dots: state.dots,
+            canUndo: state.canUndo,
+            canRedo: state.canRedo,
+            canPaste: state.canPaste,
+            retune: state.retune,
+            barCount: state.barCount,
+          ),
+        );
+      }
     });
   }
 

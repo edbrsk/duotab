@@ -67,6 +67,16 @@ void main() {
     await events.close();
   });
 
+  test('drawing another track clears the cursor, as the engine does', () async {
+    await editor.command(Place(_at));
+    expect(editor.state.position, _at);
+    await score.selectTrack(2);
+    await pumpEventQueue();
+    expect(editor.state.position, isNull);
+    expect(editor.state.chordName, isNull);
+    expect(editor.state.canUndo, isTrue);
+  });
+
   test('a failed command is reported', () async {
     when(() => engine.edit(any()))
         .thenThrow(const EngineException('no free MIDI channel'));
