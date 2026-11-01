@@ -249,6 +249,23 @@ void main() {
       },
     );
 
+    testWidgets('on the paper sheet the button is dark on a round backing', (
+      tester,
+    ) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466);
+      final button = tester.widget<IconButton>(
+        find.ancestor(
+          of: find.byTooltip(show),
+          matching: find.byType(IconButton),
+        ),
+      );
+      final style = button.style!;
+      expect(style.backgroundColor!.resolve({}), isNotNull);
+      final icon = style.foregroundColor!.resolve({})!;
+      expect(icon.computeLuminance(), lessThan(0.2));
+    });
+
     testWidgets('without a bar, the whole button can be tapped', (
       tester,
     ) async {

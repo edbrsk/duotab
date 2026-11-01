@@ -142,7 +142,10 @@ class _ScorePageState extends State<ScorePage> {
                         PositionedDirectional(
                           top: Spacing.xs,
                           end: 0,
-                          child: _PanelButton(action: panelButton),
+                          child: _PanelButton(
+                            action: panelButton,
+                            onPaper: true,
+                          ),
                         ),
                     ],
                   ),
@@ -175,13 +178,25 @@ class _ScorePageState extends State<ScorePage> {
 class _PanelButton extends StatelessWidget {
   final BarAction action;
 
-  const _PanelButton({required this.action});
+  /// Over the white sheet rather than the dark panel.
+  final bool onPaper;
+
+  const _PanelButton({required this.action, this.onPaper = false});
 
   @override
   Widget build(BuildContext context) => IconButton(
     tooltip: action.tooltip,
     onPressed: action.onPressed,
     icon: Icon(action.icon),
+    // It floats over notation and a long title, so it carries its own backing.
+    style: onPaper
+        ? IconButton.styleFrom(
+            backgroundColor: AppColors.paper.withValues(alpha: 0.92),
+            foregroundColor: Colors.black87,
+            shadowColor: Colors.black26,
+            elevation: 2,
+          )
+        : null,
   );
 }
 
