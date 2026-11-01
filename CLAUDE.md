@@ -65,6 +65,7 @@ flutter pub get
   - A cubit `emit` that isn't triggered by a tap lands a frame late: pump twice.
   - The play-only panel animates in and out, so tests `pumpAndSettle`.
 - **mocktail:** register fallback values (`registerFallbackValue(Duration.zero)`, `Tone.clean`) for `any()` on those types.
+- **The palette's music symbols are fitted by their ink.** After adding a symbol to `lib/features/editor/smufl.dart`, run `node tool/smufl_bounds.mjs` to regenerate `smufl_bounds.dart`. `test/widget/editor/palette_glyph_test.dart` renders each symbol with the real Bravura font and fails if ink spills out of its key. Six dynamics are missing from alphaTab's `Bravura.svg`; they draw as plain text.
 - **Vitest isolates modules per test file.** `dropRenderedByLine()` patches alphaTab globally inside one file.
 
 ## Architecture

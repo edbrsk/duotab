@@ -2,6 +2,8 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/editor_cubit.dart';
 import 'package:duoscore/features/editor/palette.dart';
+import 'package:duoscore/features/editor/palette_chips.dart';
+import 'package:duoscore/features/editor/smufl.dart';
 import 'package:duoscore/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -140,16 +142,15 @@ void main() {
     verify(() => editor.redo()).called(1);
   });
 
-  testWidgets('the glyphs are drawn with Bravura', (tester) async {
+  testWidgets('the note values are their Bravura glyphs', (tester) async {
     await pump(tester, const EditorState());
-    final glyph = tester.widget<Text>(
+    final glyph = tester.widget<PaletteGlyph>(
       find.descendant(
         of: find.byTooltip('Quarter note'),
-        matching: find.byType(Text),
+        matching: find.byType(PaletteGlyph),
       ),
     );
-    expect(glyph.style?.fontFamily, 'Bravura');
-    expect(glyph.data, '');
+    expect(glyph.glyph, Smufl.notes[4]);
   });
 
   testWidgets('shows every technique group', (tester) async {
@@ -259,11 +260,13 @@ void main() {
 
   testWidgets('symbols are Bravura glyphs', (tester) async {
     await pump(tester, const EditorState());
-    final text = tester.widget<Text>(
-      find.descendant(of: find.byTooltip('Sharp'), matching: find.byType(Text)),
+    final glyph = tester.widget<PaletteGlyph>(
+      find.descendant(
+        of: find.byTooltip('Sharp'),
+        matching: find.byType(PaletteGlyph),
+      ),
     );
-    expect(text.data, '\u{E262}');
-    expect(text.style!.fontFamily, 'Bravura');
+    expect(glyph.glyph, '\u{E262}');
   });
 
   testWidgets('shows the bar groups', (tester) async {
@@ -288,11 +291,15 @@ void main() {
     expect(find.text('E♭'), findsOneWidget);
     expect(find.text('♩ = 90'), findsOneWidget);
     expect(
-      find.descendant(
-        of: find.byTooltip('Clef'),
-        matching: find.text('\u{E062}'),
-      ),
-      findsOneWidget,
+      tester
+          .widget<PaletteGlyph>(
+            find.descendant(
+              of: find.byTooltip('Clef'),
+              matching: find.byType(PaletteGlyph),
+            ),
+          )
+          .glyph,
+      '\u{E062}',
     );
   });
 
