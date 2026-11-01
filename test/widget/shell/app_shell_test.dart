@@ -247,6 +247,24 @@ void main() {
       expect(find.byTooltip(menuTooltip), findsNothing);
     });
 
+    testWidgets('a bar action runs its newest callback', (tester) async {
+      await pumpWithActions(tester);
+      var newest = 0;
+      BarActions.maybeOf(tester.element(find.byType(_BuildCounter)))!
+          .set(AppTab.editor, [
+            BarAction(
+              icon: Icons.menu,
+              tooltip: menuTooltip,
+              onPressed: () => newest++,
+            ),
+          ]);
+      await tester.pump();
+
+      await tester.tap(find.byTooltip(menuTooltip));
+      expect(newest, 1);
+      expect(tapped, 0);
+    });
+
     testWidgets("bar actions don't rebuild the pages", (tester) async {
       await pumpWithActions(tester);
       await tester.tap(find.text('count: 0'));

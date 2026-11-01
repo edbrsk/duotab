@@ -42,7 +42,12 @@ class BarActions extends ChangeNotifier {
   static bool _looksSame(List<BarAction> a, List<BarAction> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
-      if (a[i].icon != b[i].icon || a[i].tooltip != b[i].tooltip) return false;
+      // A page's method tear-off is equal across its builds, so it doesn't notify.
+      if (a[i].icon != b[i].icon ||
+          a[i].tooltip != b[i].tooltip ||
+          a[i].onPressed != b[i].onPressed) {
+        return false;
+      }
     }
     return true;
   }
