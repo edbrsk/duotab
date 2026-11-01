@@ -44,9 +44,20 @@ class _TrackDrawerState extends State<TrackDrawer> {
 
   void _toggleMixer() {
     setState(() => _mixer = !_mixer);
+    _meter();
+  }
+
+  /// A collapsed drawer shows no meters, and keeps the mixer for when it opens.
+  void _toggleExpanded() {
+    setState(() => _expanded = !_expanded);
+    if (_mixer) _meter();
+  }
+
+  void _meter() {
     final playback = context.read<PlaybackCubit>();
-    _metering = _mixer ? playback : null;
-    unawaited(playback.showMeters(on: _mixer));
+    final on = _mixer && _expanded;
+    _metering = on ? playback : null;
+    unawaited(playback.showMeters(on: on));
   }
 
   @override
@@ -125,7 +136,7 @@ class _TrackDrawerState extends State<TrackDrawer> {
                   ),
                   const Spacer(),
                   // Split View is a player: editing waits for a wider window.
-                  if (!WorkspaceLayout.isCollapsed(context))
+                  if (_expanded && !WorkspaceLayout.isCollapsed(context))
                     IconButton(
                       tooltip: l10n.addTrack,
                       icon: const Icon(Icons.add),
@@ -148,19 +159,20 @@ class _TrackDrawerState extends State<TrackDrawer> {
                         }
                       },
                     ),
-                  IconButton(
-                    tooltip: l10n.mixer,
-                    isSelected: _mixer,
-                    icon: const Icon(Icons.tune),
-                    onPressed: _toggleMixer,
-                  ),
+                  if (_expanded)
+                    IconButton(
+                      tooltip: l10n.mixer,
+                      isSelected: _mixer,
+                      icon: const Icon(Icons.tune),
+                      onPressed: _toggleMixer,
+                    ),
                   IconButton(
                     key: const Key('drawerToggle'),
                     tooltip: _expanded ? l10n.hideTracks : l10n.showTracks,
                     icon: Icon(
                       _expanded ? Icons.expand_more : Icons.expand_less,
                     ),
-                    onPressed: () => setState(() => _expanded = !_expanded),
+                    onPressed: _toggleExpanded,
                   ),
                 ],
               ),

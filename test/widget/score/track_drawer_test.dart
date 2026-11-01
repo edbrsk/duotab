@@ -233,6 +233,39 @@ void main() {
     expect(find.byKey(const ValueKey('trackRow-0')), findsOneWidget);
   });
 
+  testWidgets('collapsed, the header has no add or mixer button', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.tap(find.byKey(const Key('drawerToggle')));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Add track'), findsNothing);
+    expect(find.byTooltip('Mixer'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('drawerToggle')));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Add track'), findsOneWidget);
+    expect(find.byTooltip('Mixer'), findsOneWidget);
+  });
+
+  testWidgets('collapsing stops the meters and expanding brings them back', (
+    tester,
+  ) async {
+    await pump(tester);
+    await tester.tap(find.byTooltip('Mixer'));
+    await tester.pumpAndSettle();
+    verify(() => playback.showMeters(on: true)).called(1);
+
+    await tester.tap(find.byKey(const Key('drawerToggle')));
+    await tester.pumpAndSettle();
+    verify(() => playback.showMeters(on: false)).called(1);
+
+    await tester.tap(find.byKey(const Key('drawerToggle')));
+    await tester.pumpAndSettle();
+    verify(() => playback.showMeters(on: true)).called(1);
+    expect(find.byKey(const ValueKey('mixerRow-1')), findsOneWidget);
+  });
+
   testWidgets('play-only, the fader starts right after mute and solo', (
     tester,
   ) async {
