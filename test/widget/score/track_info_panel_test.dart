@@ -769,7 +769,9 @@ void main() {
     testWidgets('a tap outside a field saves it', (tester) async {
       await pump(tester, withArtist, panelTab: PanelTab.song);
       await tester.enterText(artist, 'Rabea Massaad');
-      await tester.tap(find.text('INFORMATION'));
+      await tester.tapAt(
+        tester.getTopLeft(find.text('INFORMATION')) + const Offset(4, 4),
+      );
       await tester.pump();
       verify(() => editor.setArtist('Rabea Massaad')).called(1);
     });
