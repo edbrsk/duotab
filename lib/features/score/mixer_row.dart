@@ -146,16 +146,27 @@ class _ChannelRow extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Keyed: the readout comes and goes above the fader, which
+                  // would otherwise rebuild the fader and meter.
                   if (compact)
                     SizedBox(
+                      key: const ValueKey('readout'),
                       height: 12,
                       child: Align(
                         alignment: Alignment.centerRight,
                         child: text,
                       ),
                     ),
-                  SizedBox(height: compact ? 26 : 30, child: fader),
-                  SizedBox(height: 8, child: meter),
+                  SizedBox(
+                    key: const ValueKey('fader'),
+                    height: compact ? 26 : 30,
+                    child: fader,
+                  ),
+                  SizedBox(
+                    key: const ValueKey('meter'),
+                    height: 8,
+                    child: meter,
+                  ),
                 ],
               ),
             ),

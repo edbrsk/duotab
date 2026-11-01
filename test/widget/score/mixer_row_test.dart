@@ -137,6 +137,18 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('narrowing keeps the fader and meter', (tester) async {
+    const row = MixerRow(track: _guitar, volumeDb: -6, pan: 0);
+    await pump(tester, row);
+    final fader = tester.state(find.byKey(const ValueKey('fader-0')));
+    final meter = tester.state(find.byKey(const ValueKey('meter-0')));
+
+    await pump(tester, row, width: 165);
+
+    expect(tester.state(find.byKey(const ValueKey('fader-0'))), same(fader));
+    expect(tester.state(find.byKey(const ValueKey('meter-0'))), same(meter));
+  });
+
   testWidgets('each meter repaints on its own', (tester) async {
     await pump(tester, const MixerRow(track: _guitar, volumeDb: 0, pan: 0));
     expect(
