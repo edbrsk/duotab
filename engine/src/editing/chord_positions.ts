@@ -13,23 +13,35 @@ export function openStringsOf(staff: alphaTab.model.Staff): number[] {
 
 /**
  * Fingers a shape needs: one per fretted note, except that the first finger
- * may barre one unbroken run of strings at the lowest fret.
+ * may barre one unbroken run of strings at the lowest fret, and another
+ * finger may barre the adjacent strings at the highest fret that end on the
+ * top fretted string, as in an A-shape barre.
  */
 export function fingersFor(frets: number[]): number {
+  const { low, high } = barres(frets);
+  return frets.filter((f) => f > 0).length - low - high;
+}
+
+/** Fingers each barre saves. */
+function barres(frets: number[]): { low: number; high: number } {
   const fretted = frets.filter((f) => f > 0);
-  if (fretted.length === 0) return 0;
+  if (fretted.length === 0) return { low: 0, high: 0 };
   const lowest = Math.min(...fretted);
-  let best = 0;
-  let run = 0;
+  const highest = Math.max(...fretted);
+  let low = 0;
+  let high = 0;
+  let lowRun = 0;
+  let highRun = 0;
   for (const f of frets) {
-    if (f <= 0) {
-      run = 0;
-      continue;
-    }
-    if (f === lowest) run++;
-    best = Math.max(best, run);
+    // The first finger lies under higher notes; another can't lie over lower ones.
+    lowRun = f <= 0 ? 0 : lowRun + Number(f === lowest);
+    low = Math.max(low, lowRun);
+    if (f <= 0) continue;
+    highRun = f === highest && highest > lowest ? highRun + 1 : 0;
+    high = highRun;
   }
-  return best >= 2 ? fretted.length - best + 1 : fretted.length;
+  const saved = (run: number) => (run >= 2 ? run - 1 : 0);
+  return { low: saved(low), high: saved(high) };
 }
 
 /** The best playable shapes of `spec` at each place on the neck, open position first. `openStrings` are MIDI pitches, low string first. */
@@ -121,6 +133,8 @@ function bestByRegion(positions: ChordPosition[]): ChordPosition[] {
     allFingers(a) - allFingers(b) ||
     strings(b) - strings(a) ||
     fingersFor(a.frets) - fingersFor(b.frets) ||
+    // A barre at the top of a shape is harder to hold than separate fingers.
+    Number(barres(a.frets).high > 0) - Number(barres(b.frets).high > 0) ||
     span(a.frets) - span(b.frets) ||
     a.frets.join().localeCompare(b.frets.join());
   const shapes = new Set(positions.map((p) => p.frets.join()));

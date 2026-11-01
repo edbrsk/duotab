@@ -88,6 +88,16 @@ test('every position keeps the rules', () => {
   expect(broken).toEqual([]);
 }, 60_000);
 
+test('a finger can also barre the highest fret', () => {
+  expect(fingersFor([-1, 3, 2, 3, 3, 3])).toBe(3);
+  expect(fingersFor([-1, 0, 2, 2, 2, 0])).toBe(1);
+  // A barre higher up would sound over the lower note between.
+  expect(fingersFor([-1, 3, 3, 2, 3, 3])).toBe(4);
+  // Only up to the top fretted string, as players hold it.
+  expect(fingersFor([1, 0, 2, 2, 1, 0])).toBe(4);
+  expect(frets(chordPositions(chord(0, '7', ['9']), E_STANDARD))).toContainEqual([-1, 3, 2, 3, 3, 3]);
+});
+
 test('a chord no hand can hold has no positions', () => {
   expect(chordPositions(chord(0, 'dim7', ['b9', '#11', 'b13']), E_STANDARD)).toEqual([]);
 });
