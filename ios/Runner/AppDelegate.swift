@@ -180,6 +180,8 @@ final class OutputLatencyStreamHandler: NSObject, @preconcurrency FlutterStreamH
     -> FlutterError?
   {
     eventSink = events
+    // A second listen without a cancel would otherwise leave the first observer behind.
+    if let observer { NotificationCenter.default.removeObserver(observer) }
     observer = NotificationCenter.default.addObserver(
       forName: AVAudioSession.routeChangeNotification,
       object: nil,
