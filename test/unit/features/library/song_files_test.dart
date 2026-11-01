@@ -4,6 +4,7 @@ import 'package:duoscore/core/storage/json_file.dart';
 import 'package:duoscore/engine/engine_bridge.dart';
 import 'package:duoscore/features/editor/owned_files.dart';
 import 'package:duoscore/features/editor/song_saver.dart';
+import 'package:duoscore/features/library/added_dates.dart';
 import 'package:duoscore/features/library/song_files.dart';
 import 'package:duoscore/features/playback/practice_settings.dart';
 import 'package:duoscore/features/playback/practice_store.dart';
@@ -26,6 +27,8 @@ void main() {
   late PracticeStore practice;
   late SongSaver saver;
   late SongFiles files;
+  late AddedDates dates;
+  var now = DateTime.utc(2026);
 
   setUp(() async {
     root = await Directory.systemTemp.createTemp('song_files_test');
@@ -50,12 +53,19 @@ void main() {
       onSaved: () async {},
       delay: const Duration(milliseconds: 20),
     );
+    now = DateTime.utc(2026);
+    dates = AddedDates(
+      JsonFile(File(p.join(root.path, 'added.json'))),
+      now: () => now,
+    );
+    await dates.datesFor(const [], (_) => now);
     files = SongFiles(
       documents: documents,
       score: score,
       saver: saver,
       practice: practice,
       owned: owned,
+      dates: dates,
     );
   });
 
@@ -110,6 +120,28 @@ void main() {
     expect(doc('Riff 2.gp5').readAsBytesSync(), [9]);
     expect((await practice.load('Riff 2.gp5'))!.speed, 0.5);
     expect(await owned.owns('Riff 2.gp5'), isTrue);
+  });
+
+  test('a renamed song keeps when it arrived', () async {
+    await song('a.gp5');
+    await dates.datesFor(['a.gp5'], (_) => now);
+    now = DateTime.utc(2026, 5);
+    await files.rename('a.gp5', 'Riff');
+
+    expect(await dates.datesFor(['Riff.gp5'], (_) => now), {
+      'Riff.gp5': DateTime.utc(2026),
+    });
+  });
+
+  test('a deleted song forgets when it arrived', () async {
+    await song('a.gp');
+    await dates.datesFor(['a.gp'], (_) => now);
+    await files.delete('a.gp');
+    now = DateTime.utc(2026, 5);
+
+    expect(await dates.datesFor(['a.gp'], (_) => now), {
+      'a.gp': DateTime.utc(2026, 5),
+    });
   });
 
   test('renaming the open song saves to the new name', () async {

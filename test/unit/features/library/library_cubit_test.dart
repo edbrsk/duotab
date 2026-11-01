@@ -6,6 +6,7 @@ import 'package:duoscore/core/storage/json_file.dart';
 import 'package:duoscore/engine/engine_bridge.dart';
 import 'package:duoscore/engine/protocol.dart';
 import 'package:duoscore/features/editor/owned_files.dart';
+import 'package:duoscore/features/library/added_dates.dart';
 import 'package:duoscore/features/library/library_cubit.dart';
 import 'package:duoscore/features/library/song_list_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,9 +34,18 @@ void main() {
   late Directory documents;
   late _Engine engine;
   late OwnedFiles owned;
+  late AddedDates dates;
+  var now = DateTime.utc(2026);
 
   setUp(() async {
+    now = DateTime.utc(2026);
     documents = await Directory.systemTemp.createTemp('library_test');
+    dates = AddedDates(
+      JsonFile(File('${documents.path}/added.json')),
+      now: () => now,
+    );
+    // Past the first run, so songs are dated when first seen, all alike here.
+    await dates.datesFor(const [], (_) => now);
     File('${documents.path}/b.gp').writeAsBytesSync([1]);
     File('${documents.path}/a.gp5').writeAsBytesSync([2]);
     File('${documents.path}/notes.txt').writeAsStringSync('not a song');
@@ -49,8 +59,12 @@ void main() {
 
   blocTest<LibraryCubit, LibraryState>(
     'lists supported files by file name, sorted',
-    build: () =>
-        LibraryCubit(documents: documents, engine: engine, owned: owned),
+    build: () => LibraryCubit(
+      documents: documents,
+      engine: engine,
+      owned: owned,
+      dates: dates,
+    ),
     act: (cubit) => cubit.refresh(),
     expect: () => [
       isA<LibraryState>().having((s) => s.loading, 'loading', isTrue),
@@ -62,6 +76,47 @@ void main() {
     ],
   );
 
+  test('lists the newest song first', () async {
+    final cubit = LibraryCubit(
+      documents: documents,
+      engine: engine,
+      owned: owned,
+      dates: dates,
+    );
+    addTearDown(cubit.close);
+    await cubit.refresh();
+
+    now = DateTime.utc(2026, 2);
+    File('${documents.path}/c.gp').writeAsBytesSync([3]);
+    when(() => engine.summarize('c.gp')).thenAnswer((_) async => _song('C'));
+    await cubit.refresh();
+
+    expect(cubit.state.songs.map((e) => e.name), ['c', 'a', 'b']);
+  });
+
+  test('an edited song keeps its place, by its original', () async {
+    final cubit = LibraryCubit(
+      documents: documents,
+      engine: engine,
+      owned: owned,
+      dates: dates,
+    );
+    addTearDown(cubit.close);
+    await cubit.refresh();
+
+    now = DateTime.utc(2026, 2);
+    File('${documents.path}/a (DuoScore).gp').writeAsBytesSync([3]);
+    await owned.addCopy('a (DuoScore).gp', of: 'a.gp5');
+    when(() => engine.summarize('a (DuoScore).gp'))
+        .thenAnswer((_) async => _song('A'));
+    now = DateTime.utc(2026, 3);
+    File('${documents.path}/d.gp').writeAsBytesSync([4]);
+    when(() => engine.summarize('d.gp')).thenAnswer((_) async => _song('D'));
+    await cubit.refresh();
+
+    expect(cubit.state.songs.map((e) => e.name), ['d', 'a', 'b']);
+  });
+
   test('lists a broken file as unreadable', () async {
     when(
       () => engine.summarize('a.gp5'),
@@ -70,6 +125,7 @@ void main() {
       documents: documents,
       engine: engine,
       owned: owned,
+      dates: dates,
     );
     addTearDown(cubit.close);
 
@@ -86,6 +142,7 @@ void main() {
       documents: documents,
       engine: engine,
       owned: owned,
+      dates: dates,
     );
     addTearDown(cubit.close);
     await cubit.refresh();
@@ -106,6 +163,7 @@ void main() {
       documents: documents,
       engine: engine,
       owned: owned,
+      dates: dates,
     );
     addTearDown(cubit.close);
     await cubit.refresh();
@@ -126,6 +184,7 @@ void main() {
       documents: documents,
       engine: engine,
       owned: owned,
+      dates: dates,
     );
     addTearDown(cubit.close);
 
@@ -145,6 +204,7 @@ void main() {
       documents: documents,
       engine: engine,
       owned: owned,
+      dates: dates,
     );
     addTearDown(cubit.close);
 
@@ -167,6 +227,7 @@ void main() {
       documents: documents,
       engine: engine,
       owned: owned,
+      dates: dates,
     );
     addTearDown(cubit.close);
     await Future.wait([cubit.refresh(), cubit.refresh(), cubit.refresh()]);
@@ -180,6 +241,7 @@ void main() {
       documents: documents,
       engine: engine,
       owned: owned,
+      dates: dates,
     );
     addTearDown(cubit.close);
     await cubit.refresh();
@@ -199,6 +261,7 @@ void main() {
         documents: documents,
         engine: engine,
         owned: failing,
+        dates: dates,
       );
       addTearDown(cubit.close);
       await cubit.refresh();
@@ -218,6 +281,7 @@ void main() {
         documents: documents,
         engine: engine,
         owned: owned,
+        dates: dates,
       );
       addTearDown(cubit.close);
       await cubit.refresh();

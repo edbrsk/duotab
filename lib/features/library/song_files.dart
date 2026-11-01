@@ -6,6 +6,7 @@ import '../editor/owned_files.dart';
 import '../editor/song_saver.dart';
 import '../playback/practice_store.dart';
 import '../score/score_cubit.dart';
+import 'added_dates.dart';
 
 enum NameProblem { empty, invalid, taken }
 
@@ -17,6 +18,7 @@ class SongFiles {
   final SongSaver saver;
   final PracticeStore practice;
   final OwnedFiles owned;
+  final AddedDates dates;
 
   SongFiles({
     required this.documents,
@@ -24,6 +26,7 @@ class SongFiles {
     required this.saver,
     required this.practice,
     required this.owned,
+    required this.dates,
   });
 
   Future<void> delete(String path) async {
@@ -34,6 +37,7 @@ class SongFiles {
     if (file.existsSync()) await file.delete();
     await practice.remove(path);
     await owned.remove(path);
+    await dates.forget(path);
   }
 
   /// Renames the file, keeping its folder and extension; null when done. An
@@ -91,6 +95,7 @@ class SongFiles {
     await File(p.join(documents.path, from)).rename(p.join(documents.path, to));
     await practice.rename(from, to);
     await owned.rename(from, to);
+    await dates.rename(from, to);
     if (open) score.moveTo(to);
   }
 }

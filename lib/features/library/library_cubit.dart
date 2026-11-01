@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../../engine/engine_bridge.dart';
 import '../editor/owned_files.dart';
+import 'added_dates.dart';
 import 'song_list_entry.dart';
 
 const supportedSongExtensions = {
@@ -72,12 +73,14 @@ class LibraryCubit extends Cubit<LibraryState> {
   final Directory documents;
   final EngineBridge engine;
   final OwnedFiles owned;
+  final AddedDates dates;
   final _cache = <String, ({DateTime modified, SongListEntry entry})>{};
 
   LibraryCubit({
     required this.documents,
     required this.engine,
     required this.owned,
+    required this.dates,
   }) : super(const LibraryState(loading: false, songs: []));
 
   Future<void>? _refreshing;
@@ -148,7 +151,38 @@ class LibraryCubit extends Cubit<LibraryState> {
         else if (!pairs.containsValue(entry.path))
           entry,
     ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    await _newestFirst(entries, sorted);
     if (!isClosed) emit(LibraryState(loading: false, songs: entries));
+  }
+
+  /// Songs that arrived together stay in name order. An edited song takes
+  /// its original's date, so editing never moves it.
+  Future<void> _newestFirst(
+    List<SongListEntry> entries,
+    List<String> paths,
+  ) async {
+    final Map<String, DateTime> added;
+    try {
+      added = await dates.datesFor(paths, (path) {
+        try {
+          return File(p.join(documents.path, path)).lastModifiedSync();
+        } on FileSystemException {
+          return DateTime.now();
+        }
+      });
+    } on Object catch (e) {
+      // The songs are still listed, by name.
+      debugPrint('LibraryCubit: could not read when songs arrived: $e');
+      return;
+    }
+    DateTime arrived(SongListEntry entry) =>
+        added[entry.original ?? entry.path] ?? DateTime.now();
+    entries.sort((a, b) {
+      final newer = arrived(b).compareTo(arrived(a));
+      return newer != 0
+          ? newer
+          : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
   }
 
   Future<SongListEntry> _entryFor(File file) async {
