@@ -88,16 +88,7 @@ class _TrackDrawerState extends State<TrackDrawer> {
     if (song == null || song.tracks.isEmpty) return const SizedBox.shrink();
     final playback = context.watch<PlaybackCubit>().state;
     final drawn = scoreState.selectedTrackIndex;
-    final rows = _expanded
-        ? song.tracks
-        : [
-            song.tracks.firstWhere(
-              (t) => t.index == drawn,
-              orElse: () => song.tracks.first,
-            ),
-          ];
-    // The play-only screen is short: collapsed, the drawer is its header.
-    final headerOnly = !_expanded && WorkspaceLayout.isCollapsed(context);
+    final rows = song.tracks;
     final barCount = song.bars.length;
     final maxBody =
         MediaQuery.sizeOf(context).height * kDrawerMaxHeightFraction -
@@ -174,7 +165,7 @@ class _TrackDrawerState extends State<TrackDrawer> {
                 ],
               ),
             ),
-            if (!headerOnly)
+            if (_expanded)
               SizedBox(
                 height: bodyHeight,
                 child: SingleChildScrollView(

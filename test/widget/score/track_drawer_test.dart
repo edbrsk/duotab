@@ -213,13 +213,24 @@ void main() {
     expect(find.text('B 0:32'), findsOneWidget);
   });
 
-  testWidgets("collapsed shows only the drawn track's row", (tester) async {
+  testWidgets('collapsed is only the header, as on the closed phone', (
+    tester,
+  ) async {
     await pump(tester);
     await tester.tap(find.byKey(const Key('drawerToggle')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('trackRow-1')), findsOneWidget);
-    expect(find.byKey(const ValueKey('trackRow-0')), findsNothing);
-    expect(find.byKey(const ValueKey('trackRow-2')), findsNothing);
+    for (final track in [0, 1, 2]) {
+      expect(find.byKey(ValueKey('trackRow-$track')), findsNothing);
+    }
+    expect(find.text('A 0:00'), findsNothing);
+    expect(
+      tester.getSize(find.byType(TrackDrawer)).height,
+      AccessibleSizes.minTouchTarget,
+    );
+
+    await tester.tap(find.byKey(const Key('drawerToggle')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('trackRow-0')), findsOneWidget);
   });
 
   testWidgets('play-only, the fader starts right after mute and solo', (

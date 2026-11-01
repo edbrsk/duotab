@@ -76,7 +76,7 @@ Mockups: `.superpowers/brainstorm/75036-1793277125/content/editor-layout-v2.html
 
 Modelled on Guitar Pro's track list.
 
-- **A collapsible drawer** along the bottom of the score column. Expanded, it lists every track of the song, drums and bass included, and takes up to about 40% of the screen height (about five rows, then it scrolls). Collapsed, it shrinks to one strip with the selected track's row.
+- **A collapsible drawer** along the bottom of the score column. Expanded, it lists every track of the song, drums and bass included, and takes up to about 40% of the screen height (about five rows, then it scrolls). Collapsed, it shrinks to its header (the TRACKS strip with its buttons), in every layout.
 - **Each row**: track name, mute, solo.
 - **Bar overview grid** beside the rows: one cell per bar, filled where that track has notes, with the file's section markers (A, B, C… and their start times) under the grid. A marker shows the current bar and follows playback.
 - **Tapping a cell** selects that track and moves the cursor to the start of that bar, scrolling the score there. For a non-guitar track the cursor moves and the drawn track stays.

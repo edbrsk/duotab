@@ -49,7 +49,7 @@ Mockups: `.superpowers/brainstorm/31075-1793438489/content/folded-layout-v2.html
 - **Closed, the app holds portrait.** Turning the closed phone doesn't rotate it; open, every orientation is allowed again.
 - **The screen stays on** while a song plays, open or closed. Once playback pauses or stops, the screen dims as usual.
 - **Library and Settings** work fully on the outer screen: opening and importing songs, and every setting.
-- **The mixer drawer** stays open or closed as it was across folding and unfolding. In the play-only layout, collapsing the drawer leaves only its header, with no track row.
+- **The mixer drawer** stays open or closed as it was across folding and unfolding. Collapsing the drawer leaves only its header, with no track row.
 - **Changes made closed** (faders, pans, mute, solo, tone, staves, loop, speed) are saved per song exactly as they are when open.
 
 ## Calls I made (the owner can overrule)
