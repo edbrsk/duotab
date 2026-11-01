@@ -71,11 +71,13 @@ void main() {
     VerticalBarEdgeProvider? edge,
     BarActions? barActions,
     double rightPadding = 0,
+    double leftPadding = 0,
+    TextDirection direction = TextDirection.ltr,
   }) async {
     tester.view
       ..physicalSize = Size(width, 626)
       ..devicePixelRatio = 1
-      ..padding = FakeViewPadding(right: rightPadding);
+      ..padding = FakeViewPadding(left: leftPadding, right: rightPadding);
     addTearDown(tester.view.reset);
     Widget app = MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -88,9 +90,12 @@ void main() {
             BlocProvider<EditorCubit>.value(value: editor),
             BlocProvider<SettingsCubit>.value(value: settings),
           ],
-          child: ScorePage(
-            engineView: const Text('engine view'),
-            onExport: onExport,
+          child: Directionality(
+            textDirection: direction,
+            child: ScorePage(
+              engineView: const Text('engine view'),
+              onExport: onExport,
+            ),
           ),
         ),
       ),
@@ -234,6 +239,57 @@ void main() {
       final title = tester.getRect(find.text(drumsAndTwoGuitars.title));
       expect(button.right, greaterThan(466 - Spacing.md - 1));
       expect(title.center.dx, closeTo(466 / 2, 1));
+    });
+
+    testWidgets('without a bar, the whole button can be tapped', (
+      tester,
+    ) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466);
+
+      final button = find.ancestor(
+        of: find.byTooltip(show),
+        matching: find.byType(IconButton),
+      );
+      final row = find.ancestor(of: button, matching: find.byType(Stack)).first;
+      final rect = tester.getRect(button);
+      expect(tester.getRect(row).top, lessThanOrEqualTo(rect.top));
+      expect(tester.getRect(row).bottom, greaterThanOrEqualTo(rect.bottom));
+    });
+
+    testWidgets(
+      'right to left, the close button is where the panel button was',
+      (tester) async {
+        await cubit.open('fixture.gp');
+        await pumpPage(tester, width: 466, direction: TextDirection.rtl);
+        final open = tester.getRect(find.byTooltip(show));
+        expect(open.center.dx, lessThan(466 / 2));
+
+        await tester.tap(find.byTooltip(show));
+        await tester.pumpAndSettle();
+        expect(
+          tester.getRect(find.byTooltip(hide)).center.dx,
+          lessThan(466 / 2),
+        );
+      },
+    );
+
+    testWidgets('without a bar, the button keeps clear of the side insets', (
+      tester,
+    ) async {
+      await cubit.open('fixture.gp');
+      await pumpPage(tester, width: 466, rightPadding: 30);
+      expect(
+        tester.getRect(find.byTooltip(show)).right,
+        lessThanOrEqualTo(436),
+      );
+
+      await tester.tap(find.byTooltip(show));
+      await tester.pumpAndSettle();
+      expect(
+        tester.getRect(find.byTooltip(hide)).right,
+        lessThanOrEqualTo(436),
+      );
     });
 
     testWidgets('another song opens on its sheet', (tester) async {

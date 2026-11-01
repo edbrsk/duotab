@@ -206,7 +206,13 @@ class _TitleRow extends StatelessWidget {
                   ? 0
                   : AccessibleSizes.minTouchTarget,
             ),
-            child: _titleAndExport(context, style),
+            // The stack takes this height, and clips the button to it.
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: AccessibleSizes.minTouchTarget,
+              ),
+              child: Center(child: _titleAndExport(context, style)),
+            ),
           ),
           if (panelButton case final panelButton?)
             PositionedDirectional(end: 0, child: panelButton),
@@ -313,7 +319,10 @@ class _PlayOnlyPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (closeButton case final closeButton?)
-              Align(alignment: Alignment.centerRight, child: closeButton),
+              Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: closeButton,
+              ),
             Expanded(
               child: MediaQuery.removePadding(
                 context: context,
