@@ -2,7 +2,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { expect, test } from 'vitest';
 
 import { chordTones } from '../../src/editing/chord_names';
-import { chordPositions, fingersFor, openStringsOf } from '../../src/editing/chord_positions';
+import { candidatePositions, chordPositions, fingersFor, openStringsOf } from '../../src/editing/chord_positions';
 import type { ChordAddition, ChordSpec, ChordType } from '../../src/protocol';
 
 const E_STANDARD = [40, 45, 50, 55, 59, 64];
@@ -158,3 +158,27 @@ test('a shape needing every finger never leads its place on the neck', () => {
     expect(fingersFor(chordPositions(spec, E_STANDARD)[0].frets), `${spec.root}${spec.type}`).toBeLessThanOrEqual(3);
   }
 });
+
+test('a shape left out is cut for room, or has a fuller or lower copy kept', () => {
+  const region = (p: { open: boolean; lowestFret: number }) => (p.open ? 0 : p.lowestFret);
+  const lost: string[] = [];
+  for (const tuning of [E_STANDARD, DROP_B]) {
+    for (let root = 0; root < 12; root++) {
+      for (const type of types) {
+        const spec = chord(root, type);
+        const kept = chordPositions(spec, tuning);
+        const keptShapes = new Set(kept.map((p) => p.frets.join()));
+        const perRegion = (r: number) => kept.filter((p) => region(p) === r).length;
+        for (const p of candidatePositions(spec, tuning)) {
+          if (keptShapes.has(p.frets.join()) || perRegion(region(p)) === 4) continue;
+          const coveredByKept = (frets: number[]) =>
+            kept.some((q) => q.frets.join() !== frets.join() && frets.every((f, s) => f < 0 || q.frets[s] === f));
+          const lower = p.frets.map((f) => (f < 0 ? f : f - 12));
+          const lowerKept = !p.open && p.lowestFret >= 12 && (keptShapes.has(lower.join()) || coveredByKept(lower));
+          if (!lowerKept && !coveredByKept(p.frets)) lost.push(`${tuning} ${root}${type}: ${p.frets}`);
+        }
+      }
+    }
+  }
+  expect(lost).toEqual([]);
+}, 60_000);

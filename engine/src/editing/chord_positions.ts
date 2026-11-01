@@ -46,6 +46,11 @@ function barres(frets: number[]): { low: number; high: number } {
 
 /** The best playable shapes of `spec` at each place on the neck, open position first. `openStrings` are MIDI pitches, low string first. */
 export function chordPositions(spec: ChordSpec, openStrings: number[], maxFret = 24): ChordPosition[] {
+  return bestByRegion(candidatePositions(spec, openStrings, maxFret));
+}
+
+/** Every shape that plays `spec` within the hand's reach, before choosing the best. */
+export function candidatePositions(spec: ChordSpec, openStrings: number[], maxFret = 24): ChordPosition[] {
   const { required, optional } = chordTones(spec);
   const bass = spec.bass ?? spec.root;
   const allowed = new Set([...required, ...optional, bass]);
@@ -84,8 +89,7 @@ export function chordPositions(spec: ChordSpec, openStrings: number[], maxFret =
     frets[string] = -1;
   };
   search(0, Infinity, -Infinity, false);
-
-  return bestByRegion(withoutSubsets(found));
+  return found;
 }
 
 /** Unplayed strings between the lowest and highest played ones. */
@@ -100,30 +104,25 @@ const span = (frets: number[]) => {
   return fretted.length ? Math.max(...fretted) - Math.min(...fretted) : 0;
 };
 
-/**
- * Drops a shape that another plays on more strings with the same frets, no
- * more fingers, gaps or stretch: the fuller one is as easy.
- */
-function withoutSubsets(positions: ChordPosition[]): ChordPosition[] {
-  const fingers = positions.map((p) => fingersFor(p.frets));
-  const spans = positions.map((p) => span(p.frets));
-  const strings = positions.map((p) => p.frets.filter((f) => f >= 0).length);
-  const gapCounts = positions.map((p) => gaps(p.frets));
-  return positions.filter((p, i) =>
-    !positions.some(
-      (q, j) =>
-        strings[j] > strings[i] &&
-        fingers[j] <= fingers[i] &&
-        spans[j] <= spans[i] &&
-        gapCounts[j] <= gapCounts[i] &&
-        p.frets.every((f, s) => f < 0 || q.frets[s] === f),
-    ),
+/** `q` plays `p` on more strings with the same frets, no more fingers, gaps or stretch: as easy, and fuller. */
+function covers(q: number[], p: number[]): boolean {
+  const strings = (frets: number[]) => frets.filter((f) => f >= 0).length;
+  return (
+    strings(q) > strings(p) &&
+    fingersFor(q) <= fingersFor(p) &&
+    span(q) <= span(p) &&
+    gaps(q) <= gaps(p) &&
+    p.every((f, s) => f < 0 || q[s] === f)
   );
 }
 
 const PER_REGION = 4;
 
-/** The few easiest shapes at each place on the neck, lowest first; open position is one place. */
+/**
+ * The few easiest shapes at each place on the neck, lowest first; open
+ * position is one place. Places are decided from the nut up, so a shape is
+ * left out for a fuller or lower copy only when that copy is kept.
+ */
 function bestByRegion(positions: ChordPosition[]): ChordPosition[] {
   const strings = (p: ChordPosition) => p.frets.filter((f) => f >= 0).length;
   // Every finger in use is a stretch; three or fewer leave the hand free.
@@ -137,17 +136,22 @@ function bestByRegion(positions: ChordPosition[]): ChordPosition[] {
     Number(barres(a.frets).high > 0) - Number(barres(b.frets).high > 0) ||
     span(a.frets) - span(b.frets) ||
     a.frets.join().localeCompare(b.frets.join());
-  const shapes = new Set(positions.map((p) => p.frets.join()));
-  // A shape twelve frets up is the same shape an octave higher.
-  const octaveCopy = (p: ChordPosition) =>
-    !p.open && p.lowestFret >= 12 && shapes.has(p.frets.map((f) => (f < 0 ? f : f - 12)).join());
   const regions = new Map<number, ChordPosition[]>();
   for (const p of positions) {
-    if (octaveCopy(p)) continue;
     const region = p.open ? 0 : p.lowestFret;
     regions.set(region, [...(regions.get(region) ?? []), p]);
   }
-  return [...regions.keys()]
-    .sort((a, b) => a - b)
-    .flatMap((region) => regions.get(region)!.sort(better).slice(0, PER_REGION));
+  const kept: ChordPosition[] = [];
+  const shown = (frets: number[]) => kept.some((q) => q.frets.join() === frets.join() || covers(q.frets, frets));
+  for (const region of [...regions.keys()].sort((a, b) => a - b)) {
+    const here = regions.get(region)!.filter((p) => {
+      if (shown(p.frets)) return false;
+      // A shape twelve frets up is the same shape an octave higher.
+      return p.open || p.lowestFret < 12 || !shown(p.frets.map((f) => (f < 0 ? f : f - 12)));
+    });
+    // A fuller shape here ranks above the one it covers, so it's kept whenever that one would be.
+    const best = here.filter((p) => !here.some((q) => covers(q.frets, p.frets)));
+    kept.push(...best.sort(better).slice(0, PER_REGION));
+  }
+  return kept;
 }
